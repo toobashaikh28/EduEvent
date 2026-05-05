@@ -1,8 +1,20 @@
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+### Maven ###
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+### Logs ###
+*.log
+logs/
+
+### Environment ###
+.env
+application-secret.properties
 
 ### STS ###
 .apt_generated
@@ -31,3 +43,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### OS Files ###
+.DS_Store
+Thumbs.db
