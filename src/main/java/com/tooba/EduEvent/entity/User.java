@@ -1,5 +1,6 @@
 package com.tooba.EduEvent.entity;
 
+import com.tooba.EduEvent.pattern.UserInterface;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder             // Enables the Builder pattern
 @NoArgsConstructor   // Required by JPA
 @AllArgsConstructor  // Required by @Builder
-public class User {
+public class User implements UserInterface {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,4 +44,9 @@ public class User {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Override
+    public boolean isNull() {
+        return false; // A real user is never null
+    }
 }
