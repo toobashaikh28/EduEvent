@@ -3,6 +3,7 @@ package com.tooba.EduEvent.factory;
 import com.tooba.EduEvent.dto.request.RegisterRequest;
 import com.tooba.EduEvent.entity.User;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
