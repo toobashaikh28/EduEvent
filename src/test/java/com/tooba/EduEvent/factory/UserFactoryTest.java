@@ -1,5 +1,6 @@
 package com.tooba.EduEvent.factory;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.tooba.EduEvent.dto.request.RegisterRequest;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.pattern.NullUser;
@@ -10,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserFactoryTest {
 
-    private final UserFactory factory = new UserFactory();
+    private final UserFactory factory = new UserFactory(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder());
 
     @Test
     @DisplayName("Factory should create ADMIN with encoded password")
