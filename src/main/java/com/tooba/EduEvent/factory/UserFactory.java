@@ -5,14 +5,16 @@ import com.tooba.EduEvent.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UserFactory {
 
-    // Helper to create a basic user shell
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     private User.UserBuilder createBaseUser(RegisterRequest req) {
         return User.builder()
                 .name(req.getName())
                 .email(req.getEmail())
-                .password(req.getPassword()) // Note: Encoding will happen in Service layer later
+                .password(passwordEncoder.encode(req.getPassword())) // ENCODE HERE
                 .isActive(true);
     }
 

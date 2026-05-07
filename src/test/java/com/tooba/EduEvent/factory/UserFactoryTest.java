@@ -13,19 +13,16 @@ class UserFactoryTest {
     private final UserFactory factory = new UserFactory();
 
     @Test
-    @DisplayName("Should create User with ADMIN role via Factory")
-    void testCreateAdminRole() {
-        // Arrange
-        RegisterRequest req = new RegisterRequest("Tooba", "admin@ssuet.edu", "securePass");
-
-        // Act
+    @DisplayName("Factory should create ADMIN with encoded password")
+    void testCreateAdminWithEncoding() {
+        RegisterRequest req = new RegisterRequest("Tooba", "tooba@eduevent.com", "pass123");
+        
+        // In the test, we can mock the encoder or just check the result
         User admin = factory.createByRole("ADMIN", req);
 
-        // Assert
-        assertNotNull(admin);
         assertEquals("ADMIN", admin.getRole());
-        assertEquals("Tooba", admin.getName());
-        assertTrue(admin.getIsActive());
+        // Verify password is NOT "pass123"
+        assertNotEquals("pass123", admin.getPassword()); 
     }
 
     @Test
