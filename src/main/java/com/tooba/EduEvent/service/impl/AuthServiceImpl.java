@@ -1,5 +1,7 @@
 package com.tooba.EduEvent.service.impl;
 
+import com.tooba.EduEvent.config.JwtUtil;
+import com.tooba.EduEvent.service.AuthService;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.factory.UserFactory;
 import com.tooba.EduEvent.repository.UserRepository;
@@ -18,6 +20,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final UserFactory userFactory;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     @Override
     public UserResponse register(RegisterRequest request) {
@@ -39,7 +42,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String login(LoginRequest request) {
-        // Logic for login will include findByEmail and JWT generation in next step
-        return "JWT_TOKEN_WILL_GO_HERE";
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        return jwtUtil.generateToken(user.getEmail());
     }
 }
