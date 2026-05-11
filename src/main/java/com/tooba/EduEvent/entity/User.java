@@ -31,6 +31,9 @@ public class User implements UserInterface {
     @Column(nullable = false, length = 50)
     private String role; // Logic handles 'USER', 'ADMIN', 'JUDGE'
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
     @Column(length = 500)
     private String photo;
 
@@ -44,6 +47,11 @@ public class User implements UserInterface {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Override
+    public String getRole() {
+        return this.role;
+    }
 
     @Override
     public boolean isNull() {

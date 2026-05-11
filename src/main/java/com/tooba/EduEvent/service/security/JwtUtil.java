@@ -1,4 +1,4 @@
-package com.tooba.EduEvent.security;
+package com.tooba.EduEvent.service.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

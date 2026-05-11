@@ -1,3 +1,13 @@
+package com.tooba.EduEvent.service.impl;
+
+import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+import com.tooba.EduEvent.service.UserService;
+import com.tooba.EduEvent.repository.UserRepository;
+import com.tooba.EduEvent.entity.User;
+import com.tooba.EduEvent.dto.response.UserResponse;
+import com.tooba.EduEvent.dto.request.UserRequest; 
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -29,7 +39,7 @@ public class UserServiceImpl implements UserService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
+                .role(user.getRole())
                 .build();
     }
 }

@@ -1,6 +1,6 @@
 package com.tooba.EduEvent.service.impl;
 
-import com.tooba.EduEvent.config.JwtUtil;
+import com.tooba.EduEvent.service.security.JwtUtil;
 import com.tooba.EduEvent.service.AuthService;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.factory.UserFactory;
@@ -26,7 +26,7 @@ public class AuthServiceImpl implements AuthService {
     public UserResponse register(RegisterRequest request) {
         // 1. Use Factory to create the user entity based on role
         // We'll default to "USER" or pass it from the request if needed
-        User user = userFactory.createByRole("USER", request.getName(), request.getEmail(), request.getPassword());
+        User user = userFactory.createByRole("USER", request);
         
         // 2. Save to database
         User savedUser = userRepository.save(user);
@@ -36,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
                 .id(savedUser.getId())
                 .name(savedUser.getName())
                 .email(savedUser.getEmail())
-                .role(savedUser.getRole().name())
+                .role(savedUser.getRole())
                 .build();
     }
 
