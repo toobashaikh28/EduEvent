@@ -10,5 +10,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     // Custom query to find a user by email for Login/Security
     // Using Optional prevents NullPointerExceptions
+    Optional<User> findByResetToken(String resetToken);
     Optional<User> findByEmail(String email);
 }
