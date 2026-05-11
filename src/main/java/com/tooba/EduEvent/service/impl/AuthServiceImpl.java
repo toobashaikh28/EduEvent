@@ -52,4 +52,35 @@ public class AuthServiceImpl implements AuthService {
 
         return jwtUtil.generateToken(user.getEmail());
     }
+
+    @Override
+    public void forgotPassword(String email) {
+        // 1. Find user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+
+        // 2. Generate a unique random token (using UUID)
+        String resetToken = java.util.UUID.randomUUID().toString();
+        
+        // 3. Save token to user entity
+        user.setResetToken(resetToken);
+        userRepository.save(user);
+
+        // 4. In a real app, you'd email this token. For now, print it to the console
+        System.out.println("DEBUG: Password reset token for " + email + " is: " + resetToken);
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        // 1. Find user by the reset token
+        User user = userRepository.findByResetToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+        // 2. Encode the new password and update the user
+        user.setPassword(passwordEncoder.encode(newPassword));
+        
+        // 3. Clear the reset token so it can't be used again
+        user.setResetToken(null);
+        userRepository.save(user);
+    }
 }

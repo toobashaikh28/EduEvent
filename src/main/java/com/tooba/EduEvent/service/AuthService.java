@@ -7,4 +7,7 @@ import com.tooba.EduEvent.dto.response.UserResponse;
 public interface AuthService {
     UserResponse register(RegisterRequest request);
     String login(LoginRequest request);
+
+    void forgotPassword(String email);
+    void resetPassword(String token, String newPassword);
 }
