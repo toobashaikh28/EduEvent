@@ -45,6 +45,11 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
+    // Task requires extractUserId() — our token uses email as the unique identifier
+    public String extractUserId(String token) {
+        return extractEmail(token);
+    }
+
     public boolean isTokenValid(String token, String email) {
         return (extractEmail(token).equals(email) && !isTokenExpired(token));
     }

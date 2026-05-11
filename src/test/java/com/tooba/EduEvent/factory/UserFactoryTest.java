@@ -16,8 +16,8 @@ class UserFactoryTest {
     @Test
     @DisplayName("Factory should create ADMIN with encoded password")
     void testCreateAdminWithEncoding() {
-        RegisterRequest req = new RegisterRequest("Tooba", "tooba@eduevent.com", "pass123");
-        
+        RegisterRequest req = new RegisterRequest("Tooba", "tooba@eduevent.com", "pass123", "ADMIN");
+
         // In the test, we can mock the encoder or just check the result
         User admin = factory.createByRole("ADMIN", req);
 

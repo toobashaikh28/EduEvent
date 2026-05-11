@@ -3,6 +3,7 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !mvnw
 !mvnw.cmd
+application.properties
 
 ### Maven ###
 !**/src/main/**/target/
