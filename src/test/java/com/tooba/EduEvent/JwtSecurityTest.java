@@ -1,73 +1,31 @@
-package com.tooba.EduEvent.config;
+package com.tooba.EduEvent;
 
-import com.tooba.EduEvent.service.security.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.tooba.EduEvent.service.security.JwtUtil;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
-import java.util.List;
+@SpringBootTest
+public class JwtSecurityTest {
 
-@Configuration
-@EnableWebSecurity
-@RequiredArgsConstructor
-public class SecurityConfig {
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
+    @Test
+    void generatedTokenShouldBeValid() {
+        String email = "admin@test.com";
+        String token = jwtUtil.generateToken(email);
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        assertNotNull(token, "Token should not be null");
+        assertEquals(email, jwtUtil.extractEmail(token), "Extracted email should match");
+        assertTrue(jwtUtil.isTokenValid(token, email), "Token should be valid");
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // 1. DISABLE CSRF - This is the #1 cause of 403 in Postman!
-            .csrf(AbstractHttpConfigurer::disable) 
-            
-            // 2. ENABLE CORS - Allows Postman to connect to your local server
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // 3. WHITELIST ROUTES
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()               // register, login, forgot/reset password
-                .requestMatchers("/api/events").permitAll()                 // public event listing
-                .requestMatchers("/api/certificates/verify/**").permitAll() // public certificate verification
-                .anyRequest().authenticated()
-            )
-            
-            // 4. STATELESS SESSIONS
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
-
-    // CORS configuration to prevent 403 errors from cross-origin requests
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*")); // Allow all origins for testing
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
-        
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    @Test
+    void tokenShouldFailForWrongEmail() {
+        String token = jwtUtil.generateToken("user@test.com");
+        assertFalse(jwtUtil.isTokenValid(token, "other@test.com"), "Token should be invalid for different email");
     }
 }
