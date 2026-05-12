@@ -1,21 +1,37 @@
 package com.tooba.EduEvent.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
 public class EventRequest {
+
     @NotBlank(message = "Event title is required")
     private String title;
 
-    @NotBlank(message = "Description is required")
+    @NotBlank(message = "Event type is required (Webinar, Conference, Hackathon, Quiz)")
+    private String type;
+
     private String description;
 
-    @Future(message = "Event date must be in the future")
-    private LocalDateTime eventDate;
+    private Integer capacity;
 
-    @NotBlank(message = "Location/Link is required")
-    private String location;
+    @NotNull(message = "Start time is required")
+    @Future(message = "Start time must be in the future")
+    private LocalDateTime startTime;
+
+    @NotNull(message = "End time is required")
+    private LocalDateTime endTime;
+
+    private String status; // UPCOMING, LIVE, COMPLETED, CANCELLED
+
+    /**
+     * Only used for Webinar and Conference types.
+     * Stored in event.joinLink.
+     */
+    private String joinLink;
 }
