@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime; 
 
 @Service
 @RequiredArgsConstructor
@@ -85,11 +86,28 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventResponse> getAllEvents() {
-        return eventRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public List<EventResponse> getAllEvents(String type, String status, LocalDateTime date) {
+        List<Event> events;
+        
+        if (type != null) {
+            events = eventRepository.findByType(type);
+        } else if (status != null) {
+            events = eventRepository.findByStatus(status);
+        } else if (date != null) {
+            events = eventRepository.findByStartTimeAfter(date);
+        } else {
+            events = eventRepository.findAll();
+        }
+        
+        return events.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public EventResponse getEventById(Long id) {
+        // Throwing an exception here ensures we don't return null
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found with id: " + id));
+        return toResponse(event);
     }
 
     private String saveBanner(MultipartFile banner) {
