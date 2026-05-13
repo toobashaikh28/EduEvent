@@ -5,6 +5,7 @@ import com.tooba.EduEvent.dto.response.EventResponse;
 import com.tooba.EduEvent.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,10 +24,19 @@ public class EventController {
 
     private final EventService eventService;
 
-    // GET /api/events  — public (permitted in SecurityConfig)
+    // Combined GET /api/events — Public discovery with optional filters
     @GetMapping
-    public ResponseEntity<List<EventResponse>> getAllEvents() {
-        return ResponseEntity.ok(eventService.getAllEvents());
+    public ResponseEntity<List<EventResponse>> getAllEvents(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
+        return ResponseEntity.ok(eventService.getAllEvents(type, status, date));
+    }
+
+    // GET /api/events/{id} — Public, returns a single event or clean 404
+    @GetMapping("/{id}")
+    public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.getEventById(id));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -35,12 +46,11 @@ public class EventController {
             @RequestPart(value = "banner", required = false) MultipartFile banner,
             Authentication authentication) {
 
-        String adminEmail = authentication.getName(); // JWT subject = email
+        String adminEmail = authentication.getName(); 
         EventResponse response = eventService.createEvent(request, banner, adminEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // PUT /api/events/{id}  — ADMIN only
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> updateEvent(
@@ -52,7 +62,6 @@ public class EventController {
         return ResponseEntity.ok(response);
     }
 
-    // DELETE /api/events/{id}  — ADMIN only
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteEvent(@PathVariable Long id) {
