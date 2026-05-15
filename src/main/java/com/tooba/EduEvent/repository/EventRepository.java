@@ -1,15 +1,27 @@
 package com.tooba.EduEvent.repository;
-
+ 
 import com.tooba.EduEvent.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+ 
 import java.time.LocalDateTime;
 import java.util.List;
-
+ 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
-    // Spring Data JPA automatically writes the SQL for these:
-    List<Event> findByType(String type);
-    List<Event> findByStatus(String status);
+ 
+    // Force LOWER() on both sides in the SQL itself — bypasses SQL Server collation completely
+    @Query("SELECT e FROM Event e WHERE LOWER(e.type) = LOWER(:type)")
+    List<Event> findByTypeIgnoreCase(@Param("type") String type);
+ 
+    @Query("SELECT e FROM Event e WHERE LOWER(e.status) = LOWER(:status)")
+    List<Event> findByStatusIgnoreCase(@Param("status") String status);
+ 
+    // Add these two methods to your existing repository
+    List<Event> findByStartTimeBeforeAndStatus(LocalDateTime now, String status);
+    List<Event> findByEndTimeBeforeAndStatus(LocalDateTime now, String status);
     List<Event> findByStartTimeAfter(LocalDateTime date);
 }
+ 
