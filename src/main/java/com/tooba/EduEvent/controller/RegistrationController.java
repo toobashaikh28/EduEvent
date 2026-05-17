@@ -4,6 +4,7 @@ import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.repository.UserRepository;
 import com.tooba.EduEvent.service.RegistrationService;
+import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,8 @@ import java.util.List;
 public class RegistrationController {
 
     private final RegistrationService registrationService;
-    private final UserRepository      userRepository;
+    private final WaitlistService waitlistService;
+    private final UserRepository userRepository;
 
     // POST /api/events/{id}/register — Register the logged-in user for an event
     @PostMapping("/events/{id}/register")
@@ -59,6 +61,15 @@ public class RegistrationController {
         return ResponseEntity.ok(registrationService.getRegistrationsByEvent(eventId));
     }
 
+    // GET /api/events/{id}/waitlist — Admin only: view current waitlist with positions
+    @GetMapping("/events/{id}/waitlist")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<RegistrationResponse>> getEventWaitlist(
+            @PathVariable("id") Long eventId) {
+
+        return ResponseEntity.ok(waitlistService.getWaitlistByEvent(eventId));
+    }
+
     // GET /api/users/me/registrations — Logged-in user sees their own registrations
     @GetMapping("/users/me/registrations")
     public ResponseEntity<List<RegistrationResponse>> getMyRegistrations(
@@ -70,7 +81,6 @@ public class RegistrationController {
 
     // ── helper ────────────────────────────────────────────────────────────────
 
-    // Reads the email from the JWT (set by JwtAuthenticationFilter) and looks up the User
     private Long resolveUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
