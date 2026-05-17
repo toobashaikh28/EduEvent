@@ -22,4 +22,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
 
     // User dashboard: all registrations for a user
     List<Registration> findByUserId(Long userId);
+
+    // Finds the oldest waitlisted user for an event (Lowest position number)
+    Optional<Registration> findFirstByEventIdAndStatusOrderByRegisteredAtAsc(Long eventId, RegistrationStatus status);
 }
