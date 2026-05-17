@@ -3,6 +3,7 @@ package com.tooba.EduEvent.service.impl;
 import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
+import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.RegistrationService;
 import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final WaitlistService waitlistService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -54,6 +56,22 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .build();
 
         Registration saved = registrationRepository.save(registration);
+
+        // Hook: notify user after registration
+        if (targetStatus == RegistrationStatus.REGISTERED) {
+            notificationService.send(
+                    userId,
+                    "Registration Confirmed",
+                    "You have successfully registered for: " + event.getTitle()
+            );
+        } else {
+            notificationService.send(
+                    userId,
+                    "Added to Waitlist",
+                    "The event is full. You are on the waitlist for: " + event.getTitle()
+            );
+        }
+
         return toResponse(saved);
     }
 
