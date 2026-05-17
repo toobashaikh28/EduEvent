@@ -24,7 +24,6 @@ public class JwtUtil {
 
     private Key key;
 
-    // This method runs once after the bean is initialized to set up the Key
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
@@ -45,11 +44,22 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
-    // Task requires extractUserId() — our token uses email as the unique identifier
+    // Checklist requires extractUserId() — token subject is email (unique identifier)
     public String extractUserId(String token) {
         return extractEmail(token);
     }
 
+    // Checklist requires validateToken()
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token);
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // Used by JwtAuthenticationFilter for email + expiry check
     public boolean isTokenValid(String token, String email) {
         return (extractEmail(token).equals(email) && !isTokenExpired(token));
     }
