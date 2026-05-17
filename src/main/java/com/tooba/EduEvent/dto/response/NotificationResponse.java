@@ -1,12 +1,16 @@
 package com.tooba.EduEvent.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 public class NotificationResponse {
+    private Long id;
     private String title;
     private String message;
-    private LocalDateTime timestamp;
-    private boolean isRead;
+    private Boolean isRead;
+    private LocalDateTime createdAt;
 }
