@@ -4,6 +4,7 @@ import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.Registration;
 import com.tooba.EduEvent.entity.RegistrationStatus;
 import com.tooba.EduEvent.repository.RegistrationRepository;
+import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,23 +14,35 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service // Singleton
+@Service
 @RequiredArgsConstructor
 @Slf4j
 public class WaitlistServiceImpl implements WaitlistService {
 
     private final RegistrationRepository registrationRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public void promoteNext(Long eventId) {
-        // Find waitlist entry with lowest position number (earliest timestamp)
-        registrationRepository.findFirstByEventIdAndStatusOrderByRegisteredAtAsc(eventId, RegistrationStatus.WAITLISTED)
-            .ifPresent(nextInLine -> {
-                nextInLine.setStatus(RegistrationStatus.REGISTERED);
-                registrationRepository.save(nextInLine);
-                log.info("User ID {} has been promoted to REGISTERED for Event ID {}", nextInLine.getUser().getId(), eventId);
-            });
+        registrationRepository
+                .findFirstByEventIdAndStatusOrderByRegisteredAtAsc(eventId, RegistrationStatus.WAITLISTED)
+                .ifPresent(nextInLine -> {
+                    nextInLine.setStatus(RegistrationStatus.REGISTERED);
+                    registrationRepository.save(nextInLine);
+
+                    Long userId = nextInLine.getUser().getId();
+                    String eventTitle = nextInLine.getEvent().getTitle();
+
+                    // Hook: notify user after waitlist promotion
+                    notificationService.send(
+                            userId,
+                            "You're In!",
+                            "A spot opened up. You have been promoted from the waitlist for: " + eventTitle
+                    );
+
+                    log.info("User ID {} promoted to REGISTERED for Event ID {}", userId, eventId);
+                });
     }
 
     @Override
