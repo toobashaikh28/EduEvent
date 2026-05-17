@@ -24,7 +24,7 @@ public class EventController {
 
     private final EventService eventService;
 
-    // Combined GET /api/events — Public discovery with optional filters
+    // GET /api/events — Public discovery with optional filters
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents(
             @RequestParam(required = false) String type,
@@ -46,7 +46,7 @@ public class EventController {
             @RequestPart(value = "banner", required = false) MultipartFile banner,
             Authentication authentication) {
 
-        String adminEmail = authentication.getName(); 
+        String adminEmail = authentication.getName();
         EventResponse response = eventService.createEvent(request, banner, adminEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
