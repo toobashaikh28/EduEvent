@@ -3,7 +3,12 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !mvnw
 !mvnw.cmd
+
+# Credentials — NEVER commit these
 application.properties
+application-local.properties
+application-secret.properties
+.env
 
 ### Maven ###
 !**/src/main/**/target/
@@ -13,9 +18,14 @@ application.properties
 *.log
 logs/
 
-### Environment ###
-.env
-application-secret.properties
+### Uploads ###
+uploads/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
 
 ### STS ###
 .apt_generated
@@ -25,12 +35,6 @@ application-secret.properties
 .settings
 .springBeans
 .sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
 
 ### NetBeans ###
 /nbproject/private/
