@@ -4,6 +4,7 @@ import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.RegistrationService;
+import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,44 +14,39 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service  // Singleton — Spring manages one shared instance
+@Service
 @RequiredArgsConstructor
 public class RegistrationServiceImpl implements RegistrationService {
 
     private final RegistrationRepository registrationRepository;
-    private final EventRepository        eventRepository;
-    private final UserRepository         userRepository;
+    private final EventRepository eventRepository;
+    private final UserRepository userRepository;
+    private final WaitlistService waitlistService;
 
     @Override
     @Transactional
     public RegistrationResponse registerUserToEvent(Long userId, Long eventId) {
 
-        // 1. Validate Event & User existence
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // 2. Prevent duplicate active registrations (allow re-register after CANCELLED)
         registrationRepository.findByUserIdAndEventId(userId, eventId).ifPresent(existing -> {
             if (existing.getStatus() != RegistrationStatus.CANCELLED) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "You are already registered or waitlisted for this event.");
             }
-            // Delete the old CANCELLED record so a fresh one is created below
             registrationRepository.delete(existing);
         });
 
-        // 3. Count current REGISTERED seats (waitlisted users don't occupy a seat)
         long currentRegistrations = registrationRepository
                 .countByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED);
 
-        // 4. Determine status based on capacity
         RegistrationStatus targetStatus = (currentRegistrations < event.getCapacity())
                 ? RegistrationStatus.REGISTERED
                 : RegistrationStatus.WAITLISTED;
 
-        // 5. Build and save using Builder pattern (Singleton service, Builder entity)
         Registration registration = Registration.builder()
                 .user(user)
                 .event(event)
@@ -74,9 +70,14 @@ public class RegistrationServiceImpl implements RegistrationService {
                     "Registration is already cancelled.");
         }
 
-        // Soft delete — keeps audit trail, allows re-registration later
+        RegistrationStatus previousStatus = registration.getStatus();
+
         registration.setStatus(RegistrationStatus.CANCELLED);
         registrationRepository.save(registration);
+
+        if (previousStatus == RegistrationStatus.REGISTERED) {
+            waitlistService.promoteNext(eventId);
+        }
     }
 
     @Override
@@ -95,8 +96,6 @@ public class RegistrationServiceImpl implements RegistrationService {
         return registrationRepository.findByUserId(userId)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
-
-    // ── private mapper ────────────────────────────────────────────────────────
 
     private RegistrationResponse toResponse(Registration reg) {
         return RegistrationResponse.builder()
