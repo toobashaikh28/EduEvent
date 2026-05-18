@@ -6,6 +6,7 @@ import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.RegistrationService;
 import com.tooba.EduEvent.service.WaitlistService;
+import com.tooba.EduEvent.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final UserRepository userRepository;
     private final WaitlistService waitlistService;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -56,6 +58,17 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .build();
 
         Registration saved = registrationRepository.save(registration);
+
+        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                String subject = "EduEvent Update: Registration Form Processed";
+                String body = "Hi " + user.getName() + ",\n\n" +
+                        (targetStatus == RegistrationStatus.REGISTERED 
+                        ? "Your seat for '" + event.getTitle() + "' is fully CONFIRMED!" 
+                        : "The event is currently full. You've been placed on the WAITLIST for '" + event.getTitle() + "'.") +
+                        "\n\nEvent details are accessible directly in your application dashboard.\n\nBest,\nEduEvent Team";
+                        
+                emailService.sendEmail(user.getEmail(), subject, body);
+        }
 
         // Hook: notify user after registration
         if (targetStatus == RegistrationStatus.REGISTERED) {
