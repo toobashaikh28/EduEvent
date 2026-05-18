@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.tooba.EduEvent.service.EmailService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ public class WaitlistServiceImpl implements WaitlistService {
 
     private final RegistrationRepository registrationRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -42,6 +44,16 @@ public class WaitlistServiceImpl implements WaitlistService {
                     );
 
                     log.info("User ID {} promoted to REGISTERED for Event ID {}", userId, eventId);
+
+                    String userEmail = nextInLine.getUser().getEmail();
+                    if (userEmail != null && !userEmail.isEmpty()) {
+                        String subject = "Good News! Waitlist Promotion for " + nextInLine.getEvent().getTitle();
+                        String body = "Hi " + nextInLine.getUser().getName() + ",\n\n" +
+                                "A spot has just opened up! You have been successfully promoted from the waitlist to REGISTERED for '" + 
+                                nextInLine.getEvent().getTitle() + "'.\n\nWe look forward to seeing you there!\n\nBest,\nEduEvent Team";
+                        
+                        emailService.sendEmail(userEmail, subject, body);
+                    }
                 });
     }
 
