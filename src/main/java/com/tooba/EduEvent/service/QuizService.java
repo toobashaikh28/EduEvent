@@ -14,7 +14,7 @@ public interface QuizService {
     void deleteQuestion(Long questionId);
     
     QuizSessionResponse startQuiz(Long quizId, String userEmail);
-    QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request);
+    QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request, String userEmail);
     ViolationResponse recordViolation(Long sessionId, ViolationRequest request);
     
     List<AdminQuizResultResponse> getQuizResults(Long quizId);
