@@ -41,10 +41,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
 
+                // Expose the static quiz file so users can view the page
+                .requestMatchers("/quiz.html").permitAll()
+
+                // Allow users to start, submit, and record violations for quiz sessions
+                // Note: If you require login BEFORE starting a quiz, change this to .authenticated()
+                .requestMatchers("/api/quiz/**").permitAll()
+
                 // FIX #4: Changed "/api/events" to "/api/events/**" so that
-                // GET /api/events/{id} is also public (previously it fell into
-                // anyRequest().authenticated() and returned 401 for unauthenticated users).
-                // The task spec says both GET /api/events and GET /api/events/{id} are public.
+                // GET /api/events/{id} is also public
                 .requestMatchers("/api/events", "/api/events/**").permitAll()
 
                 .requestMatchers("/api/certificates/verify/**").permitAll()
@@ -64,14 +69,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // FIX #12: Replaced wildcard "*" with specific allowed origin for production safety.
-        // During development you can add "http://localhost:3000" etc. as needed.
-        // Using "*" with credentials is rejected by browsers anyway, so being explicit is correct.
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",   // local frontend dev
-                "http://localhost:8080"    // local Postman / Swagger
+                "http://localhost:8080"    // local Postman / Swagger / Static HTML
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
+        configuration.setAllowCredentials(true); // Allows cookies/auth headers across origins if needed
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
