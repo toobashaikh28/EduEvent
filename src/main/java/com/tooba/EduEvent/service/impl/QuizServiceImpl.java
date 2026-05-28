@@ -176,9 +176,15 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     @Transactional
-    public QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request) {
+    public QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request, String userEmail) {
         QuizSession session = quizSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
+
+        // Bug 3 fix: verify the session belongs to the caller
+        if (!session.getUser().getEmail().equals(userEmail)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Access Denied: You can only submit your own quiz session.");
+        }
 
         // 🛡️ Guard 4: Block grading attempts if security engine terminated the track
         if ("INVALIDATED".equals(session.getStatus())) {
