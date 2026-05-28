@@ -64,7 +64,8 @@ public class QuizController {
             @PathVariable Long id,
             @RequestBody SubmitQuizRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(quizService.submitQuiz(id, request));
+        // Bug 3 fix: pass the caller's email so the service can verify session ownership
+        return ResponseEntity.ok(quizService.submitQuiz(id, request, userDetails.getUsername()));
     }
 
     // Record violation
