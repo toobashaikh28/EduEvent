@@ -19,24 +19,28 @@ public class QuizSession {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
-    @CreationTimestamp
-    @Column(name = "start_time")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(precision = 5, scale = 2)
-    private java.math.BigDecimal score;
+    @Column(name = "score")
+    private Double score;
 
+    // ONGOING, COMPLETED, INVALIDATED
     @Builder.Default
-    @Column(nullable = false)
-    private String status = "ONGOING"; // 'ONGOING', 'COMPLETED', 'INVALIDATED', 'EXPIRED'
+    @Column(name = "status", nullable = false)
+    private String status = "ONGOING";
+
+    @Column(name = "violation_count")
+    @Builder.Default
+    private Integer violationCount = 0;
 }

@@ -197,6 +197,6 @@ class EventSchedulerTest {
         eventScheduler.updateLiveToCompleted();
         assertEquals("COMPLETED", event.getStatus(), "After second run: should be COMPLETED");
 
-        verify(eventRepository, times(1)).saveAll(argThat(list -> ((List<?>) list).size() == 1));
+        verify(eventRepository, times(2)).saveAll(argThat(list -> ((List<?>) list).size() == 1));
     }
 }

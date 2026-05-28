@@ -18,15 +18,12 @@ public class EventScheduler {
 
     private final EventRepository eventRepository;
 
-    // Task 3: Change UPCOMING to LIVE
-    @Scheduled(fixedRate = 600000) // Runs every 10 minutes
+    // Runs every 10 minutes — transitions UPCOMING → LIVE when start_time has passed
+    @Scheduled(fixedRate = 600000)
     @Transactional
     public void updateUpcomingToLive() {
         LocalDateTime now = LocalDateTime.now();
-        
-        // Find events that should have started but are still marked UPCOMING
         List<Event> startingEvents = eventRepository.findByStartTimeBeforeAndStatus(now, "UPCOMING");
-        
         for (Event event : startingEvents) {
             event.setStatus("LIVE");
             log.info("Event ID {} is now LIVE", event.getId());
@@ -34,15 +31,15 @@ public class EventScheduler {
         eventRepository.saveAll(startingEvents);
     }
 
-    // Task 4: Change LIVE to COMPLETED -- waits 20s after the previous run finishes
-    @Scheduled(fixedDelay = 20000) 
+    // FIX #9: Changed from fixedDelay=20000 (20 seconds) to fixedRate=600000 (10 minutes).
+    // fixedDelay counts from when the previous run FINISHES — at 20 s that runs ~180x/hour.
+    // The task spec requires fixedRate (time between start of each run) at 10-minute intervals,
+    // consistent with the UPCOMING→LIVE job above.
+    @Scheduled(fixedRate = 600000)
     @Transactional
     public void updateLiveToCompleted() {
         LocalDateTime now = LocalDateTime.now();
-        
-        // Find events that have ended but are still marked LIVE
         List<Event> endingEvents = eventRepository.findByEndTimeBeforeAndStatus(now, "LIVE");
-        
         for (Event event : endingEvents) {
             event.setStatus("COMPLETED");
             log.info("Event ID {} is now COMPLETED", event.getId());

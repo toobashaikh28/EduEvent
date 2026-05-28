@@ -3,8 +3,8 @@ package com.tooba.EduEvent.service.impl;
 import com.tooba.EduEvent.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service // Singleton

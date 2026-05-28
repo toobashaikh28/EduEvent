@@ -22,10 +22,11 @@ public class Violation {
     @JoinColumn(name = "session_id", nullable = false)
     private QuizSession session;
 
-    @Column(nullable = false)
-    private String type; // e.g., 'TAB_SWITCH', 'FULLSCREEN_EXIT'
+    // face_missing, gaze_away, tab_switch
+    @Column(name = "type", nullable = false, length = 50)
+    private String type;
 
     @CreationTimestamp
-    @Column(name = "violation_time")
-    private LocalDateTime violationTime;
+    @Column(name = "recorded_at", nullable = false, updatable = false)
+    private LocalDateTime recordedAt;
 }

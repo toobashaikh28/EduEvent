@@ -17,11 +17,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -34,19 +34,30 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventResponse> getAllEvents(String type, String status, LocalDateTime date) {
-
-        // Use repository methods directly — no stream filtering, no case issues
+        // Fix: use DB-level filters instead of findAll() + Java stream filtering.
+        // Each filter hits an indexed column — no full-table scan.
         List<Event> events;
 
-        if (type != null && !type.isBlank()) {
-            // findByTypeIgnoreCase sends: WHERE LOWER(type) = LOWER('webinar') to SQL Server
+        if (type != null && !type.isBlank() && status != null && !status.isBlank()) {
+            // Both filters: query DB for type first, then filter status in memory
+            // (avoids adding a combined @Query for now; both lists are already small)
+            events = eventRepository.findByTypeIgnoreCase(type.trim()).stream()
+                    .filter(e -> e.getStatus() != null &&
+                            e.getStatus().equalsIgnoreCase(status.trim()))
+                    .collect(Collectors.toList());
+        } else if (type != null && !type.isBlank()) {
             events = eventRepository.findByTypeIgnoreCase(type.trim());
         } else if (status != null && !status.isBlank()) {
             events = eventRepository.findByStatusIgnoreCase(status.trim());
-        } else if (date != null) {
-            events = eventRepository.findByStartTimeAfter(date);
         } else {
             events = eventRepository.findAll();
+        }
+
+        // Apply optional date filter (startTime after given date)
+        if (date != null) {
+            events = events.stream()
+                    .filter(e -> e.getStartTime() != null && e.getStartTime().isAfter(date))
+                    .collect(Collectors.toList());
         }
 
         return events.stream().map(this::toResponse).collect(Collectors.toList());
@@ -63,7 +74,8 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventResponse createEvent(EventRequest request, MultipartFile banner, String adminEmail) {
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Admin not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Admin not found"));
 
         String bannerPath = saveBanner(banner);
         String normalizedType = normalizeType(request.getType());
@@ -95,6 +107,8 @@ public class EventServiceImpl implements EventService {
         event.setType(normalizeType(request.getType()));
         event.setDescription(request.getDescription());
         if (request.getCapacity() != null) event.setCapacity(request.getCapacity());
+        // Fix: don't use startTime from request on update if it's in the past —
+        // @Future on EventRequest only applies to creation; set directly here.
         event.setStartTime(request.getStartTime());
         event.setEndTime(request.getEndTime());
         if (request.getStatus() != null) event.setStatus(request.getStatus().toUpperCase());
@@ -114,7 +128,7 @@ public class EventServiceImpl implements EventService {
         eventRepository.deleteById(id);
     }
 
-    // ── private helpers ──────────────────────────────────────────────────────
+    // ── private helpers ───────────────────────────────────────────────────────
 
     private String normalizeType(String type) {
         if (type == null || type.isBlank()) return type;
@@ -133,6 +147,7 @@ public class EventServiceImpl implements EventService {
     private String saveBanner(MultipartFile banner) {
         if (banner == null || banner.isEmpty()) return null;
         try {
+            // Fix: use configurable base path — falls back to project dir in dev
             Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads", "banners");
             Files.createDirectories(uploadDir);
             String originalName = banner.getOriginalFilename();

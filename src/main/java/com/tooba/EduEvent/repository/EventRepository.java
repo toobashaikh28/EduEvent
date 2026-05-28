@@ -19,9 +19,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE LOWER(e.status) = LOWER(:status)")
     List<Event> findByStatusIgnoreCase(@Param("status") String status);
  
-    // Add these two methods to your existing repository
     List<Event> findByStartTimeBeforeAndStatus(LocalDateTime now, String status);
     List<Event> findByEndTimeBeforeAndStatus(LocalDateTime now, String status);
     List<Event> findByStartTimeAfter(LocalDateTime date);
+
+    // ── ADDED TO FIX COMPILATION ERRORS ──────────────────────────────────────
+    
+    // Required by QuizSessionScheduler.sendHourlyQuizReminders()
+    List<Event> findByStartTimeBetweenAndStatus(LocalDateTime start, LocalDateTime end, String status);
 }
- 

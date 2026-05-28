@@ -3,10 +3,10 @@ package com.tooba.EduEvent.service.impl;
 import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
+import com.tooba.EduEvent.service.EmailService;
 import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.RegistrationService;
 import com.tooba.EduEvent.service.WaitlistService;
-import com.tooba.EduEvent.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -41,7 +41,12 @@ public class RegistrationServiceImpl implements RegistrationService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "You are already registered or waitlisted for this event.");
             }
-            registrationRepository.delete(existing);
+            // FIX #6: deleteById + flush ensures the old cancelled row is physically removed
+            // from the DB before we save a new one with the same (user_id, event_id) pair.
+            // Without flush(), Hibernate may batch the delete and insert in the wrong order,
+            // hitting the UNIQUE constraint on (user_id, event_id) in the registrations table.
+            registrationRepository.deleteById(existing.getId());
+            registrationRepository.flush();
         });
 
         long currentRegistrations = registrationRepository
@@ -59,18 +64,20 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         Registration saved = registrationRepository.save(registration);
 
+        // Send confirmation email
         if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-                String subject = "EduEvent Update: Registration Form Processed";
-                String body = "Hi " + user.getName() + ",\n\n" +
-                        (targetStatus == RegistrationStatus.REGISTERED 
-                        ? "Your seat for '" + event.getTitle() + "' is fully CONFIRMED!" 
-                        : "The event is currently full. You've been placed on the WAITLIST for '" + event.getTitle() + "'.") +
-                        "\n\nEvent details are accessible directly in your application dashboard.\n\nBest,\nEduEvent Team";
-                        
-                emailService.sendEmail(user.getEmail(), subject, body);
+            String subject = "EduEvent Update: Registration Processed";
+            String body = "Hi " + user.getName() + ",\n\n"
+                    + (targetStatus == RegistrationStatus.REGISTERED
+                            ? "Your seat for '" + event.getTitle() + "' is CONFIRMED!"
+                            : "The event is full. You have been placed on the WAITLIST for '"
+                              + event.getTitle() + "'.")
+                    + "\n\nEvent details are accessible in your application dashboard."
+                    + "\n\nBest,\nEduEvent Team";
+            emailService.sendEmail(user.getEmail(), subject, body);
         }
 
-        // Hook: notify user after registration
+        // In-app notification
         if (targetStatus == RegistrationStatus.REGISTERED) {
             notificationService.send(
                     userId,
@@ -106,6 +113,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         registration.setStatus(RegistrationStatus.CANCELLED);
         registrationRepository.save(registration);
 
+        // Only promote from waitlist if a confirmed seat was freed
         if (previousStatus == RegistrationStatus.REGISTERED) {
             waitlistService.promoteNext(eventId);
         }

@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Data                // Generates getters, setters, toString, equals, and hashCode
-@Builder             // Enables the Builder pattern
-@NoArgsConstructor   // Required by JPA
-@AllArgsConstructor  // Required by @Builder
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User implements UserInterface {
 
     @Id
@@ -29,10 +29,14 @@ public class User implements UserInterface {
     private String password;
 
     @Column(nullable = false, length = 50)
-    private String role; // Logic handles 'USER', 'ADMIN', 'JUDGE'
+    private String role; // 'USER', 'ADMIN', 'JUDGE'
 
     @Column(name = "reset_token")
     private String resetToken;
+
+    // Fix: expiry timestamp so reset links expire after 1 hour
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
 
     @Column(length = 500)
     private String photo;
@@ -55,6 +59,6 @@ public class User implements UserInterface {
 
     @Override
     public boolean isNull() {
-        return false; // A real user is never null
+        return false;
     }
 }

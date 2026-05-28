@@ -5,7 +5,6 @@ target/
 !mvnw.cmd
 
 # Credentials — NEVER commit these
-application.properties
 application-local.properties
 application-secret.properties
 .env

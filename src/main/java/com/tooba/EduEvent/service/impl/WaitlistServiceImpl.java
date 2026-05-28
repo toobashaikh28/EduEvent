@@ -4,13 +4,13 @@ import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.Registration;
 import com.tooba.EduEvent.entity.RegistrationStatus;
 import com.tooba.EduEvent.repository.RegistrationRepository;
+import com.tooba.EduEvent.service.EmailService;
 import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.tooba.EduEvent.service.EmailService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +36,6 @@ public class WaitlistServiceImpl implements WaitlistService {
                     Long userId = nextInLine.getUser().getId();
                     String eventTitle = nextInLine.getEvent().getTitle();
 
-                    // Hook: notify user after waitlist promotion
                     notificationService.send(
                             userId,
                             "You're In!",
@@ -47,11 +46,11 @@ public class WaitlistServiceImpl implements WaitlistService {
 
                     String userEmail = nextInLine.getUser().getEmail();
                     if (userEmail != null && !userEmail.isEmpty()) {
-                        String subject = "Good News! Waitlist Promotion for " + nextInLine.getEvent().getTitle();
-                        String body = "Hi " + nextInLine.getUser().getName() + ",\n\n" +
-                                "A spot has just opened up! You have been successfully promoted from the waitlist to REGISTERED for '" + 
-                                nextInLine.getEvent().getTitle() + "'.\n\nWe look forward to seeing you there!\n\nBest,\nEduEvent Team";
-                        
+                        String subject = "Good News! Waitlist Promotion for " + eventTitle;
+                        String body = "Hi " + nextInLine.getUser().getName() + ",\n\n"
+                                + "A spot has just opened up! You have been promoted from the waitlist "
+                                + "to REGISTERED for '" + eventTitle + "'."
+                                + "\n\nWe look forward to seeing you there!\n\nBest,\nEduEvent Team";
                         emailService.sendEmail(userEmail, subject, body);
                     }
                 });
@@ -60,8 +59,13 @@ public class WaitlistServiceImpl implements WaitlistService {
     @Override
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getWaitlistByEvent(Long eventId) {
-        return registrationRepository.findByEventId(eventId).stream()
-                .filter(reg -> reg.getStatus() == RegistrationStatus.WAITLISTED)
+        // FIX #8: Query the DB directly for WAITLISTED rows instead of loading ALL
+        // registrations for the event and filtering in Java memory.
+        // Previously: registrationRepository.findByEventId(eventId).stream().filter(...)
+        // This required RegistrationRepository to have findByEventIdAndStatus — added below.
+        return registrationRepository
+                .findByEventIdAndStatus(eventId, RegistrationStatus.WAITLISTED)
+                .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }

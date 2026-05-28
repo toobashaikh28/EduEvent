@@ -5,10 +5,6 @@ import lombok.Data;
 
 @Data
 public class ViolationRequest {
-    private Long userId;
-    
     @NotBlank(message = "Violation type is required")
-    private String type; // e.g., "TAB_SWITCH", "FACE_NOT_DETECTED"
-
-    private String description;
+    private String type; // face_missing, gaze_away, tab_switch
 }

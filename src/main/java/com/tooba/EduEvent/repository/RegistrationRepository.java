@@ -17,12 +17,20 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     // Find a specific user+event pair (any status) — used for duplicate check & cancel
     Optional<Registration> findByUserIdAndEventId(Long userId, Long eventId);
 
-    // Admin: all registrations for an event
+    // Admin: all registrations for an event (any status)
     List<Registration> findByEventId(Long eventId);
+
+    // FIX #8: Added to support WaitlistServiceImpl.getWaitlistByEvent().
+    // Converts the memory filter into an efficient SQL WHERE clause.
+    List<Registration> findByEventIdAndStatus(Long eventId, RegistrationStatus status);
 
     // User dashboard: all registrations for a user
     List<Registration> findByUserId(Long userId);
 
-    // Finds the oldest waitlisted user for an event (Lowest position number)
-    Optional<Registration> findFirstByEventIdAndStatusOrderByRegisteredAtAsc(Long eventId, RegistrationStatus status);
+    // Finds the oldest waitlisted entry for an event — used by promoteNext()
+    Optional<Registration> findFirstByEventIdAndStatusOrderByRegisteredAtAsc(
+            Long eventId, RegistrationStatus status);
+
+    // 🟢 FIXED: Added method declaration to support verification in QuizServiceImpl
+    boolean existsByUserIdAndEventIdAndStatus(Long userId, Long eventId, RegistrationStatus status);
 }

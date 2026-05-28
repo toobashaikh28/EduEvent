@@ -1,12 +1,14 @@
 package com.tooba.EduEvent.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class QuizResultResponse {
-    private String quizTitle;
-    private int totalScore;
-    private int obtainedMarks;
-    private String feedback;
-    private boolean passed;
+    private Double score;
+    private Double passScore;
+    private Boolean isPassed;
+    private Integer correctCount;
+    private Integer totalCount;
 }

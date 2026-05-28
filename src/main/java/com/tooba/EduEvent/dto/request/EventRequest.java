@@ -1,6 +1,5 @@
 package com.tooba.EduEvent.dto.request;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -20,8 +19,10 @@ public class EventRequest {
 
     private Integer capacity;
 
+    // Fix: removed @Future — update operations need to set startTime to existing
+    // (possibly past) values without triggering a 400 validation error.
+    // Validate future start time in the service layer on CREATE only if needed.
     @NotNull(message = "Start time is required")
-    @Future(message = "Start time must be in the future")
     private LocalDateTime startTime;
 
     @NotNull(message = "End time is required")
@@ -29,9 +30,6 @@ public class EventRequest {
 
     private String status; // UPCOMING, LIVE, COMPLETED, CANCELLED
 
-    /**
-     * Only used for Webinar and Conference types.
-     * Stored in event.joinLink.
-     */
+    /** Only used for Webinar and Conference event types. */
     private String joinLink;
 }

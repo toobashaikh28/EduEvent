@@ -1,12 +1,14 @@
 package com.tooba.EduEvent.service.impl;
 
-import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
-import com.tooba.EduEvent.service.UserService;
-import com.tooba.EduEvent.repository.UserRepository;
-import com.tooba.EduEvent.entity.User;
+import com.tooba.EduEvent.dto.request.UserRequest;
 import com.tooba.EduEvent.dto.response.UserResponse;
-import com.tooba.EduEvent.dto.request.UserRequest; 
+import com.tooba.EduEvent.entity.User;
+import com.tooba.EduEvent.repository.UserRepository;
+import com.tooba.EduEvent.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -17,21 +19,26 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getMyProfile(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
         return mapToResponse(user);
     }
 
     @Override
     public UserResponse updateMyProfile(String email, UserRequest req) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
         user.setName(req.getName());
-        // Update other fields as needed
-        
-        User updatedUser = userRepository.save(user);
-        return mapToResponse(updatedUser);
+
+        // Fix: photoUrl was never saved — now it is
+        if (req.getPhotoUrl() != null) {
+            user.setPhoto(req.getPhotoUrl());
+        }
+
+        User updated = userRepository.save(user);
+        return mapToResponse(updated);
     }
 
     private UserResponse mapToResponse(User user) {
@@ -40,6 +47,8 @@ public class UserServiceImpl implements UserService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
+                // Fix: photo field on User maps to photoUrl on UserResponse
+                .photoUrl(user.getPhoto())
                 .build();
     }
 }
