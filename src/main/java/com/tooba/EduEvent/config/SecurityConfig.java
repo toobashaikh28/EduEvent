@@ -4,6 +4,7 @@ import com.tooba.EduEvent.service.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -39,21 +40,32 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
+                // Auth endpoints — fully public
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Expose the static quiz file so users can view the page
+                // Static quiz HTML page — public
                 .requestMatchers("/quiz.html").permitAll()
 
-                // Allow users to start, submit, and record violations for quiz sessions
-                // Note: If you require login BEFORE starting a quiz, change this to .authenticated()
-                .requestMatchers("/api/quiz/**").permitAll()
+                // FIX 7: Each requestMatchers(HttpMethod, String) call takes ONE method + ONE path.
+                // User-facing quiz session actions require authentication (JWT) but not ADMIN role.
+                .requestMatchers(HttpMethod.POST, "/api/quiz/*/start").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/quiz/session/*/submit").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/quiz/session/*/violation").authenticated()
 
-                // FIX #4: Changed "/api/events" to "/api/events/**" so that
-                // GET /api/events/{id} is also public
+                // All other /api/quiz/** (create quiz, add questions, view results) → authenticated.
+                // @PreAuthorize("hasRole('ADMIN')") on controller methods enforces the ADMIN check.
+                .requestMatchers("/api/quiz/**").authenticated()
+
+                // Event discovery — public
                 .requestMatchers("/api/events", "/api/events/**").permitAll()
 
+                // Certificate verification — public
                 .requestMatchers("/api/certificates/verify/**").permitAll()
+
+                // Uploaded files — public (static serving)
                 .requestMatchers("/uploads/**").permitAll()
+
+                // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -67,15 +79,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // FIX #12: Replaced wildcard "*" with specific allowed origin for production safety.
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",   // local frontend dev
-                "http://localhost:8080"    // local Postman / Swagger / Static HTML
+                "http://localhost:3000",
+                "http://localhost:8080"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
-        configuration.setAllowCredentials(true); // Allows cookies/auth headers across origins if needed
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
