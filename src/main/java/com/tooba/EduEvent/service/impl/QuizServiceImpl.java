@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class QuizServiceImpl implements QuizService {
 
+    /** FIX 3: Maximum violations before session is invalidated (inclusive threshold). */
+    private static final int MAX_VIOLATIONS = 3;
+
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
     private final OptionRepository optionRepository;
@@ -294,7 +297,7 @@ public class QuizServiceImpl implements QuizService {
 
         int totalCount = violationRepository.countBySessionId(sessionId);
 
-        if (totalCount > 3) {
+        if (totalCount >= MAX_VIOLATIONS) {  // FIX 3: >= 3 (was > 3, caused off-by-one)
             session.setStatus("INVALIDATED");
             quizSessionRepository.save(session);
         }
