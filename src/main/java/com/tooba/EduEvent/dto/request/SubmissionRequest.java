@@ -5,9 +5,12 @@ import lombok.Data;
 
 @Data
 public class SubmissionRequest {
-    private Long quizId;
-    private Long userId;
-    
-    @NotBlank(message = "Content or URL is required")
-    private String content; // Could be answers or a file link
+
+    @NotBlank(message = "Title is required")
+    private String title;
+
+    private String description;
+
+    @NotBlank(message = "GitHub URL is required")
+    private String githubUrl;
 }

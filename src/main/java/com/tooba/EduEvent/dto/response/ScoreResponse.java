@@ -8,15 +8,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data @Builder @AllArgsConstructor @NoArgsConstructor
-public class SubmissionResponse {
+public class ScoreResponse {
     private Long id;
-    private Long teamId;
+    private Long submissionId;
     private String teamName;
-    private Long hackathonId;
-    private String hackathonTitle;
-    private String title;
-    private String description;
-    private String githubUrl;
-    private String filePath;
-    private LocalDateTime submittedAt;
+    private Long judgeId;
+    private String judgeName;
+    private Integer scoreValue;
+    private String feedback;
+    private LocalDateTime scoredAt;
 }
