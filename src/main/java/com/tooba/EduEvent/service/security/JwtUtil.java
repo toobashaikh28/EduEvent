@@ -26,6 +26,13 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
+        // FIX 8: HS256 requires a key of at least 32 bytes (256 bits).
+        // If JWT_SECRET env variable is too short, fail fast at startup.
+        if (secretKey == null || secretKey.getBytes().length < 32) {
+            throw new IllegalStateException(
+                "JWT secret (jwt.secret) must be at least 32 characters long for HS256. " +
+                "Set the JWT_SECRET environment variable to a sufficiently long random string.");
+        }
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
