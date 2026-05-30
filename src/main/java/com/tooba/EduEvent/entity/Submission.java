@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Table(name = "submissions")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Submission {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -19,12 +20,16 @@ public class Submission {
     private Event hackathon;
 
     private String title;
-    
+
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
     private String githubUrl;
-    private String file_path;
+
+    // FIX 4: Renamed from file_path (snake_case field) to filePath (camelCase),
+    // explicit @Column keeps the DB column name unchanged.
+    @Column(name = "file_path")
+    private String filePath;
 
     @CreationTimestamp
     private LocalDateTime submittedAt;
