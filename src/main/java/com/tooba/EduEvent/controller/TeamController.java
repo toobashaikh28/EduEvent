@@ -5,25 +5,28 @@ import com.tooba.EduEvent.dto.request.TeamJoinRequest;
 import com.tooba.EduEvent.dto.response.TeamResponse;
 import com.tooba.EduEvent.service.TeamService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 public class TeamController {
 
-    @Autowired private TeamService teamService;
+    private final TeamService teamService;
 
     // POST /api/hackathon/{hackathonId}/team/create
     @PostMapping("/api/hackathon/{hackathonId}/team/create")
     public ResponseEntity<TeamResponse> createTeam(
             @PathVariable("hackathonId") Long hackathonId,
             @Valid @RequestBody TeamCreateRequest request,
-            @RequestParam("userId") Long leaderId) {
+            Authentication authentication) {
 
-        TeamResponse response = teamService.createTeam(hackathonId, request, leaderId);
+        TeamResponse response = teamService.createTeam(hackathonId, request, authentication.getName());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -32,9 +35,9 @@ public class TeamController {
     public ResponseEntity<String> joinTeam(
             @PathVariable("hackathonId") Long hackathonId,
             @Valid @RequestBody TeamJoinRequest request,
-            @RequestParam("userId") Long userId) {
+            Authentication authentication) {
 
-        teamService.joinTeamRequest(hackathonId, request, userId);
+        teamService.joinTeamRequest(hackathonId, request, authentication.getName());
         return ResponseEntity.ok("Your request to join the team has been sent to the team leader.");
     }
 
@@ -42,9 +45,9 @@ public class TeamController {
     @PutMapping("/api/team/invite/{memberId}/accept")
     public ResponseEntity<String> acceptMember(
             @PathVariable("memberId") Long memberId,
-            @RequestParam("userId") Long leaderId) {
+            Authentication authentication) {
 
-        teamService.acceptJoinRequest(memberId, leaderId);
+        teamService.acceptJoinRequest(memberId, authentication.getName());
         return ResponseEntity.ok("Member request accepted successfully.");
     }
 
@@ -52,9 +55,9 @@ public class TeamController {
     @PutMapping("/api/team/invite/{memberId}/reject")
     public ResponseEntity<String> rejectMember(
             @PathVariable("memberId") Long memberId,
-            @RequestParam("userId") Long leaderId) {
+            Authentication authentication) {
 
-        teamService.rejectJoinRequest(memberId, leaderId);
+        teamService.rejectJoinRequest(memberId, authentication.getName());
         return ResponseEntity.ok("Member request rejected successfully.");
     }
 
@@ -62,9 +65,9 @@ public class TeamController {
     @GetMapping("/api/hackathon/{hackathonId}/my-team")
     public ResponseEntity<TeamResponse> getMyTeam(
             @PathVariable("hackathonId") Long hackathonId,
-            @RequestParam("userId") Long userId) {
+            Authentication authentication) {
 
-        TeamResponse response = teamService.getMyTeam(hackathonId, userId);
+        TeamResponse response = teamService.getMyTeam(hackathonId, authentication.getName());
         return ResponseEntity.ok(response);
     }
 
@@ -72,19 +75,19 @@ public class TeamController {
     @DeleteMapping("/api/team/{teamId}/leave")
     public ResponseEntity<String> leaveTeam(
             @PathVariable("teamId") Long teamId,
-            @RequestParam("userId") Long userId) {
+            Authentication authentication) {
 
-        teamService.leaveTeam(teamId, userId);
+        teamService.leaveTeam(teamId, authentication.getName());
         return ResponseEntity.ok("You have successfully left the team.");
     }
 
-    // GET /api/hackathon/{hackathonId}/teams
+    // GET /api/hackathon/{hackathonId}/teams  (admin only)
     @GetMapping("/api/hackathon/{hackathonId}/teams")
     public ResponseEntity<List<TeamResponse>> getAllTeams(
             @PathVariable("hackathonId") Long hackathonId,
-            @RequestParam("userId") Long adminId) {
+            Authentication authentication) {
 
-        List<TeamResponse> response = teamService.getAllTeamsForHackathon(hackathonId, adminId);
+        List<TeamResponse> response = teamService.getAllTeamsForHackathon(hackathonId, authentication.getName());
         return ResponseEntity.ok(response);
     }
 }
