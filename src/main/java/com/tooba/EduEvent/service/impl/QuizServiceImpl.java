@@ -7,8 +7,10 @@ import com.tooba.EduEvent.dto.request.ViolationRequest;
 import com.tooba.EduEvent.dto.response.*;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
+import com.tooba.EduEvent.service.CertificateService; // 1. Imported CertificateService
 import com.tooba.EduEvent.service.QuizService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j // Added for error logging
 public class QuizServiceImpl implements QuizService {
 
     /** FIX 3: Maximum violations before session is invalidated (inclusive threshold). */
@@ -36,6 +39,7 @@ public class QuizServiceImpl implements QuizService {
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
     private final EventRepository eventRepository;
+    private final CertificateService certificateService; // 2. Injected CertificateService
 
     // ── CREATE QUIZ ───────────────────────────────────────────────────────────
 
@@ -228,6 +232,16 @@ public class QuizServiceImpl implements QuizService {
         session.setEndTime(LocalDateTime.now());
         session.setStatus("COMPLETED");
         quizSessionRepository.save(session);
+
+        // 3. AUTO-TRIGGER CERTIFICATE IF PASSED
+        if (isPassed) {
+            try {
+                certificateService.generate(session.getUser(), quiz.getEvent());
+            } catch (Exception e) {
+                // Catching exception prevents the quiz submission from failing if PDF generation fails
+                log.error("Failed to generate certificate after passing quiz for session ID: {}", sessionId, e);
+            }
+        }
 
         return QuizResultResponse.builder()
                 .score(score)

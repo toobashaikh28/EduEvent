@@ -1,11 +1,18 @@
 package com.tooba.EduEvent.service.impl;
 
 import com.tooba.EduEvent.service.EmailService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.io.File;
 
 @Service // Singleton
 @RequiredArgsConstructor
@@ -14,6 +21,7 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    // --- YOUR EXISTING METHOD (Plain Text) ---
     @Override
     public void sendEmail(String to, String subject, String body) {
         try {
@@ -27,6 +35,32 @@ public class EmailServiceImpl implements EmailService {
             log.info("Real email successfully dispatched to target: {}", to);
         } catch (Exception e) {
             log.error("Failed to transmit email to {}. Stack Trace: ", to, e);
+        }
+    }
+
+    // --- NEW METHOD (PDF Attachment) ---
+    @Override
+    @Async
+    public void sendCertificateEmail(String toEmail, String userName, String eventTitle, String pdfFilePath) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            // The 'true' flag below enables attachments (multipart)
+            MimeMessageHelper helper = new MimeMessageHelper(message, true); 
+
+            helper.setTo(toEmail);
+            helper.setSubject("🏆 Your Certificate for " + eventTitle);
+            helper.setText("Congratulations " + userName + "!\n\nPlease find your official certificate attached.", false);
+            helper.setFrom("EduEvent Engine <no-reply@eduevent.com>");
+
+            // Grab the PDF file from the local directory and attach it
+            FileSystemResource file = new FileSystemResource(new File(pdfFilePath));
+            helper.addAttachment("Certificate_" + eventTitle.replaceAll("\\s+", "_") + ".pdf", file);
+
+            mailSender.send(message);
+            log.info("Certificate email with PDF successfully dispatched to target: {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Failed to transmit certificate email to {}. Stack Trace: ", toEmail, e);
         }
     }
 }
