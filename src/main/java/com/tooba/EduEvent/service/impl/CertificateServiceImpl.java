@@ -18,7 +18,7 @@ public class CertificateServiceImpl implements CertificateService {
     private final CertificateRepository certificateRepository;
 
     @Override
-    public void generate(User user, Event event, Integer rank) {
+    public Certificate generate(User user, Event event) { // 1. Matched parameters and return type
         Certificate certificate = Certificate.builder()
                 .user(user)
                 .event(event)
@@ -26,6 +26,8 @@ public class CertificateServiceImpl implements CertificateService {
                 .pdfUrl("https://example.com/certificates/" + UUID.randomUUID() + ".pdf")
                 .issuedAt(LocalDateTime.now())
                 .build();
-        certificateRepository.save(certificate);
+                
+        // 2. Return the saved certificate to satisfy the 'Certificate' return type
+        return certificateRepository.save(certificate); 
     }
 }
