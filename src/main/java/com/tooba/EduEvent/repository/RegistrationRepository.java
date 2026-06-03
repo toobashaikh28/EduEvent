@@ -1,6 +1,7 @@
 package com.tooba.EduEvent.repository;
 
 import com.tooba.EduEvent.entity.Registration;
+import org.springframework.data.jpa.repository.Query;
 import com.tooba.EduEvent.entity.RegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,11 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
 
     // 🟢 FIXED: Added method declaration to support verification in QuizServiceImpl
     boolean existsByUserIdAndEventIdAndStatus(Long userId, Long eventId, RegistrationStatus status);
+
+    // --- ANALYTICS QUERIES ---
+    @Query("SELECT r.event.title, COUNT(r) FROM Registration r WHERE r.status = 'REGISTERED' GROUP BY r.event.title")
+    List<Object[]> countRegistrationsPerEvent();
+
+    @Query("SELECT r.event.title, COUNT(r) FROM Registration r WHERE r.status = 'CANCELLED' OR r.status = 'WAITLISTED' GROUP BY r.event.title")
+    List<Object[]> countDropoutsPerEvent();
 }

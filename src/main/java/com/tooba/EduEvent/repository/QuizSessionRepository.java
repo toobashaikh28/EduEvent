@@ -30,4 +30,10 @@ public interface QuizSessionRepository extends JpaRepository<QuizSession, Long> 
     List<QuizSession> findByStatus(String status);
 
     List<QuizSession> findByUserId(Long userId);
+
+    // --- ANALYTICS QUERIES ---
+    @Query("SELECT q.quiz.id, AVG(q.score), " +
+           "CAST(SUM(CASE WHEN q.score >= q.quiz.passScore THEN 1 ELSE 0 END) AS double) / COUNT(q) * 100 " +
+           "FROM QuizSession q WHERE q.status = 'COMPLETED' GROUP BY q.quiz.id")
+    List<Object[]> getQuizStats();
 }
