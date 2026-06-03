@@ -1,13 +1,18 @@
 package com.tooba.EduEvent.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
-import java.time.LocalDate;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
+@Builder
 public class CertificateResponse {
-    private String certificateId;
-    private String userName;
+    private Long id;
+    private String participantName;
     private String eventTitle;
-    private LocalDate issueDate;
-    private String downloadUrl;
+    private UUID certUuid;
+    private String verifyUrl;
+    private LocalDateTime issuedAt;
 }
