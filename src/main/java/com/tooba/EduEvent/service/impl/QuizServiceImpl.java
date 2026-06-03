@@ -8,6 +8,8 @@ import com.tooba.EduEvent.dto.response.*;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.CertificateService; // 1. Imported CertificateService
+import com.tooba.EduEvent.service.LeaderboardService; // Imported LeaderboardService
+import org.springframework.cache.annotation.CacheEvict;
 import com.tooba.EduEvent.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class QuizServiceImpl implements QuizService {
     private static final int MAX_VIOLATIONS = 3;
 
     private final QuizRepository quizRepository;
+    private final LeaderboardService leaderboardService;
     private final QuestionRepository questionRepository;
     private final OptionRepository optionRepository;
     private final QuizSessionRepository quizSessionRepository;
@@ -183,6 +186,7 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "global-leaderboard", allEntries = true) // 🔥 Clears cache when a new score is submitted
     public QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request, String userEmail) {
         QuizSession session = quizSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
@@ -232,6 +236,9 @@ public class QuizServiceImpl implements QuizService {
         session.setEndTime(LocalDateTime.now());
         session.setStatus("COMPLETED");
         quizSessionRepository.save(session);
+
+        // 🔥 MERGE INTO LEADERBOARD (Step 4 Logic)
+        leaderboardService.upsertQuizScore(session.getUser().getId(), quiz.getEvent().getId(), score);
 
         // 3. AUTO-TRIGGER CERTIFICATE IF PASSED
         if (isPassed) {
