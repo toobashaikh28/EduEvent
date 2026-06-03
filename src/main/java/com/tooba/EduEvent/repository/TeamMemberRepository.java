@@ -25,4 +25,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     // Mapped perfectly to your nested entities: user.id -> team.hackathon.id -> status
     @Query("SELECT tm.team FROM TeamMember tm WHERE tm.user.id = :userId AND tm.team.hackathon.id = :hackathonId AND tm.status = 'ACCEPTED'")
     Optional<Team> findTeamByUserIdAndHackathonId(@Param("userId") Long userId, @Param("hackathonId") Long hackathonId);
+
+    // Add this to find the user's team
+    List<TeamMember> findByUserId(Long userId);
 }
