@@ -4,12 +4,10 @@ import com.tooba.EduEvent.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
  
 import java.time.LocalDateTime;
 import java.util.List;
  
-@Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
  
     // Force LOWER() on both sides in the SQL itself — bypasses SQL Server collation completely
@@ -27,4 +25,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     
     // Required by QuizSessionScheduler.sendHourlyQuizReminders()
     List<Event> findByStartTimeBetweenAndStatus(LocalDateTime start, LocalDateTime end, String status);
+
+    boolean existsByTitleIgnoreCase(String title);
 }

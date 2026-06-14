@@ -1,6 +1,5 @@
 package com.tooba.EduEvent.factory;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.tooba.EduEvent.dto.request.RegisterRequest;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.pattern.NullUser;

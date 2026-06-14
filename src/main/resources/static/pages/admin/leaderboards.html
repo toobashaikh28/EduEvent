@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent Admin — Leaderboards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    select { width: auto; }
+    .podium-wrap { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; align-items:flex-end; margin-bottom:24px; }
+    .podium-block { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:20px 16px; text-align:center; }
+    .podium-block.first { border-color:rgba(245,158,11,0.4); background:rgba(245,158,11,0.05); }
+    .podium-block.second { border-color:rgba(148,163,184,0.3); }
+    .podium-block.third { border-color:rgba(180,83,9,0.3); }
+    .podium-medal { font-size:32px; margin-bottom:8px; }
+    .podium-name { font-family:var(--font-display); font-size:15px; font-weight:700; }
+    .podium-score { font-family:var(--font-mono); font-size:22px; font-weight:500; margin:6px 0; }
+    .podium-score.gold { color:#F59E0B; }
+    .podium-score.silver { color:#94A3B8; }
+    .podium-score.bronze { color:#B45309; }
+    .podium-event { font-size:11px; color:var(--text-muted); }
+    .rank-num { font-family:var(--font-display); font-weight:800; font-size:18px; min-width:32px; text-align:center; }
+    .rank-num.gold { color:#F59E0B; }
+    .rank-num.silver { color:#94A3B8; }
+    .rank-num.bronze { color:#B45309; }
+    .rank-num.normal { color:var(--text-muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>if(!Auth.guardPage("ADMIN"))throw new Error();</script>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">E</div><span class="sidebar-logo-text">EduEvent</span><span class="sidebar-logo-badge">Admin</span></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Insights</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item active"><a href="leaderboards.html"><span class="nav-icon"><i class="ti ti-trophy"></i></span><span>Leaderboards</span></a></li>
+        <li class="nav-item"><a href="analytics.html"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span><span>Analytics</span></a></li>
+        <li class="nav-item"><a href="certificates.html"><span class="nav-icon"><i class="ti ti-certificate"></i></span><span>Certificates</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="users.html"><span class="nav-icon"><i class="ti ti-users"></i></span><span>Users</span></a></li>
+        <li class="nav-item"><a href="notifications.html"><span class="nav-icon"><i class="ti ti-bell"></i></span><span>Notifications</span><span class="nav-badge">3</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-profile" data-action="logout" title="Log out">
+        <div class="admin-avatar" id="admin-avatar">SA</div>
+        <div class="admin-info"><div class="admin-name" id="admin-name">Super Admin</div><div class="admin-role" id="admin-role">Administrator</div></div>
+        <i class="ti ti-logout" style="font-size:14px;color:var(--text-muted);margin-left:auto;"></i>
+      </div>
+    </div>
+  </aside>
+  <header class="topbar">
+    <div class="topbar-title">Leaderboards</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="window.location.href='notifications.html'"><i class="ti ti-bell"></i><span class="notif-dot"></span></button>
+      <button class="icon-btn" onclick="loadLeaderboard()"><i class="ti ti-refresh"></i></button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Leaderboards</div>
+        <div class="page-desc">Rankings across all events and global platform</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="lb-scope" onchange="loadLeaderboard()">
+          <option value="global">Global Leaderboard</option>
+          <option value="hack-1">ML Bootcamp 2025</option>
+          <option value="hack-2">DSA Sprint</option>
+          <option value="hack-3">Frontend Frenzy 2024</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Podium -->
+    <div class="podium-wrap" id="podium"></div>
+
+    <!-- Full Table -->
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title" id="lb-table-title">Full Rankings</div><div class="card-subtitle" id="lb-updated">Last updated just now</div></div>
+        <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i> Export</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px;">Rank</th>
+              <th>Participant / Team</th>
+              <th>Events Entered</th>
+              <th>Best Score</th>
+              <th>Total Points</th>
+              <th>Certificates</th>
+              <th>Badge</th>
+            </tr>
+          </thead>
+          <tbody id="lb-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const GLOBAL_LB = [
+  { rank:1, name:'ByteBusters', events:4, bestScore:97.2, points:412, certs:3, badge:'🏆 Champion' },
+  { rank:2, name:'Neural Ninjas', events:3, bestScore:91.0, points:388, certs:2, badge:'⚡ Hacker' },
+  { rank:3, name:'CodeCraft', events:5, bestScore:88.5, points:361, certs:3, badge:'🔥 Builder' },
+  { rank:4, name:'PixelPirates', events:2, bestScore:84.1, points:298, certs:1, badge:'⭐ Rising' },
+  { rank:5, name:'DataDrifters', events:3, bestScore:79.3, points:264, certs:2, badge:'⭐ Rising' },
+  { rank:6, name:'Ali Khan', events:6, bestScore:92.0, points:247, certs:2, badge:'⭐ Rising' },
+  { rank:7, name:'Sara Baig', events:2, bestScore:88.0, points:211, certs:1, badge:'⭐ Rising' },
+  { rank:8, name:'Umar Shah', events:4, bestScore:71.0, points:189, certs:0, badge:'— Contender' },
+  { rank:9, name:'Fatima Noor', events:3, bestScore:77.0, points:174, certs:1, badge:'— Contender' },
+  { rank:10, name:'Zaid Raza', events:2, bestScore:63.0, points:141, certs:0, badge:'— Contender' },
+];
+
+const HACK_LB = [
+  { rank:1, name:'ByteBusters', events:1, bestScore:91.0, points:91, certs:1, badge:'🥇 1st Place' },
+  { rank:2, name:'Neural Ninjas', events:1, bestScore:87.3, points:87, certs:1, badge:'🥈 2nd Place' },
+  { rank:3, name:'CodeCraft', events:1, bestScore:83.2, points:83, certs:1, badge:'🥉 3rd Place' },
+  { rank:4, name:'PixelPirates', events:1, bestScore:78.5, points:79, certs:0, badge:'— Finalist' },
+];
+
+function rankClass(r) {
+  return {1:'gold',2:'silver',3:'bronze'}[r] || 'normal';
+}
+
+function renderPodium(data) {
+  const top3 = data.slice(0,3);
+  const order = [top3[1], top3[0], top3[2]]; // 2nd, 1st, 3rd visual order
+  const medals = ['🥈','🥇','🥉'];
+  const classes = ['second','first','third'];
+  const scoreClasses = ['silver','gold','bronze'];
+  document.getElementById('podium').innerHTML = order.map((p,i) => p ? `
+    <div class="podium-block ${classes[i]}">
+      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-name">${p.name}</div>
+      <div class="podium-score ${scoreClasses[i]}">${fmt.number(p.points)} pts</div>
+      <div class="podium-event">Best: ${fmt.score(p.bestScore)}</div>
+    </div>` : '').join('');
+}
+
+function renderTable(data, title) {
+  document.getElementById('lb-table-title').textContent = title;
+  document.getElementById('lb-tbody').innerHTML = data.map(p => `
+    <tr class="${p.rank <= 3 ? 'podium-row rank-' + p.rank : ''}">
+      <td><span class="rank-num ${rankClass(p.rank)}">${p.rank <= 3 ? ['🥇','🥈','🥉'][p.rank-1] : p.rank}</span></td>
+      <td style="font-weight:600;">${p.name}</td>
+      <td style="color:var(--text-muted);">${p.events}</td>
+      <td><span style="font-family:var(--font-mono);">${fmt.score(p.bestScore)}</span></td>
+      <td><span style="font-family:var(--font-display);font-weight:700;">${fmt.number(p.points)}</span></td>
+      <td>${p.certs > 0 ? `<span class="badge badge-active">${p.certs} cert${p.certs>1?'s':''}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+      <td style="font-size:12px;">${p.badge}</td>
+    </tr>`).join('');
+}
+
+function loadLeaderboard() {
+  const scope = document.getElementById('lb-scope').value;
+  if (scope === 'global') {
+    renderPodium(GLOBAL_LB);
+    renderTable(GLOBAL_LB, 'Global Rankings');
+  } else {
+    renderPodium(HACK_LB);
+    renderTable(HACK_LB, 'Hackathon Rankings');
+  }
+  document.getElementById('lb-updated').textContent = 'Last updated just now';
+  Toast.show('Leaderboard refreshed.', 'info');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateAdminProfile();
+  loadLeaderboard();
+  document.querySelectorAll('[data-action="logout"]').forEach(btn =>
+    btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
+});
+</script>
+</body>
+</html>

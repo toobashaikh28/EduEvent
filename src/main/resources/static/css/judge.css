@@ -1,0 +1,103 @@
+/* ─── EduEvent Judge Portal — Layout (v2: Premium Dark + Aurora) ─── */
+
+.judge-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+.judge-topnav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--glass-border);
+  height: var(--header-h);
+  display: flex; align-items: center; padding: 0 32px; gap: 0;
+}
+.judge-logo { display: flex; align-items: center; gap: 10px; margin-right: 36px; text-decoration: none; }
+.judge-logo-icon {
+  width: 32px; height: 32px; background: linear-gradient(135deg, #6366F1, #D946EF);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 15px; color: #fff;
+  box-shadow: 0 8px 22px -6px rgba(217,70,239,0.6);
+}
+.judge-logo-text { font-family: var(--font-display); font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing:-0.3px; }
+.judge-logo-badge {
+  font-size: 10px; font-weight: 700; background: rgba(217,70,239,0.2); color: #E879F9;
+  border: 1px solid rgba(217,70,239,0.35); padding: 2px 8px; border-radius: 6px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.judge-nav-links { display: flex; align-items: center; gap: 4px; flex: 1; }
+.judge-nav-link {
+  display: flex; align-items: center; gap: 7px; padding: 8px 14px;
+  border-radius: var(--radius-md); font-size: 13px; font-weight: 500;
+  color: var(--text-secondary); text-decoration: none; transition: var(--transition); white-space: nowrap;
+}
+.judge-nav-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+.judge-nav-link.active { color: #E879F9; background: rgba(217,70,239,0.12); box-shadow: inset 0 0 0 1px rgba(217,70,239,0.3); font-weight: 600; }
+.judge-nav-link i { font-size: 16px; }
+.judge-nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.judge-avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #D946EF, #6366F1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
+  border: 2px solid transparent; transition: var(--transition);
+}
+.judge-avatar-btn:hover { border-color: #E879F9; transform: scale(1.06); box-shadow: 0 10px 30px -8px rgba(217,70,239,0.6); }
+.judge-page { flex: 1; padding: 32px; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+/* ── Submission Accordion ─────────────── */
+.accordion-card {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+  overflow: hidden; margin-bottom: 12px; transition: var(--transition); box-shadow: var(--shadow-md);
+}
+.accordion-card:hover { border-color: var(--border-hover); }
+.accordion-card.expanded { border-color: rgba(217,70,239,0.4); box-shadow: 0 12px 36px -12px rgba(217,70,239,0.4); }
+.accordion-header { display: flex; align-items: center; gap: 14px; padding: 17px 20px; cursor: pointer; transition: var(--transition); user-select: none; }
+.accordion-header:hover { background: var(--bg-hover); }
+.accordion-body { display: none; padding: 0 20px 20px; border-top: 1px solid var(--border); }
+.accordion-body.open { display: block; }
+
+/* ── Scoring Form ─────────────────────── */
+.score-criterion { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.score-criterion:last-child { border-bottom: none; }
+.score-criterion-label { font-size: 13px; font-weight: 600; flex: 1; }
+.score-criterion-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.score-stepper { display: flex; align-items: center; gap: 8px; }
+.stepper-btn {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border-hover); color: var(--text-primary);
+  font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition);
+}
+.stepper-btn:hover { background: var(--bg-active); border-color: var(--brand); color: var(--brand-muted); }
+.stepper-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; width: 34px; text-align: center; }
+.total-score-display {
+  background: linear-gradient(135deg, rgba(217,70,239,0.16), rgba(99,102,241,0.12));
+  border: 1px solid rgba(217,70,239,0.3); border-radius: var(--radius-lg);
+  padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── Results Summary ──────────────────── */
+.result-team-card {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+  padding: 20px 22px; margin-bottom: 12px; box-shadow: var(--shadow-md); transition: var(--transition);
+}
+.result-team-card.rank-1 { border-color: rgba(245,158,11,0.45); background: linear-gradient(135deg, rgba(245,158,11,0.08), var(--glass)); box-shadow: 0 12px 40px -12px rgba(245,158,11,0.4); }
+.result-team-card.rank-2 { border-color: rgba(148,163,184,0.4); }
+.result-team-card.rank-3 { border-color: rgba(180,83,9,0.4); }
+
+/* ── Hackathon selector card ──────────── */
+.hack-select-card {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+  padding: 20px 22px; cursor: pointer; transition: var(--transition); position: relative; overflow: hidden; box-shadow: var(--shadow-md);
+}
+.hack-select-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #D946EF, #6366F1); }
+.hack-select-card:hover { border-color: rgba(217,70,239,0.4); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.hack-select-card.active { border-color: rgba(217,70,239,0.55); background: rgba(217,70,239,0.07); }
+
+@media (max-width: 768px) {
+  .judge-topnav { padding: 0 16px; }
+  .judge-nav-link span { display: none; }
+  .judge-page { padding: 20px 16px; }
+  .judge-logo-text, .judge-logo-badge { display: none; }
+}

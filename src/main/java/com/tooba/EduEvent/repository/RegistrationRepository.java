@@ -4,12 +4,10 @@ import com.tooba.EduEvent.entity.Registration;
 import org.springframework.data.jpa.repository.Query;
 import com.tooba.EduEvent.entity.RegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Long> {
 
     // Counts only confirmed registrations — used for capacity check

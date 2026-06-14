@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>EduEvent — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    .d3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+    .d2l{display:grid;grid-template-columns:2fr 1fr;gap:18px;}
+    .d2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+    .ev-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid var(--border);}
+    .ev-row:last-child{border-bottom:none;}
+    .act-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border);}
+    .act-row:last-child{border-bottom:none;}
+    @media(max-width:900px){.d3,.d2l,.d2{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<div id="toast-container"></div><div id="app"></div>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+if(!Auth.guardPage('USER'))throw new Error();
+
+// Build the shell
+document.getElementById('app').innerHTML=`<div class="page-shell">
+${buildTopnav('USER','dashboard.html')}
+<div class="page-content">
+  <div style="background:linear-gradient(135deg,rgba(79,70,229,0.14),rgba(217,70,239,0.08));border:0.5px solid rgba(79,70,229,0.22);border-radius:var(--radius-xl);padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+    <div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.5px;" id="wh">Welcome back 👋</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Here's your EduEvent activity at a glance.</div></div>
+    <button class="btn btn-primary" onclick="window.location.href='events.html'"><i class="ti ti-calendar-plus"></i> Browse Events</button>
+  </div>
+  <div class="d3" style="margin-bottom:20px;" id="s-row"><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div></div>
+  <div class="d2l" style="margin-bottom:20px;">
+    <div class="card"><div class="card-header"><div><div class="card-title">Upcoming Events</div><div class="card-subtitle">Registered &amp; open</div></div><a href="events.html" class="btn btn-secondary btn-sm">View all</a></div><div id="uev"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">Recent Activity</div></div><div id="act"></div></div>
+  </div>
+  <div class="d2">
+    <div class="card"><div class="card-header"><div><div class="card-title">Quiz Performance</div><div class="card-subtitle">Recent scores</div></div><a href="quizzes.html" class="btn btn-secondary btn-sm">All quizzes</a></div><div id="qp"></div></div>
+    <div class="card"><div class="card-header"><div><div class="card-title">Active Teams</div></div><a href="my-team.html" class="btn btn-secondary btn-sm">Manage</a></div><div id="tb"></div></div>
+  </div>
+</div>
+</div>${buildNotifPanel()}${buildUserDropdown()}`;
+
+// Notifications and UI initialization
+const NOTIFS=[{id:1,icon:'ti-trophy',color:'#F59E0B',bg:'rgba(245,158,11,0.12)',title:'Winners announced!',body:'You placed 2nd in ML Bootcamp 2025.',time:'2m ago',unread:true},{id:2,icon:'ti-certificate',color:'#22C55E',bg:'rgba(34,197,94,0.12)',title:'Certificate ready',body:'Data Science Quiz certificate ready.',time:'1h ago',unread:true},{id:3,icon:'ti-clock',color:'#4F46E5',bg:'rgba(79,70,229,0.12)',title:'Deadline',body:'DSA Sprint closes in 3 hours!',time:'3h ago',unread:false}];
+initNotifToggle(NOTIFS);
+initAvatarDropdown();
+populateProfile();
+
+// --- THE REAL API INTEGRATION ---
+async function load(){
+  const u = Auth.getUser();
+  if(u) document.getElementById('wh').textContent = `Welcome back, ${u.name?.split(' ')[0] || 'there'} 👋`;
+  
+  // Fetch real dashboard data from backend
+  const data = await cachedGet('/users/me/dashboard', 60000);
+  if(!data) return;
+
+  // 1. Stats Row
+  document.getElementById('s-row').innerHTML=`
+    <div style="background:linear-gradient(135deg,rgba(79,70,229,0.12),rgba(217,70,239,0.08));border:0.5px solid rgba(79,70,229,0.25);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;">
+      <div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Global Rank</div>
+        <div style="font-family:var(--font-display);font-size:32px;font-weight:800;background:linear-gradient(135deg,#4F46E5,#D946EF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">#${data.myRank || '—'}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Based on points</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Total Points</div>
+        <div style="font-family:var(--font-display);font-size:24px;font-weight:800;">${data.totalPoints || 0}</div>
+      </div>
+    </div>
+    <div class="stat-card c-teal"><div class="stat-label">Events Joined</div><div class="stat-value">${data.registeredEvents?.length || 0}</div><div class="stat-delta up"><i class="ti ti-trending-up"></i> Keep it up!</div></div>
+    <div class="stat-card c-amber"><div class="stat-label">Certificates</div><div class="stat-value">${data.certificates?.length || 0}</div><div class="stat-delta"><i class="ti ti-certificate"></i> earned so far</div></div>`;
+
+  // 2. Upcoming Events
+  const dc={hackathon:'var(--accent-hackathon)',webinar:'var(--accent-webinar)',conference:'var(--accent-conference)',quiz:'var(--accent-quiz)'};
+  const evts = data.registeredEvents || [];
+  if (evts.length === 0) {
+      document.getElementById('uev').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0;">No upcoming events.</div>';
+  } else {
+      document.getElementById('uev').innerHTML = evts.map(e=>`
+        <div class="ev-row">
+          <div style="width:9px;height:9px;border-radius:50%;background:${dc[e.type?.toLowerCase()] || 'var(--text-muted)'};flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.title}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${e.startTime ? fmt.date(e.startTime) : 'Date TBD'}</div>
+          </div>
+          <span class="badge badge-${e.status?.toLowerCase()==='active'?'active':'upcoming'}">${e.status || 'Registered'}</span>
+        </div>`).join('');
+  }
+
+  // 3. Recent Activity / Notifications
+  const acts = data.recentNotifications || [];
+  if (acts.length === 0) {
+      document.getElementById('act').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0;">No recent activity.</div>';
+  } else {
+      document.getElementById('act').innerHTML = acts.map(a=>`
+        <div class="act-row">
+          <div style="width:30px;height:30px;border-radius:var(--radius-md);background:rgba(79,70,229,0.1);color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;"><i class="ti ti-bell"></i></div>
+          <div>
+            <div style="font-size:13px;">${a.message}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${a.timeAgo || 'Recently'}</div>
+          </div>
+        </div>`).join('');
+  }
+
+  // 4. Quiz Performance
+  const quizzes = data.quizScores || [];
+  if (quizzes.length === 0) {
+      document.getElementById('qp').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0;">No quizzes taken yet.</div>';
+  } else {
+      document.getElementById('qp').innerHTML = quizzes.map(q=>`
+        <div style="padding:10px 0;border-bottom:0.5px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:500;">Quiz Assessment</div>
+            <span class="badge badge-${q.isPassed?'active':'rejected'}">${q.isPassed?'Passed':'Failed'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="progress-bar" style="flex:1;">
+              <div class="progress-fill" style="width:${q.score}%;background:${q.isPassed?'var(--accent-success)':'var(--accent-danger)'};"></div>
+            </div>
+            <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;">${Math.round(q.score)}%</span>
+          </div>
+        </div>`).join('');
+  }
+
+  // 5. Active Teams
+  const team = data.myTeam;
+  if (!team) {
+      document.getElementById('tb').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0;">You are not in an active team.</div>';
+  } else {
+      document.getElementById('tb').innerHTML=`
+        <div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:14px;border:0.5px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:600;font-size:14px;">${team.teamName}</div>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Invite Code: <span style="font-family:var(--font-mono);">${team.inviteCode}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">${team.members?.length || 1} members</span>
+          </div>
+        </div>`;
+  }
+}
+document.addEventListener('DOMContentLoaded',load);
+</script>
+</body>
+</html>

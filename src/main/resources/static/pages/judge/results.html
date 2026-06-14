@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>EduEvent Judge — Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    .podium-wrap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:flex-end;margin-bottom:22px;}
+    .pb{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 14px;text-align:center;}
+    .pb.p1{border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.04);}
+    .pb.p2{border-color:rgba(148,163,184,0.25);}
+    .pb.p3{border-color:rgba(180,83,9,0.25);}
+    .exp-inner{display:none;padding:14px 16px;border-top:0.5px solid var(--border);}
+    .exp-inner.open{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+    tr.exp-row td{padding:0!important;background:var(--bg-surface)!important;}
+  </style>
+</head>
+<body>
+<div id="toast-container"></div><div id="app"></div>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+if(!Auth.guardPage('JUDGE'))throw new Error();
+document.getElementById('app').innerHTML=`<div class="page-shell">
+${buildTopnav('JUDGE','results.html')}
+<div class="page-content">
+  <div class="page-header"><div><div class="page-title">Results</div><div class="page-desc">Final rankings based on all judges' scores</div></div></div>
+  <div style="background:var(--bg-surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <select id="hs" onchange="loadR(this.value)" style="min-width:200px;"><option value="1">ML Bootcamp 2025</option><option value="2">DSA Sprint</option></select>
+    <span style="font-size:12px;color:var(--text-muted);" id="rm">—</span>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="Toast.show('Exporting CSV…','info')"><i class="ti ti-download"></i> Export CSV</button>
+  </div>
+  <div id="warn" style="display:none;background:rgba(245,158,11,0.08);border:0.5px solid rgba(245,158,11,0.25);border-radius:var(--radius-lg);padding:11px 16px;margin-bottom:18px;font-size:13px;color:var(--text-secondary);"><i class="ti ti-alert-triangle" style="color:#FCD34D;margin-right:8px;"></i>Some teams not yet scored. Results may change.</div>
+  <div class="podium-wrap" id="podium"></div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><div><div class="card-title">Full Rankings</div><div class="card-subtitle">Click a row to expand criteria breakdown</div></div><div id="sc-badge"></div></div>
+    <div class="table-wrapper"><table><thead><tr><th>Rank</th><th>Team</th><th>Members</th><th>Innovation</th><th>Technical</th><th>Impact</th><th>Presentation</th><th>Completeness</th><th>Total</th><th>Status</th></tr></thead><tbody id="rtbl"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">My Scoring Summary</div></div></div>
+    <div id="ms"></div>
+  </div>
+</div></div>${buildNotifPanel()}${buildUserDropdown()}`;
+initNotifToggle([]);initAvatarDropdown();populateProfile();
+const RES={1:{all:false,teams:[{name:'ByteBusters',m:2,innovation:9,technical:9,impact:9,presentation:8,completeness:10,total:91.0},{name:'Neural Ninjas',m:3,innovation:9,technical:8,impact:9,presentation:8,completeness:9,total:87.3},{name:'AlphaStack',m:3,innovation:8,technical:9,impact:7,presentation:8,completeness:9,total:82.5},{name:'AlgoAces',m:2,innovation:8,technical:8,impact:7,presentation:7,completeness:8,total:76.0},{name:'CodeCraft',m:3,innovation:null,technical:null,impact:null,presentation:null,completeness:null,total:null}]},2:{all:true,teams:[{name:'AlgoAces',m:2,innovation:9,technical:10,impact:8,presentation:9,completeness:10,total:91.0},{name:'DevDragons',m:2,innovation:8,technical:9,impact:7,presentation:8,completeness:9,total:83.0},{name:'HackHeroes',m:3,innovation:7,technical:8,impact:7,presentation:8,completeness:8,total:76.5},{name:'ByteForce',m:2,innovation:6,technical:7,impact:6,presentation:7,completeness:7,total:68.0}]}};
+let expTeam=null;
+function loadR(id){
+  const d=RES[id];if(!d)return;
+  const scored=d.teams.filter(t=>t.total!==null);document.getElementById('rm').textContent=`${scored.length} of ${d.teams.length} teams scored`;
+  document.getElementById('warn').style.display=d.all?'none':'';
+  document.getElementById('sc-badge').innerHTML=d.all?'<span class="badge badge-active"><i class="ti ti-check"></i> All scored</span>':`<span class="badge badge-pending">${d.teams.length-scored.length} pending</span>`;
+  renderPodium(d.teams);renderTable(d.teams);renderMy(d.teams);
+}
+function renderPodium(teams){
+  const r=[...teams].filter(t=>t.total!==null).sort((a,b)=>b.total-a.total);const t3=r.slice(0,3);
+  const ord=[t3[1],t3[0],t3[2]],cls=['pb p2','pb p1','pb p3'],med=['🥈','🥇','🥉'],sc=['silver','gold','bronze'];
+  document.getElementById('podium').innerHTML=ord.map((t,i)=>t?`<div class="${cls[i]}"><div style="font-size:30px;margin-bottom:8px;">${med[i]}</div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:4px;">${t.name}</div><div style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:${i===0?'#94A3B8':i===1?'#F59E0B':'#B45309'};">${fmt.score(t.total)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${t.m} members</div></div>`:'<div></div>').join('');
+}
+function renderTable(teams){
+  const r=[...teams].sort((a,b)=>{if(a.total===null&&b.total===null)return 0;if(a.total===null)return 1;if(b.total===null)return-1;return b.total-a.total;});
+  const CR=['innovation','technical','impact','presentation','completeness'];
+  document.getElementById('rtbl').innerHTML=r.map((t,i)=>{const rank=t.total!==null?i+1:'—';const med=['🥇','🥈','🥉'];const isExp=expTeam===t.name;return`<tr class="${rank<=3?'rank-'+rank:''}" onclick="togExp('${t.name}')" style="cursor:pointer;">
+    <td style="font-size:${rank<=3?'16':'13'}px;font-weight:800;">${rank<=3?med[rank-1]:rank}</td>
+    <td style="font-weight:600;">${t.name} <i class="ti ti-chevron-${isExp?'up':'down'}" style="font-size:11px;color:var(--text-muted);"></i></td>
+    <td style="color:var(--text-muted);">${t.m}</td>
+    ${CR.map(k=>`<td>${t[k]!==null?`<span style="font-family:var(--font-mono);">${t[k]}/10</span>`:'<span style="color:var(--text-muted);">—</span>'}`).join('')}
+    <td>${t.total!==null?`<span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:${rank===1?'#F59E0B':rank===2?'#94A3B8':rank===3?'#B45309':'var(--text-primary)'};">${fmt.score(t.total)}</span>`:'<span style="color:var(--text-muted);">Pending</span>'}</td>
+    <td><span class="badge badge-${t.total!==null?'active':'pending'}">${t.total!==null?'Scored':'Pending'}</span></td>
+  </tr>${isExp&&t.total!==null?`<tr class="exp-row"><td colspan="10"><div class="exp-inner open">${CR.map((k,ci)=>{const lbs=['Innovation','Technical','Impact','Presentation','Completeness'],ws=[20,25,20,20,15];return`<div style="background:var(--bg-card);border-radius:var(--radius-md);padding:12px;border:0.5px solid var(--border);"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${lbs[ci]}</div><div style="font-family:var(--font-display);font-size:20px;font-weight:800;margin-bottom:5px;">${t[k]}/10</div><div class="progress-bar" style="height:5px;"><div class="progress-fill" style="width:${(t[k]||0)*10}%;background:var(--brand);"></div></div><div style="font-size:10px;color:var(--text-muted);margin-top:3px;">Weight: ${ws[ci]}%</div></div>`;}).join('')}</div></td></tr>`:''}`;}).join('');
+}
+function togExp(name){expTeam=expTeam===name?null:name;const hs=document.getElementById('hs').value;renderTable(RES[hs].teams);}
+function renderMy(teams){
+  const sc=teams.filter(t=>t.total!==null);
+  if(!sc.length){document.getElementById('ms').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No scoring data yet.</div>';return;}
+  const avg=sc.reduce((s,t)=>s+t.total,0)/sc.length;
+  document.getElementById('ms').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;"><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Teams Scored</div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;">${sc.length}</div></div><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">My Avg Score</div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--brand-muted);">${fmt.score(avg)}</div></div><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Range</div><div style="font-family:var(--font-display);font-size:18px;font-weight:800;">${fmt.score(Math.min(...sc.map(t=>t.total)))}–${fmt.score(Math.max(...sc.map(t=>t.total)))}</div></div></div>
+  ${sc.sort((a,b)=>b.total-a.total).map(t=>`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><span style="font-size:13px;font-weight:500;min-width:120px;">${t.name}</span><div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:${t.total}%;background:linear-gradient(90deg,#D946EF,#4F46E5);"></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:600;min-width:36px;text-align:right;">${fmt.score(t.total)}</span></div>`).join('')}`;
+}
+document.addEventListener('DOMContentLoaded',()=>loadR('1'));
+</script>
+</body>
+</html>

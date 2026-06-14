@@ -2,11 +2,9 @@ package com.tooba.EduEvent.repository;
 
 import com.tooba.EduEvent.entity.Score;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
 public interface ScoreRepository extends JpaRepository<Score, Long> {
     // Judge views all their own scores for a hackathon
     List<Score> findAllByJudgeIdAndSubmissionHackathonId(Long judgeId, Long hackathonId);

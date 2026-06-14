@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent Admin — Certificates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    select { width: auto; }
+    .cert-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+    .cert-card { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:var(--transition); }
+    .cert-card:hover { border-color:var(--border-hover); transform:translateY(-2px); }
+    .cert-card-banner { height:80px; display:flex; align-items:center; justify-content:center; font-size:32px; }
+    .cert-card-banner.hack { background:linear-gradient(135deg,rgba(217,70,239,0.2),rgba(79,70,229,0.2)); }
+    .cert-card-banner.quiz { background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.2)); }
+    .cert-card-banner.conf { background:linear-gradient(135deg,rgba(20,184,166,0.2),rgba(59,130,246,0.2)); }
+    .cert-card-banner.web { background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(147,197,253,0.15)); }
+    .cert-card-body { padding:14px 16px; }
+    .cert-name { font-weight:600; font-size:14px; margin-bottom:3px; }
+    .cert-meta { font-size:11px; color:var(--text-muted); margin-bottom:10px; }
+    .cert-card-footer { padding:10px 16px; border-top:0.5px solid var(--border); display:flex; gap:8px; }
+    .cert-id { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+  </style>
+</head>
+<body>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>if(!Auth.guardPage("ADMIN"))throw new Error();</script>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">E</div><span class="sidebar-logo-text">EduEvent</span><span class="sidebar-logo-badge">Admin</span></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Insights</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="leaderboards.html"><span class="nav-icon"><i class="ti ti-trophy"></i></span><span>Leaderboards</span></a></li>
+        <li class="nav-item"><a href="analytics.html"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span><span>Analytics</span></a></li>
+        <li class="nav-item active"><a href="certificates.html"><span class="nav-icon"><i class="ti ti-certificate"></i></span><span>Certificates</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="users.html"><span class="nav-icon"><i class="ti ti-users"></i></span><span>Users</span></a></li>
+        <li class="nav-item"><a href="notifications.html"><span class="nav-icon"><i class="ti ti-bell"></i></span><span>Notifications</span><span class="nav-badge">3</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-profile" data-action="logout" title="Log out">
+        <div class="admin-avatar" id="admin-avatar">SA</div>
+        <div class="admin-info"><div class="admin-name" id="admin-name">Super Admin</div><div class="admin-role" id="admin-role">Administrator</div></div>
+        <i class="ti ti-logout" style="font-size:14px;color:var(--text-muted);margin-left:auto;"></i>
+      </div>
+    </div>
+  </aside>
+  <header class="topbar">
+    <div class="topbar-title">Certificates</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="window.location.href='notifications.html'"><i class="ti ti-bell"></i><span class="notif-dot"></span></button>
+      <button class="icon-btn"><i class="ti ti-search"></i></button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Certificate Wallet</div>
+        <div class="page-desc">All issued certificates across events — <strong>431 total</strong></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select id="cert-filter" onchange="filterCerts(this.value)">
+          <option value="">All Types</option>
+          <option value="hack">Hackathon</option>
+          <option value="quiz">Quiz</option>
+          <option value="conf">Conference</option>
+          <option value="web">Webinar</option>
+        </select>
+        <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i> Export All</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      <div class="stat-card c-green"><div class="stat-label">Total Issued</div><div class="stat-value">431</div></div>
+      <div class="stat-card c-brand"><div class="stat-label">This Month</div><div class="stat-value">74</div></div>
+      <div class="stat-card c-amber"><div class="stat-label">Pending Generation</div><div class="stat-value">28</div></div>
+      <div class="stat-card c-teal"><div class="stat-label">Downloaded</div><div class="stat-value">312</div></div>
+    </div>
+
+    <!-- Certificate grid -->
+    <div class="cert-grid" id="cert-grid"></div>
+
+    <!-- Table view -->
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">All Certificates Log</div><div class="card-subtitle">Detailed record with download links</div></div>
+        <div class="search-wrap" style="max-width:220px;">
+          <i class="ti ti-search"></i>
+          <input type="text" placeholder="Search by name or event…" oninput="filterTable('cert-table', this.value)">
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="cert-table">
+          <thead><tr><th>Certificate ID</th><th>Recipient</th><th>Event</th><th>Type</th><th>Issued Date</th><th>Actions</th></tr></thead>
+          <tbody id="cert-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const CERTS = [
+  { id:'CERT-2025-001', recipient:'ByteBusters', event:'ML Bootcamp 2025', type:'hack', issued:'2025-07-14', place:'1st Place' },
+  { id:'CERT-2025-002', recipient:'Neural Ninjas', event:'ML Bootcamp 2025', type:'hack', issued:'2025-07-14', place:'2nd Place' },
+  { id:'CERT-2025-003', recipient:'CodeCraft', event:'ML Bootcamp 2025', type:'hack', issued:'2025-07-14', place:'3rd Place' },
+  { id:'CERT-2025-004', recipient:'Ali Khan', event:'Data Science Quiz', type:'quiz', issued:'2025-06-28', place:'Passed' },
+  { id:'CERT-2025-005', recipient:'Sara Baig', event:'Data Science Quiz', type:'quiz', issued:'2025-06-28', place:'Passed' },
+  { id:'CERT-2025-006', recipient:'Fatima Noor', event:'Data Science Quiz', type:'quiz', issued:'2025-06-28', place:'Passed' },
+  { id:'CERT-2025-007', recipient:'Zaid Raza', event:'Intro to AI Webinar', type:'web', issued:'2025-06-15', place:'Attendee' },
+  { id:'CERT-2025-008', recipient:'Hassan Ali', event:'IEEE Tech Conference', type:'conf', issued:'2025-05-20', place:'Attendee' },
+  { id:'CERT-2025-009', recipient:'Ayesha Malik', event:'Web Dev Basics Quiz', type:'quiz', issued:'2025-06-01', place:'Passed' },
+  { id:'CERT-2025-010', recipient:'PixelPirates', event:'DSA Sprint', type:'hack', issued:'2025-07-07', place:'Finalist' },
+];
+
+const typeEmoji = { hack:'🏆', quiz:'📝', conf:'🎓', web:'💻' };
+const typeName = { hack:'Hackathon', quiz:'Quiz', conf:'Conference', web:'Webinar' };
+const typeBadge = { hack:'badge-hackathon', quiz:'badge-quiz', conf:'badge-conference', web:'badge-webinar' };
+
+let visibleCerts = [...CERTS];
+
+function renderGrid(certs) {
+  document.getElementById('cert-grid').innerHTML = certs.slice(0,6).map(c => `
+    <div class="cert-card">
+      <div class="cert-card-banner ${c.type}">${typeEmoji[c.type]}</div>
+      <div class="cert-card-body">
+        <div class="cert-name">${c.recipient}</div>
+        <div class="cert-meta">${c.event} · ${c.place}</div>
+        <div class="cert-id">${c.id}</div>
+      </div>
+      <div class="cert-card-footer">
+        <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="downloadCert('${c.id}')">
+          <i class="ti ti-download"></i> Download PDF
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="revokeCert('${c.id}')">
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function renderTable(certs) {
+  document.getElementById('cert-tbody').innerHTML = certs.map(c => `
+    <tr>
+      <td><span style="font-family:var(--font-mono);font-size:12px;background:var(--bg-hover);padding:3px 8px;border-radius:var(--radius-sm);">${c.id}</span></td>
+      <td>${c.recipient}</td>
+      <td>${c.event}</td>
+      <td><span class="badge ${typeBadge[c.type]}">${typeName[c.type]}</span></td>
+      <td>${fmt.date(c.issued)}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="downloadCert('${c.id}')"><i class="ti ti-download"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="revokeCert('${c.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterCerts(type) {
+  visibleCerts = type ? CERTS.filter(c => c.type === type) : [...CERTS];
+  renderGrid(visibleCerts);
+  renderTable(visibleCerts);
+}
+
+async function downloadCert(id) {
+  /* Real call: window.location.href = `${BASE_URL}/api/certificates/${id}/download` + auth header via fetch + blob */
+  Toast.show(`Downloading ${id}…`, 'info');
+  await new Promise(r => setTimeout(r, 800));
+  Toast.show('Certificate downloaded.', 'success');
+}
+
+function revokeCert(id) {
+  confirmAction(`Revoke certificate <strong>${id}</strong>? This cannot be undone.`, () => {
+    const idx = CERTS.findIndex(c => c.id === id);
+    if (idx !== -1) CERTS.splice(idx, 1);
+    visibleCerts = visibleCerts.filter(c => c.id !== id);
+    renderGrid(visibleCerts);
+    renderTable(visibleCerts);
+    Toast.show('Certificate revoked.', 'success');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateAdminProfile();
+  renderGrid(CERTS);
+  renderTable(CERTS);
+  document.querySelectorAll('[data-action="logout"]').forEach(btn =>
+    btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
+});
+</script>
+</body>
+</html>

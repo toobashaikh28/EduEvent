@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent Admin — Quizzes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  
+</head>
+<body>
+
+<!-- ✅ Load scripts ONCE, at the top, BEFORE the guard -->
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+  if (!Auth.guardPage("ADMIN")) throw new Error("no access");
+</script>
+
+<div id="toast-container"></div>
+<div class="admin-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">E</div>
+      <span class="sidebar-logo-text">EduEvent</span>
+      <span class="sidebar-logo-badge">Admin</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item active"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Insights</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="leaderboards.html"><span class="nav-icon"><i class="ti ti-trophy"></i></span><span>Leaderboards</span></a></li>
+        <li class="nav-item"><a href="analytics.html"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span><span>Analytics</span></a></li>
+        <li class="nav-item"><a href="certificates.html"><span class="nav-icon"><i class="ti ti-certificate"></i></span><span>Certificates</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="users.html"><span class="nav-icon"><i class="ti ti-users"></i></span><span>Users</span></a></li>
+        <li class="nav-item"><a href="notifications.html"><span class="nav-icon"><i class="ti ti-bell"></i></span><span>Notifications</span><span class="nav-badge">3</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-profile" data-action="logout" title="Log out">
+        <div class="admin-avatar" id="admin-avatar">SA</div>
+        <div class="admin-info">
+          <div class="admin-name" id="admin-name">Super Admin</div>
+          <div class="admin-role" id="admin-role">Administrator</div>
+        </div>
+        <i class="ti ti-logout" style="font-size:14px;color:var(--text-muted);margin-left:auto;"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">Quizzes</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="window.location.href='notifications.html'">
+        <i class="ti ti-bell"></i><span class="notif-dot"></span>
+      </button>
+      <button class="icon-btn"><i class="ti ti-search"></i></button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Quiz Management</div>
+        <div class="page-desc">Proctored quiz sessions with auto-scoring</div>
+      </div>
+      <button class="btn btn-primary" onclick="openCreateQuiz()">
+        <i class="ti ti-plus"></i> Create Quiz
+      </button>
+    </div>
+
+    <!-- Summary pills -->
+    <div class="quiz-stat-row">
+      <div class="quiz-stat-pill">
+        <div class="label">Total Quizzes</div>
+        <div class="val" id="stat-total">—</div>
+      </div>
+      <div class="quiz-stat-pill">
+        <div class="label">Active Now</div>
+        <div class="val" id="stat-active" style="color:var(--accent-success)">—</div>
+      </div>
+      <div class="quiz-stat-pill">
+        <div class="label">Avg Pass Rate</div>
+        <div class="val" id="stat-passrate">—</div>
+      </div>
+      <div class="quiz-stat-pill">
+        <div class="label">Certificates Pending</div>
+        <div class="val" id="stat-certs" style="color:var(--accent-quiz)">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">All Quizzes</div>
+          <div class="card-subtitle">Click a row to view participant breakdown</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="search-wrap" style="min-width:200px;">
+            <i class="ti ti-search"></i>
+            <input type="text" placeholder="Search quizzes…" oninput="filterQuizzes(this.value)">
+          </div>
+          <select onchange="filterStatus(this.value)">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="quiz-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Quiz Title</th>
+              <th>Event</th>
+              <th>Duration</th>
+              <th>Participants</th>
+              <th>Pass Rate</th>
+              <th>Avg Score</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="quiz-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Quiz Modal -->
+<div class="modal-overlay" id="quiz-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Create Quiz</div>
+      <button class="icon-btn" onclick="document.getElementById('quiz-modal').classList.remove('open')">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Quiz Title</label>
+        <input type="text" id="qf-title" placeholder="e.g. Data Science Fundamentals Quiz">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Linked Event</label>
+        <select id="qf-event">
+          <option>Data Science Quiz</option>
+          <option>ML Bootcamp 2025</option>
+          <option>Web Dev Webinar</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <input type="number" id="qf-duration" value="60">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Total Questions</label>
+        <input type="number" id="qf-questions" value="20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pass Mark (%)</label>
+        <input type="number" id="qf-pass" value="60">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Scheduled Date</label>
+        <input type="datetime-local" id="qf-date">
+      </div>
+      <div class="form-group full" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="qf-proctored" style="width:auto;">
+        <label class="form-label" for="qf-proctored" style="margin:0;">Enable proctoring (tab-switch detection)</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('quiz-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuiz()"><i class="ti ti-check"></i> Create Quiz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Page logic — NO second core.js/components.js load here -->
+<script>
+const QUIZZES = [
+  { id:1, title:'Data Science Fundamentals', event:'Data Science Quiz', duration:60, questions:20, participants:213, passRate:74, avgScore:68.4, status:'completed', passMark:60 },
+  { id:2, title:'ML Concepts Assessment', event:'ML Bootcamp 2025', duration:45, questions:15, participants:89, passRate:61, avgScore:58.9, status:'active', passMark:55 },
+  { id:3, title:'Web Dev Basics', event:'Web Dev Webinar', duration:30, questions:10, participants:142, passRate:83, avgScore:77.2, status:'completed', passMark:50 },
+  { id:4, title:'DSA Timed Quiz', event:'DSA Sprint', duration:90, questions:30, participants:67, passRate:55, avgScore:52.1, status:'active', passMark:60 },
+  { id:5, title:'Cloud Fundamentals', event:'Cloud Computing Summit', duration:60, questions:25, participants:0, passRate:0, avgScore:0, status:'upcoming', passMark:65 },
+  { id:6, title:'Cybersecurity Basics', event:'Cybersecurity CTF', duration:45, questions:20, participants:0, passRate:0, avgScore:0, status:'upcoming', passMark:60 },
+];
+
+const PARTICIPANTS_SAMPLE = [
+  { name:'Ali Khan', score:82, status:'passed', time:'48m' },
+  { name:'Sara Baig', score:91, status:'passed', time:'39m' },
+  { name:'Umar Shah', score:43, status:'failed', time:'60m' },
+  { name:'Fatima Noor', score:77, status:'passed', time:'52m' },
+  { name:'Zaid Raza', score:38, status:'failed', time:'45m' },
+];
+
+let expandedId = null;
+let activeFilter = '';
+
+function statusClass(s) {
+  return { active:'badge-active', upcoming:'badge-upcoming', completed:'badge-completed' }[s] || '';
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = QUIZZES.length;
+  document.getElementById('stat-active').textContent = QUIZZES.filter(q => q.status === 'active').length;
+  const ratedQuizzes = QUIZZES.filter(q => q.passRate > 0);
+  const avgPass = ratedQuizzes.length
+    ? Math.round(ratedQuizzes.reduce((s, q) => s + q.passRate, 0) / ratedQuizzes.length)
+    : 0;
+  document.getElementById('stat-passrate').textContent = avgPass ? avgPass + '%' : '—';
+  // Certs pending = completed quizzes × rough estimate
+  const certsPending = QUIZZES.filter(q => q.status === 'completed')
+    .reduce((s, q) => s + Math.round(q.participants * q.passRate / 100), 0);
+  document.getElementById('stat-certs').textContent = certsPending;
+}
+
+function renderRow(q) {
+  const isExpanded = expandedId === q.id;
+  const passColor = q.passRate >= 70 ? 'var(--accent-success)' : q.passRate >= 50 ? 'var(--accent-warn)' : 'var(--accent-danger)';
+  return `
+    <tr class="q-row" onclick="toggleExpand(${q.id})">
+      <td style="width:30px;"><i class="ti ti-chevron-${isExpanded ? 'up' : 'down'}" style="color:var(--text-muted);font-size:13px;"></i></td>
+      <td>${q.title}</td>
+      <td style="color:var(--text-muted);">${q.event}</td>
+      <td>${q.duration} min</td>
+      <td>${q.participants}</td>
+      <td><span style="color:${passColor};font-weight:500;">${q.passRate > 0 ? fmt.percent(q.passRate) : '—'}</span></td>
+      <td><span style="font-family:var(--font-mono);">${q.avgScore > 0 ? fmt.score(q.avgScore) : '—'}</span></td>
+      <td><span class="badge ${statusClass(q.status)}">${q.status}</span></td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" title="Edit"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-danger btn-sm" title="Delete" onclick="deleteQuiz(${q.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>
+    ${isExpanded ? `<tr><td colspan="9" style="padding:0;">
+      <div class="q-expand open">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Top Participants</div>
+        <table style="width:100%;font-size:12px;">
+          <thead><tr>
+            <th style="text-align:left;color:var(--text-muted);padding:0 12px 8px;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;">Name</th>
+            <th style="text-align:left;color:var(--text-muted);padding:0 12px 8px;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;">Score</th>
+            <th style="text-align:left;color:var(--text-muted);padding:0 12px 8px;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;">Result</th>
+            <th style="text-align:left;color:var(--text-muted);padding:0 12px 8px;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;">Time Taken</th>
+          </tr></thead>
+          <tbody>
+            ${PARTICIPANTS_SAMPLE.map(p => `
+              <tr>
+                <td style="padding:8px 12px;">${p.name}</td>
+                <td style="padding:8px 12px;font-family:var(--font-mono);">${p.score}/100</td>
+                <td style="padding:8px 12px;"><span class="badge ${p.status === 'passed' ? 'badge-active' : 'badge-rejected'}">${p.status}</span></td>
+                <td style="padding:8px 12px;color:var(--text-muted);">${p.time}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i> Export Results CSV</button>
+          <button class="btn btn-secondary btn-sm"><i class="ti ti-certificate"></i> Issue Certificates</button>
+        </div>
+      </div>
+    </td></tr>` : ''}`;
+}
+
+function renderAll(list = null) {
+  const data = list ?? (activeFilter ? QUIZZES.filter(q => q.status === activeFilter) : QUIZZES);
+  document.getElementById('quiz-tbody').innerHTML = data.map(q => renderRow(q)).join('');
+}
+
+function toggleExpand(id) {
+  expandedId = expandedId === id ? null : id;
+  renderAll();
+}
+
+function filterStatus(val) {
+  activeFilter = val;
+  expandedId = null;
+  renderAll();
+}
+
+function filterQuizzes(val) {
+  const q = val.toLowerCase();
+  const filtered = QUIZZES.filter(quiz =>
+    quiz.title.toLowerCase().includes(q) || quiz.event.toLowerCase().includes(q)
+  );
+  document.getElementById('quiz-tbody').innerHTML = filtered.map(q => renderRow(q)).join('');
+}
+
+function deleteQuiz(id) {
+  confirmAction('Delete this quiz? All associated results will be lost.', () => {
+    const idx = QUIZZES.findIndex(q => q.id === id);
+    if (idx !== -1) QUIZZES.splice(idx, 1);
+    expandedId = null;
+    renderAll();
+    updateStats();
+    Toast.show('Quiz deleted.', 'success');
+  });
+}
+
+function openCreateQuiz() {
+  document.getElementById('quiz-modal').classList.add('open');
+}
+
+function saveQuiz() {
+  const title = document.getElementById('qf-title').value.trim();
+  if (!title) { Toast.show('Quiz title is required.', 'warning'); return; }
+  QUIZZES.unshift({
+    id: Date.now(),
+    title,
+    event: document.getElementById('qf-event').value,
+    duration: parseInt(document.getElementById('qf-duration').value) || 60,
+    questions: parseInt(document.getElementById('qf-questions').value) || 20,
+    participants: 0,
+    passRate: 0,
+    avgScore: 0,
+    status: 'upcoming',
+    passMark: parseInt(document.getElementById('qf-pass').value) || 60
+  });
+  document.getElementById('quiz-modal').classList.remove('open');
+  document.getElementById('qf-title').value = '';
+  renderAll();
+  updateStats();
+  Toast.show('Quiz created successfully.', 'success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateAdminProfile();
+  renderAll();
+  updateStats();
+  document.querySelectorAll('[data-action="logout"]').forEach(btn =>
+    btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout()))
+  );
+});
+</script>
+</body>
+</html>

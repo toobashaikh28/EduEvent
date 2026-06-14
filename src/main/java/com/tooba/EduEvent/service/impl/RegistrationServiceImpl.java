@@ -4,8 +4,8 @@ import com.tooba.EduEvent.dto.response.RegistrationResponse;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.EmailService;
-import com.tooba.EduEvent.service.NotificationService;
 import com.tooba.EduEvent.service.RegistrationService;
+import com.tooba.EduEvent.mediator.NotificationMediator;
 import com.tooba.EduEvent.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,7 +24,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final WaitlistService waitlistService;
-    private final NotificationService notificationService;
+    private final NotificationMediator notificationMediator;
     private final EmailService emailService;
 
     @Override
@@ -77,20 +77,23 @@ public class RegistrationServiceImpl implements RegistrationService {
             emailService.sendEmail(user.getEmail(), subject, body);
         }
 
-        // In-app notification
+        // ── MEDIATOR: notify user of registration outcome ────────────────────
         if (targetStatus == RegistrationStatus.REGISTERED) {
-            notificationService.send(
-                    userId,
-                    "Registration Confirmed",
-                    "You have successfully registered for: " + event.getTitle()
+            notificationMediator.notify(
+                this,
+                "REGISTRATION",
+                userId,
+                "You are registered for '" + event.getTitle() + "'. See you there!"
             );
         } else {
-            notificationService.send(
-                    userId,
-                    "Added to Waitlist",
-                    "The event is full. You are on the waitlist for: " + event.getTitle()
+            notificationMediator.notify(
+                this,
+                "WAITLISTED",
+                userId,
+                "The event is full. You are on the waitlist for: " + event.getTitle()
             );
         }
+        // ─────────────────────────────────────────────────────────────────────
 
         return toResponse(saved);
     }

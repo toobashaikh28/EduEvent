@@ -10,6 +10,7 @@ import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.CertificateService; // 1. Imported CertificateService
 import com.tooba.EduEvent.service.LeaderboardService; // Imported LeaderboardService
 import org.springframework.cache.annotation.CacheEvict;
+import com.tooba.EduEvent.mediator.NotificationMediator;
 import com.tooba.EduEvent.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class QuizServiceImpl implements QuizService {
     private final RegistrationRepository registrationRepository;
     private final EventRepository eventRepository;
     private final CertificateService certificateService; // 2. Injected CertificateService
+    private final NotificationMediator notificationMediator;
 
     // ── CREATE QUIZ ───────────────────────────────────────────────────────────
 
@@ -249,6 +251,18 @@ public class QuizServiceImpl implements QuizService {
                 log.error("Failed to generate certificate after passing quiz for session ID: {}", sessionId, e);
             }
         }
+
+        // ── MEDIATOR: notify user of quiz result ─────────────────────────────
+        notificationMediator.notify(
+            this,
+            isPassed ? "QUIZ_PASSED" : "QUIZ_FAILED",
+            session.getUser().getId(),
+            isPassed
+                ? "You scored " + String.format("%.1f", score) + "% — you passed! 🎉"
+                : "You scored " + String.format("%.1f", score) + "%. The pass mark was "
+                    + quiz.getPassScore().doubleValue() + "%."
+        );
+        // ─────────────────────────────────────────────────────────────────────
 
         return QuizResultResponse.builder()
                 .score(score)

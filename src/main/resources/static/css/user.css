@@ -1,0 +1,134 @@
+/* ─── EduEvent User Portal — Layout Overrides (v2: Premium Dark + Aurora) ─── */
+
+.user-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+.topnav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--glass-border);
+  height: var(--header-h);
+  display: flex; align-items: center; padding: 0 32px; gap: 0;
+}
+.topnav-logo { display: flex; align-items: center; gap: 10px; margin-right: 40px; text-decoration: none; }
+.topnav-logo-text { font-family: var(--font-display); font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing:-0.3px; }
+.topnav-links { display: flex; align-items: center; gap: 4px; flex: 1; }
+.topnav-link {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 500; color: var(--text-secondary);
+  text-decoration: none; transition: var(--transition); white-space: nowrap;
+}
+.topnav-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+.topnav-link.active { color: #fff; background: var(--grad-brand-soft); box-shadow: inset 0 0 0 1px rgba(99,102,241,0.3); font-weight: 600; }
+.topnav-link i { font-size: 16px; }
+.topnav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+.user-avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent-hack) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;
+  border: 2px solid transparent; transition: var(--transition);
+}
+.user-avatar-btn:hover { border-color: var(--brand-muted); transform: scale(1.06); box-shadow: var(--glow-brand); }
+
+.user-page { flex: 1; padding: 32px; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+/* ── Rank Badge ──────────────────────── */
+.rank-card {
+  background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(217,70,239,0.12) 100%);
+  border: 1px solid rgba(99,102,241,0.32);
+  border-radius: var(--radius-lg); padding: 22px 24px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: var(--shadow-md); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+}
+.rank-number {
+  font-family: var(--font-display); font-size: 44px; font-weight: 800;
+  background: var(--grad-brand); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; line-height: 1;
+}
+
+/* ── Quiz Interface ──────────────────── */
+.quiz-option {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 15px 17px; border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md); cursor: pointer; transition: var(--transition);
+  margin-bottom: 11px; background: rgba(255,255,255,0.02);
+}
+.quiz-option:hover { border-color: var(--brand); background: rgba(99,102,241,0.07); transform: translateX(3px); }
+.quiz-option.selected { border-color: var(--brand); background: rgba(99,102,241,0.12); box-shadow: inset 0 0 0 1px rgba(99,102,241,0.4); }
+.quiz-option.correct { border-color: var(--accent-success); background: rgba(34,197,94,0.1); }
+.quiz-option.wrong { border-color: var(--accent-danger); background: rgba(239,68,68,0.1); }
+.option-letter {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0; transition: var(--transition);
+}
+.quiz-option.selected .option-letter { background: var(--grad-brand); color: #fff; }
+.quiz-progress-bar { height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+.quiz-progress-fill { height: 100%; background: var(--grad-brand); border-radius: 99px; transition: width 0.4s var(--ease-out); box-shadow: 0 0 12px rgba(99,102,241,0.6); }
+
+/* ── Event Cards ──────────────────────── */
+.event-card {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+  overflow: hidden; transition: var(--transition); cursor: pointer; box-shadow: var(--shadow-md);
+}
+.event-card:hover { border-color: var(--border-hover); transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.event-card-banner { height: 84px; display: flex; align-items: center; justify-content: flex-end; padding: 0 16px; position: relative; overflow: hidden; }
+.event-card-banner.hack { background: linear-gradient(135deg, rgba(217,70,239,0.4), rgba(99,102,241,0.3)); }
+.event-card-banner.webinar { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(99,102,241,0.3)); }
+.event-card-banner.conference { background: linear-gradient(135deg, rgba(20,184,166,0.4), rgba(6,182,212,0.3)); }
+.event-card-banner.quiz { background: linear-gradient(135deg, rgba(245,158,11,0.4), rgba(239,68,68,0.25)); }
+.event-card-banner-emoji { font-size: 38px; opacity: 0.85; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
+.event-card-body { padding: 18px; }
+.event-card-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+.event-card-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.event-card-footer { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+
+/* ── Team member cards ──────────────────── */
+.member-card {
+  display: flex; align-items: center; gap: 12px; padding: 13px 15px;
+  background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.member-card:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
+.member-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+
+/* ── Certificate card (user view) ──────── */
+.cert-card-user {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border); border-radius: var(--radius-lg); overflow: hidden; transition: var(--transition); box-shadow: var(--shadow-md);
+}
+.cert-card-user:hover { border-color: var(--border-hover); transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.cert-banner { height: 96px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; position: relative; }
+.cert-banner.hack { background: linear-gradient(135deg, rgba(217,70,239,0.3), rgba(99,102,241,0.2)); }
+.cert-banner.quiz { background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(239,68,68,0.18)); }
+.cert-banner.conf { background: linear-gradient(135deg, rgba(20,184,166,0.3), rgba(59,130,246,0.2)); }
+.cert-banner.web { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(99,102,241,0.18)); }
+.cert-emoji { font-size: 32px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4)); }
+.cert-place-badge { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px; }
+.cert-place-1 { background: rgba(245,158,11,0.22); color: #FCD34D; }
+.cert-place-pass { background: rgba(34,197,94,0.18); color: #6EE7A8; }
+.cert-place-att { background: rgba(99,102,241,0.18); color: #A5B4FC; }
+.cert-body { padding: 15px 16px; }
+.cert-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+.cert-event { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.cert-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.cert-footer-user { padding: 11px 16px; border-top: 1px solid var(--border); }
+
+/* ── Timer ──────────────────────────────── */
+.timer-display { font-family: var(--font-mono); font-size: 30px; font-weight: 500; letter-spacing: 2px; color: var(--text-primary); }
+.timer-display.warn { color: var(--accent-warn); }
+.timer-display.danger { color: var(--accent-danger); animation: pulse 1s ease infinite; }
+
+.notif-dot-user { width: 8px; height: 8px; border-radius: 50%; background: var(--grad-brand); flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .topnav { padding: 0 16px; }
+  .topnav-link span { display: none; }
+  .topnav-links { gap: 0; }
+  .user-page { padding: 20px 16px; }
+  .topnav-logo-text { display: none; }
+}

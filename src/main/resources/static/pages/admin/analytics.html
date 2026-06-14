@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent Admin — Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .chart-card { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:20px 22px; }
+    .chart-title { font-family:var(--font-display); font-size:15px; font-weight:700; margin-bottom:4px; }
+    .chart-subtitle { font-size:12px; color:var(--text-muted); margin-bottom:18px; }
+    canvas { max-height:220px; }
+    .metric-row { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+    select { width: auto; }
+  </style>
+</head>
+<body>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>if(!Auth.guardPage("ADMIN"))throw new Error();</script>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">E</div><span class="sidebar-logo-text">EduEvent</span><span class="sidebar-logo-badge">Admin</span></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Insights</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="leaderboards.html"><span class="nav-icon"><i class="ti ti-trophy"></i></span><span>Leaderboards</span></a></li>
+        <li class="nav-item active"><a href="analytics.html"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span><span>Analytics</span></a></li>
+        <li class="nav-item"><a href="certificates.html"><span class="nav-icon"><i class="ti ti-certificate"></i></span><span>Certificates</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="users.html"><span class="nav-icon"><i class="ti ti-users"></i></span><span>Users</span></a></li>
+        <li class="nav-item"><a href="notifications.html"><span class="nav-icon"><i class="ti ti-bell"></i></span><span>Notifications</span><span class="nav-badge">3</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-profile" data-action="logout" title="Log out">
+        <div class="admin-avatar" id="admin-avatar">SA</div>
+        <div class="admin-info"><div class="admin-name" id="admin-name">Super Admin</div><div class="admin-role" id="admin-role">Administrator</div></div>
+        <i class="ti ti-logout" style="font-size:14px;color:var(--text-muted);margin-left:auto;"></i>
+      </div>
+    </div>
+  </aside>
+  <header class="topbar">
+    <div class="topbar-title">Analytics</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="window.location.href='notifications.html'"><i class="ti ti-bell"></i><span class="notif-dot"></span></button>
+      <select style="font-size:12px;padding:6px 10px;background:var(--bg-hover);border:0.5px solid var(--border-hover);border-radius:var(--radius-md);color:var(--text-primary);width:auto;" onchange="updatePeriod(this.value)">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 3 months</option>
+      </select>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Analytics</div>
+        <div class="page-desc">Platform performance and engagement metrics</div>
+      </div>
+      <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i> Export Report</button>
+    </div>
+
+    <!-- Top metric cards -->
+    <div class="metric-row">
+      <div class="stat-card c-brand">
+        <div class="stat-label">Total Registrations</div>
+        <div class="stat-value">1,847</div>
+        <div class="stat-delta up"><i class="ti ti-trending-up"></i> +12% this month</div>
+      </div>
+      <div class="stat-card c-teal">
+        <div class="stat-label">Pass Rate</div>
+        <div class="stat-value">72%</div>
+        <div class="stat-delta up"><i class="ti ti-trending-up"></i> +4% vs last month</div>
+      </div>
+      <div class="stat-card c-amber">
+        <div class="stat-label">Avg Quiz Score</div>
+        <div class="stat-value">68.4</div>
+        <div class="stat-delta"><i class="ti ti-minus"></i> stable</div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-label">Certificates Issued</div>
+        <div class="stat-value">431</div>
+        <div class="stat-delta up"><i class="ti ti-trending-up"></i> +18% this month</div>
+      </div>
+      <div class="stat-card c-red">
+        <div class="stat-label">Dropouts</div>
+        <div class="stat-value">89</div>
+        <div class="stat-delta down"><i class="ti ti-trending-down"></i> -6% improvement</div>
+      </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <div class="chart-title">Registrations Over Time</div>
+        <div class="chart-subtitle">Daily registrations — last 30 days</div>
+        <canvas id="chart-reg"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Event Type Distribution</div>
+        <div class="chart-subtitle">Breakdown by event category</div>
+        <canvas id="chart-type"></canvas>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <div class="chart-title">Quiz Score Distribution</div>
+        <div class="chart-subtitle">Frequency across score bands</div>
+        <canvas id="chart-scores"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Monthly Certificates Issued</div>
+        <div class="chart-subtitle">Certificate generation trend</div>
+        <canvas id="chart-certs"></canvas>
+      </div>
+    </div>
+
+    <!-- Top events table -->
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Top Events by Registration</div><div class="card-subtitle">Most popular events this period</div></div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Event</th><th>Type</th><th>Registrations</th><th>Fill Rate</th><th>Pass Rate</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr><td>Intro to AI Webinar</td><td><span class="badge badge-webinar">webinar</span></td><td>445</td><td><div style="display:flex;align-items:center;gap:8px;"><span>89%</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:89%;background:var(--accent-conf);"></div></div></div></td><td style="color:var(--accent-success);">83%</td><td style="color:var(--accent-success);"><i class="ti ti-trending-up"></i></td></tr>
+            <tr><td>IEEE Tech Conference</td><td><span class="badge badge-conference">conference</span></td><td>302</td><td><div style="display:flex;align-items:center;gap:8px;"><span>60%</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:60%;background:var(--accent-conf);"></div></div></div></td><td style="color:var(--text-muted);">—</td><td style="color:var(--brand-muted);"><i class="ti ti-minus"></i></td></tr>
+            <tr><td>Data Science Quiz</td><td><span class="badge badge-quiz">quiz</span></td><td>213</td><td><div style="display:flex;align-items:center;gap:8px;"><span>85%</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:85%;background:var(--accent-quiz);"></div></div></div></td><td style="color:var(--accent-success);">74%</td><td style="color:var(--accent-success);"><i class="ti ti-trending-up"></i></td></tr>
+            <tr><td>ML Bootcamp 2025</td><td><span class="badge badge-hackathon">hackathon</span></td><td>124</td><td><div style="display:flex;align-items:center;gap:8px;"><span>83%</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:83%;background:var(--accent-hack);"></div></div></div></td><td style="color:var(--text-muted);">—</td><td style="color:var(--accent-success);"><i class="ti ti-trending-up"></i></td></tr>
+            <tr><td>Web Dev Webinar</td><td><span class="badge badge-webinar">webinar</span></td><td>89</td><td><div style="display:flex;align-items:center;gap:8px;"><span>30%</span><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:30%;background:var(--accent-webinar);"></div></div></div></td><td style="color:var(--text-muted);">—</td><td style="color:var(--accent-warn);"><i class="ti ti-minus"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#9494A8';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+function makeGradient(ctx, color) {
+  const g = ctx.createLinearGradient(0, 0, 0, 200);
+  g.addColorStop(0, color.replace(')', ', 0.3)').replace('rgb', 'rgba'));
+  g.addColorStop(1, color.replace(')', ', 0)').replace('rgb', 'rgba'));
+  return g;
+}
+
+function initCharts() {
+  // Registrations line chart
+  const regCtx = document.getElementById('chart-reg').getContext('2d');
+  const regGrad = regCtx.createLinearGradient(0,0,0,200);
+  regGrad.addColorStop(0,'rgba(79,70,229,0.25)');
+  regGrad.addColorStop(1,'rgba(79,70,229,0)');
+  new Chart(regCtx, {
+    type: 'line',
+    data: {
+      labels: Array.from({length:30},(_,i)=>`Jun ${i+1}`).filter((_,i)=>i%3===0),
+      datasets: [{
+        label: 'Registrations',
+        data: [12,19,8,24,31,18,27,35,22,41],
+        borderColor: '#4F46E5',
+        backgroundColor: regGrad,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#4F46E5'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Doughnut type chart
+  new Chart(document.getElementById('chart-type'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Hackathons','Conferences','Quizzes','Webinars'],
+      datasets: [{
+        data: [672, 512, 381, 282],
+        backgroundColor: ['rgba(217,70,239,0.7)','rgba(20,184,166,0.7)','rgba(245,158,11,0.7)','rgba(59,130,246,0.7)'],
+        borderColor: ['#D946EF','#14B8A6','#F59E0B','#3B82F6'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } } }
+    }
+  });
+
+  // Score distribution bar
+  new Chart(document.getElementById('chart-scores'), {
+    type: 'bar',
+    data: {
+      labels: ['0–20','21–40','41–60','61–80','81–100'],
+      datasets: [{
+        label: 'Participants',
+        data: [12, 34, 89, 142, 91],
+        backgroundColor: ['rgba(239,68,68,0.6)','rgba(245,158,11,0.6)','rgba(59,130,246,0.6)','rgba(20,184,166,0.6)','rgba(34,197,94,0.6)'],
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Certificates bar
+  const certGrad = document.getElementById('chart-certs').getContext('2d').createLinearGradient(0,0,0,200);
+  certGrad.addColorStop(0,'rgba(34,197,94,0.5)');
+  certGrad.addColorStop(1,'rgba(34,197,94,0.05)');
+  new Chart(document.getElementById('chart-certs'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
+      datasets: [{
+        label: 'Certificates',
+        data: [28, 45, 62, 38, 91, 74, 43],
+        backgroundColor: certGrad,
+        borderColor: '#22C55E',
+        borderWidth: 1,
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function updatePeriod(val) {
+  Toast.show(`Showing data for last ${val} days`, 'info');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateAdminProfile();
+  initCharts();
+  document.querySelectorAll('[data-action="logout"]').forEach(btn =>
+    btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
+});
+</script>
+</body>
+</html>

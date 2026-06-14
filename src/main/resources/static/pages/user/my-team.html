@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>EduEvent — My Team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    .d2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .member-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-hover);border-radius:var(--radius-md);border:0.5px solid var(--border);margin-bottom:8px;}
+    .join-code{font-family:var(--font-mono);font-size:26px;font-weight:700;letter-spacing:8px;text-align:center;padding:14px;background:var(--bg-hover);border-radius:var(--radius-md);border:0.5px dashed var(--border-hover);}
+    .upload-zone{border:1.5px dashed var(--border-hover);border-radius:var(--radius-lg);padding:30px 20px;text-align:center;cursor:pointer;transition:var(--transition);}
+    .upload-zone:hover{border-color:var(--brand);background:rgba(79,70,229,0.04);}
+    .sub-info-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border);}
+    .sub-info-row:last-child{border-bottom:none;}
+    .sub-info-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);min-width:90px;padding-top:2px;}
+    .sub-info-val{font-size:13px;color:var(--text-primary);word-break:break-all;}
+    .gh-link{color:var(--brand-muted);text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-weight:500;}
+    .gh-link:hover{text-decoration:underline;}
+    .member-you{font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px;background:rgba(79,70,229,0.15);color:#A5B4FC;margin-left:4px;}
+    #debug-box{background:#0a0a0a;border:1px solid #333;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-family:monospace;font-size:11px;color:#aaa;display:none;max-height:240px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+    #debug-box.show{display:block;}
+    @media(max-width:700px){.d2{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<div id="toast-container"></div><div id="app"></div>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+if(!Auth.guardPage('USER'))throw new Error();
+
+document.getElementById('app').innerHTML=`<div class="page-shell">
+${buildTopnav('USER','my-team.html')}
+<div class="page-content">
+  <div class="page-header">
+    <div><div class="page-title">My Team</div><div class="page-desc">Manage your hackathon team and project submission</div></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <!-- Dropdown is populated from real API — no hardcoded IDs -->
+      <select id="hack-sel" style="background:var(--bg-card);border:0.5px solid var(--border-hover);border-radius:var(--radius-md);color:var(--text-primary);padding:8px 14px;font-family:var(--font-body);" onchange="onHackathonChange(this.value)">
+        <option value="">Loading hackathons…</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="toggleDebug()" title="Show debug info"><i class="ti ti-bug"></i></button>
+    </div>
+  </div>
+
+  <div id="debug-box"></div>
+
+  <!-- No team -->
+  <div id="no-team" style="display:none;">
+    <div style="background:rgba(79,70,229,0.06);border:0.5px solid rgba(79,70,229,0.2);border-radius:var(--radius-xl);padding:24px;margin-bottom:22px;text-align:center;">
+      <i class="ti ti-users-group" style="font-size:36px;color:var(--brand-muted);display:block;margin-bottom:10px;"></i>
+      <div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:6px;">Not in a team yet</div>
+      <div style="font-size:13px;color:var(--text-muted);">Create a new team or join one with a code.</div>
+    </div>
+    <div class="d2">
+      <div class="card" style="text-align:center;">
+        <div style="width:48px;height:48px;background:rgba(79,70,229,0.12);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="ti ti-plus" style="font-size:22px;color:var(--brand-muted);"></i></div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:8px;">Create Team</div>
+        <div class="form-group" style="margin-bottom:12px;"><input type="text" id="team-name-inp" placeholder="Team name (e.g. Neural Ninjas)"></div>
+        <button class="btn btn-primary btn-full" onclick="createTeam()"><i class="ti ti-users-group"></i> Create Team</button>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="width:48px;height:48px;background:rgba(20,184,166,0.12);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="ti ti-door-enter" style="font-size:22px;color:#5EEAD4;"></i></div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:8px;">Join Team</div>
+        <div class="form-group" style="margin-bottom:12px;"><input type="text" id="join-code-inp" placeholder="Enter join code" style="text-align:center;letter-spacing:4px;font-family:var(--font-mono);font-size:15px;text-transform:uppercase;"></div>
+        <button class="btn btn-secondary btn-full" onclick="joinTeam()"><i class="ti ti-login"></i> Join Team</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Has team -->
+  <div id="has-team" style="display:none;">
+    <div class="d2" style="margin-bottom:20px;">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title" id="tname">—</div><div class="card-subtitle" id="thack">Hackathon</div></div>
+          <span class="badge badge-active">Active</span>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Share this code with teammates:</div>
+          <div class="join-code" id="jcode">——</div>
+          <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;margin-top:8px;" onclick="copyCode()"><i class="ti ti-copy"></i> Copy Join Code</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Members (<span id="mcount">0</span>)</div>
+        <div id="members"></div>
+        <button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="leaveTeam()"><i class="ti ti-door-exit"></i> Leave Team</button>
+      </div>
+      <div class="card" id="sub-panel"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Hackathon Leaderboard</div><div class="card-subtitle" id="lb-hack">Live Rankings</div></div>
+        <button class="btn btn-secondary btn-sm" onclick="loadLeaderboard()"><i class="ti ti-refresh"></i> Refresh</button>
+      </div>
+      <div class="table-wrapper"><table><thead><tr><th>Rank</th><th>Team</th><th>Score</th><th>Status</th></tr></thead>
+        <tbody id="lb-body"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- Loading state shown while hackathons fetch -->
+  <div id="page-loading" style="text-align:center;padding:60px;color:var(--text-muted);">
+    <i class="ti ti-loader spin" style="font-size:28px;display:block;margin-bottom:10px;"></i>
+    Loading your hackathons…
+  </div>
+
+</div></div>${buildNotifPanel()}${buildUserDropdown()}`;
+
+initNotifToggle([]);initAvatarDropdown();populateProfile();
+
+const AC = ['#4F46E5','#14B8A6','#D946EF','#F59E0B','#3B82F6','#22C55E'];
+let _lastApiResponse = null;
+let _currentTeamData = null;
+
+// ── Debug ─────────────────────────────────────────────────────────────────────
+function toggleDebug() {
+  const box = document.getElementById('debug-box');
+  box.classList.toggle('show');
+  if(box.classList.contains('show')) {
+    const u = Auth.getUser();
+    const hackId = document.getElementById('hack-sel').value;
+    box.textContent =
+      '=== Auth.getUser() ===\n' + JSON.stringify(u, null, 2) +
+      '\n\n=== Last API team response ===\n' + JSON.stringify(_lastApiResponse, null, 2) +
+      '\n\n=== amILeader() → ' + (_lastApiResponse ? amILeader(_lastApiResponse) : 'N/A') + ' ===' +
+      '\n\n=== Hackathon ID being used: ' + hackId + ' ===' +
+      '\n\n=== localStorage team cache ===\n' + JSON.stringify(getTeamCache(hackId), null, 2) +
+      '\n\n=== localStorage sub cache ===\n' + JSON.stringify(getSubCache(hackId), null, 2);
+  }
+}
+
+// ── localStorage helpers ──────────────────────────────────────────────────────
+function teamCacheKey(hackId) { return `edu_team_${Auth.getUser()?.id||'g'}_${hackId}`; }
+function saveTeamCache(hackId, d) { try{ localStorage.setItem(teamCacheKey(hackId), JSON.stringify({ts:Date.now(),data:d})); }catch(e){} }
+function getTeamCache(hackId)  { try{ const r=JSON.parse(localStorage.getItem(teamCacheKey(hackId))||'null'); return r?.data||null; }catch(e){return null;} }
+function clearTeamCache(hackId){ try{ localStorage.removeItem(teamCacheKey(hackId)); }catch(e){} }
+
+function subCacheKey(hackId) { return `edu_sub_${Auth.getUser()?.id||'g'}_${hackId}`; }
+function saveSubCache(hackId, d) { try{ localStorage.setItem(subCacheKey(hackId), JSON.stringify(d)); }catch(e){} }
+function getSubCache(hackId)   { try{ const r=localStorage.getItem(subCacheKey(hackId)); return r?JSON.parse(r):null; }catch(e){return null;} }
+function clearSubCache(hackId) { try{ localStorage.removeItem(subCacheKey(hackId)); }catch(e){} }
+
+// ── Role detection ────────────────────────────────────────────────────────────
+function amILeader(teamData) {
+  if(!teamData) return false;
+  const u = Auth.getUser();
+  if(!u) return false;
+  const myId    = String(u.id    || u.userId || u.sub  || '').toLowerCase();
+  const myEmail = String(u.email || '').toLowerCase();
+  const myName  = String(u.name  || u.username || '').toLowerCase();
+
+  // Check top-level leader fields
+  const leaderIds    = [teamData.leaderId, teamData.leaderUserId, teamData.creatorId, teamData.createdById, teamData.ownerId];
+  const leaderEmails = [teamData.leaderEmail, teamData.creatorEmail, teamData.ownerEmail];
+  const leaderNames  = [teamData.leaderName,  teamData.creatorName,  teamData.ownerName];
+  if(myId)    for(const f of leaderIds)    { if(f && String(f).toLowerCase()===myId)    return true; }
+  if(myEmail) for(const f of leaderEmails) { if(f && String(f).toLowerCase()===myEmail) return true; }
+  if(myName)  for(const f of leaderNames)  { if(f && String(f).toLowerCase()===myName)  return true; }
+
+  // Check members array
+  const LEADER_ROLES = new Set(['leader','LEADER','Leader','CREATOR','creator','OWNER','owner']);
+  const members = teamData.members || teamData.teamMembers || [];
+  const me = members.find(m => {
+    const mId    = String(m.userId||m.id||m.memberId||'').toLowerCase();
+    const mEmail = String(m.email||m.userEmail||'').toLowerCase();
+    const mName  = String(m.name||m.userName||m.username||m.participantName||'').toLowerCase();
+    return (myId&&mId&&mId===myId)||(myEmail&&mEmail&&mEmail===myEmail)||(myName&&mName&&mName===myName);
+  });
+  if(me) {
+    const role = me.role||me.memberRole||me.teamRole||'';
+    if(LEADER_ROLES.has(role)||me.isLeader===true||me.leader===true) return true;
+  }
+  // If you're the only member you must be leader (just created)
+  if(members.length === 1 && me) return true;
+  return false;
+}
+
+// ── Hackathon dropdown — loaded from real API ─────────────────────────────────
+async function loadHackathons() {
+  // Fetch hackathons the user is registered for (type=hackathon)
+  let hackathons = await api.get('/events?type=hackathon');
+  if(!hackathons) hackathons = await api.get('/hackathons'); // fallback path
+  if(!hackathons) hackathons = await api.get('/events');     // last resort, filter client-side
+
+  const sel = document.getElementById('hack-sel');
+  document.getElementById('page-loading').style.display = 'none';
+
+  if(!hackathons || !hackathons.length) {
+    sel.innerHTML = '<option value="">No hackathons available</option>';
+    document.getElementById('no-team').style.display = '';
+    return;
+  }
+
+  // Normalise field names
+  const list = hackathons
+    .map(h => ({ id: h.id, name: h.title || h.name || `Hackathon #${h.id}`, type: (h.type||'').toLowerCase() }))
+    .filter(h => h.type === 'hackathon' || !h.type); // keep all if no type filter worked
+
+  if(!list.length) {
+    sel.innerHTML = '<option value="">No hackathons found</option>';
+    document.getElementById('no-team').style.display = '';
+    return;
+  }
+
+  sel.innerHTML = list.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+
+  // Auto-select the first one and load its team
+  await loadTeam(list[0].id);
+}
+
+async function onHackathonChange(hackId) {
+  if(!hackId) return;
+  // Reset UI to loading state before switching
+  document.getElementById('has-team').style.display = 'none';
+  document.getElementById('no-team').style.display  = 'none';
+  await loadTeam(hackId);
+}
+
+// ── Load team for a hackathon ─────────────────────────────────────────────────
+async function loadTeam(hackId) {
+  if(!hackId) return;
+
+  // Show cached immediately so there's no flash
+  const cached = getTeamCache(hackId);
+  if(cached) { applyTeamData(hackId, cached); }
+
+  // Try the real endpoint — GET /api/hackathon/{id}/my-team
+  let data = await api.get(`/hackathon/${hackId}/my-team`);
+  if(!data) data = await api.get(`/hackathon/${hackId}/team`); // alt path
+
+  _lastApiResponse = data;
+
+  if(!data) {
+    if(!cached) {
+      document.getElementById('no-team').style.display  = '';
+      document.getElementById('has-team').style.display = 'none';
+    }
+    return;
+  }
+
+  const teamData = data.team || data.data || data;
+  saveTeamCache(hackId, teamData);
+  applyTeamData(hackId, teamData);
+
+  // Also fetch existing submission so the form pre-fills (or shows submitted state)
+  await loadExistingSubmission(hackId);
+  loadLeaderboard();
+}
+
+// ── Fetch existing submission from backend ────────────────────────────────────
+async function loadExistingSubmission(hackId) {
+  const sub = await api.get(`/hackathon/${hackId}/my-submission`);
+  if(!sub) return; // null = no submission yet, keep form empty
+
+  // Map SubmissionResponse DTO fields to our local cache shape
+  const subInfo = {
+    title:       sub.title          || sub.projectTitle || '',
+    githubUrl:   sub.githubUrl     || sub.repoUrl      || '',
+    description: sub.description   || '',
+    fileName:    sub.fileName      || sub.zipFileName  || null,
+    submittedAt: sub.submittedAt   || sub.createdAt    || new Date().toISOString(),
+  };
+  saveSubCache(hackId, subInfo);
+
+  // Refresh the panel now that we know there's a real submission
+  const teamData = getTeamCache(hackId);
+  if(teamData) {
+    teamData.submitted = true;
+    saveTeamCache(hackId, teamData);
+    renderSubPanel(hackId, teamData);
+  }
+}
+
+// ── Apply team data to UI ─────────────────────────────────────────────────────
+function applyTeamData(hackId, data) {
+  _currentTeamData = data;
+  document.getElementById('no-team').style.display  = 'none';
+  document.getElementById('has-team').style.display = '';
+
+  document.getElementById('tname').textContent = data.teamName || data.name || 'My Team';
+  document.getElementById('jcode').textContent = data.inviteCode || data.joinCode || data.code || '——';
+  document.getElementById('thack').textContent = 'Hackathon';
+
+  const u       = Auth.getUser();
+  const members = data.members || data.teamMembers || [];
+  document.getElementById('mcount').textContent = members.length;
+
+  document.getElementById('members').innerHTML = members.length
+    ? members.map(m => {
+        const mName = m.name || m.userName || m.username || m.participantName || m.email || 'Member';
+        const ic    = mName.charCodeAt(0) || 65;
+        const myId    = String(u?.id    || u?.userId || u?.sub  || '').toLowerCase();
+        const myEmail = String(u?.email || '').toLowerCase();
+        const mId     = String(m.userId || m.id || m.memberId || '').toLowerCase();
+        const mEmail  = String(m.email  || m.userEmail || '').toLowerCase();
+        const isMe    = (myId && mId && mId===myId) || (myEmail && mEmail && mEmail===myEmail);
+
+        const LEADER_ROLES = new Set(['leader','LEADER','CREATOR','creator','OWNER','owner']);
+        const role = m.role || m.memberRole || m.teamRole || '';
+        const isThisLeader = LEADER_ROLES.has(role) || m.isLeader || m.leader
+          || String(data.leaderId||data.creatorId||'') === String(m.userId||m.id||'');
+        const roleLabel = isThisLeader ? '👑 Leader' : (role || 'Member');
+
+        return `<div class="member-card">
+          <div class="avatar" style="background:${AC[ic%AC.length]};">${fmt.initials(mName)}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;">${mName}${isMe?'<span class="member-you">You</span>':''}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${roleLabel}</div>
+          </div>
+          <span class="badge badge-active">${m.status||'Active'}</span>
+        </div>`;
+      }).join('')
+    : `<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">No members listed yet.</div>`;
+
+  renderSubPanel(hackId, data);
+}
+
+// ── Submission panel ──────────────────────────────────────────────────────────
+function renderSubPanel(hackId, teamData) {
+  const panel    = document.getElementById('sub-panel');
+  const isLeader = amILeader(teamData);
+  const cached   = getSubCache(hackId);
+  const submitted = teamData.submitted || teamData.projectSubmitted || !!cached;
+
+  const headerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-title">Project Submission</div>
+        <div class="card-subtitle">${isLeader ? 'You are the team leader · Submit your project' : "View your team's submission"}</div>
+      </div>
+      <span class="badge" style="background:${submitted?'rgba(34,197,94,0.12)':'rgba(245,158,11,0.12)'};color:${submitted?'#4ADE80':'#FCD34D'};">${submitted?'Submitted':'Pending'}</span>
+    </div>`;
+
+  if(isLeader) {
+    if(submitted && cached) {
+      panel.innerHTML = headerHTML + renderSubmittedView(cached, true);
+    } else {
+      panel.innerHTML = headerHTML + `
+        <div id="sub-form">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Project Title <span style="color:var(--accent-danger);">*</span></label>
+            <div class="input-icon-wrap"><i class="ti ti-bulb"></i>
+              <input type="text" id="proj-title" placeholder="e.g. EduEvent Platform" value="${cached?.title||''}">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">GitHub Repository URL <span style="color:var(--accent-danger);">*</span></label>
+            <div class="input-icon-wrap"><i class="ti ti-brand-github"></i>
+              <input type="url" id="gh-url" placeholder="https://github.com/team/project" value="${cached?.githubUrl||''}">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Description</label>
+            <textarea id="proj-desc" rows="3" placeholder="Tech stack, approach, key features…">${cached?.description||''}</textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Project Files <span style="font-size:11px;color:var(--text-muted);">(ZIP up to 50MB, optional)</span></label>
+            <div class="upload-zone" onclick="document.getElementById('fup').click()">
+              <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--text-muted);display:block;margin-bottom:8px;"></i>
+              <div style="font-size:13px;color:var(--text-secondary);">Drop ZIP here or <span style="color:var(--brand-muted);">browse</span></div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">ZIP up to 50MB</div>
+              <div id="fname" style="font-size:12px;color:var(--brand-muted);margin-top:6px;display:none;"></div>
+            </div>
+            <input type="file" id="fup" accept=".zip,.tar,.gz" style="display:none;" onchange="handleFile(this)">
+          </div>
+          <button class="btn btn-primary btn-full" id="sub-btn" onclick="submitProj()">
+            <i class="ti ti-send"></i> Submit Project
+          </button>
+        </div>`;
+    }
+  } else {
+    if(submitted && cached) {
+      panel.innerHTML = headerHTML + renderSubmittedView(cached, false);
+    } else {
+      panel.innerHTML = headerHTML + `
+        <div style="text-align:center;padding:32px 20px;">
+          <div style="font-size:36px;margin-bottom:10px;">⏳</div>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:6px;">Awaiting Submission</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Your team leader hasn't submitted the project yet.<br>Once submitted, you'll see the details here.</div>
+        </div>`;
+    }
+  }
+}
+
+function renderSubmittedView(sub, isLeader) {
+  return `
+    <div style="margin-bottom:14px;">
+      ${[
+        ['Project',     sub.title || '—'],
+        ['GitHub',      sub.githubUrl ? `<a class="gh-link" href="${sub.githubUrl}" target="_blank" rel="noopener"><i class="ti ti-brand-github"></i>${sub.githubUrl}</a>` : '—'],
+        ['Description', sub.description || '—'],
+        ['ZIP File',    sub.fileName ? `<span style="font-family:var(--font-mono);font-size:12px;">📎 ${sub.fileName}</span>` : 'No file attached'],
+        ['Submitted',   sub.submittedAt ? fmt.date(sub.submittedAt) : 'Recently'],
+      ].map(([lbl,val]) => `
+        <div class="sub-info-row">
+          <span class="sub-info-label">${lbl}</span>
+          <span class="sub-info-val">${val}</span>
+        </div>`).join('')}
+    </div>
+    ${isLeader
+      ? `<button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" onclick="editSubmission()"><i class="ti ti-pencil"></i> Edit Submission</button>`
+      : `<div style="background:rgba(79,70,229,0.06);border:0.5px solid rgba(79,70,229,0.15);border-radius:var(--radius-md);padding:10px 12px;margin-top:8px;font-size:12px;color:var(--text-muted);">
+           <i class="ti ti-info-circle" style="color:var(--brand-muted);"></i> Contact your team leader to update the submission.
+         </div>`}`;
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  const hackId = document.getElementById('hack-sel').value;
+  if(!hackId) return;
+  const lb    = await api.get(`/hackathon/${hackId}/leaderboard`);
+  const tbody = document.getElementById('lb-body');
+  const rows  = lb?.leaderboard || lb?.teams || (Array.isArray(lb) ? lb : null);
+  if(!rows || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;">No rankings yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((t,i) => `
+    <tr>
+      <td><span style="font-family:var(--font-mono);font-weight:700;color:${i===0?'#FCD34D':i===1?'#E5E7EB':i===2?'#D97706':'var(--text-muted)'};">${['🥇','🥈','🥉'][i]||'#'+(i+1)}</span></td>
+      <td style="font-weight:500;">${t.teamName||t.name||'—'}</td>
+      <td><span style="font-family:var(--font-mono);font-weight:600;">${t.totalScore??t.score??'—'}</span></td>
+      <td><span class="badge badge-${(t.status||'').toLowerCase()==='submitted'?'active':'pending'}">${t.status||'Pending'}</span></td>
+    </tr>`).join('');
+}
+
+// ── Create / Join ─────────────────────────────────────────────────────────────
+async function createTeam() {
+  const n = document.getElementById('team-name-inp').value.trim();
+  if(!n){ Toast.show('Team name required','warning'); return; }
+  const hackId = document.getElementById('hack-sel').value;
+  if(!hackId){ Toast.show('Please select a hackathon first.','warning'); return; }
+
+  const data = await api.post(`/hackathon/${hackId}/team/create`, { teamName: n });
+  if(!data) return;
+
+  const teamData = data.team || data.data || data;
+  _lastApiResponse = teamData;
+  Toast.show(`Team "${teamData.teamName||n}" created! Code: ${teamData.inviteCode||teamData.joinCode||'—'}`, 'success');
+  saveTeamCache(hackId, teamData);
+  applyTeamData(hackId, teamData);
+  loadLeaderboard();
+}
+
+async function joinTeam() {
+  const code = document.getElementById('join-code-inp').value.trim().toUpperCase();
+  if(!code){ Toast.show('Enter a join code','warning'); return; }
+  const hackId = document.getElementById('hack-sel').value;
+  if(!hackId){ Toast.show('Please select a hackathon first.','warning'); return; }
+
+  const data = await api.post(`/hackathon/${hackId}/team/join`, { inviteCode: code });
+  if(!data) return;
+
+  const teamData = data.team || data.data || data;
+  _lastApiResponse = teamData;
+  Toast.show('Joined team!', 'success');
+  saveTeamCache(hackId, teamData);
+  applyTeamData(hackId, teamData);
+  await loadExistingSubmission(hackId);
+}
+
+function copyCode() {
+  const c = document.getElementById('jcode').textContent;
+  navigator.clipboard.writeText(c).then(()=>Toast.show('Join code copied!','success')).catch(()=>Toast.show('Code: '+c,'info'));
+}
+
+async function leaveTeam() {
+  confirmAction('Leave your team? This cannot be undone.', async () => {
+    const hackId = document.getElementById('hack-sel').value;
+    await api.post(`/hackathon/${hackId}/team/leave`, {});
+    clearTeamCache(hackId);
+    clearSubCache(hackId);
+    _lastApiResponse = null;
+    _currentTeamData = null;
+    document.getElementById('has-team').style.display = 'none';
+    document.getElementById('no-team').style.display  = '';
+    Toast.show('Left team.', 'info');
+  });
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+function handleFile(inp) {
+  if(!inp.files[0]) return;
+  const f = inp.files[0];
+  if(f.size > 50*1024*1024){ Toast.show('File exceeds 50MB limit.','error'); inp.value=''; return; }
+  const el = document.getElementById('fname');
+  el.textContent = `📎 ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`;
+  el.style.display = '';
+}
+
+// ── Submit project ────────────────────────────────────────────────────────────
+async function submitProj() {
+  const title       = document.getElementById('proj-title')?.value.trim();
+  const githubUrl   = document.getElementById('gh-url')?.value.trim();
+  const description = document.getElementById('proj-desc')?.value.trim();
+  const file        = document.getElementById('fup')?.files[0];
+
+  if(!title)     { Toast.show('Project title is required.','warning'); return; }
+  if(!githubUrl) { Toast.show('GitHub URL is required.','warning');    return; }
+
+  const hackId = document.getElementById('hack-sel').value;
+  if(!hackId){ Toast.show('No hackathon selected.','warning'); return; }
+
+  const btn = document.getElementById('sub-btn');
+  setLoading(btn, true);
+
+  // Build FormData — field names must match SubmissionRequest @ModelAttribute fields
+  const fd = new FormData();
+  fd.append('title', title);               // matches SubmissionRequest.title
+  fd.append('description',  description || '');
+  fd.append('githubUrl',    githubUrl);
+  if(file) fd.append('file', file);        // matches @RequestPart("file")
+
+  // Use raw fetch so we control everything — apiFetch handles auth header correctly
+  // for FormData (no Content-Type set, browser sets multipart boundary automatically)
+  const TOKEN = Auth.getToken();
+  let success = false;
+  let responseData = null;
+
+  try {
+    const res = await fetch(`/api/hackathon/${hackId}/submit`, {
+      method: 'POST',
+      headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {},
+      // NO Content-Type header — browser sets multipart/form-data + boundary automatically
+      body: fd,
+    });
+
+    if(res.status === 403) {
+      // Show detailed error to help debug
+      const body = await res.text().catch(()=>'');
+      Toast.show(`Access denied (403). ${body || 'Check that you are registered for this hackathon and are the team leader.'}`, 'error');
+      setLoading(btn, false);
+      return;
+    }
+    if(res.status === 401) { Auth.clear(); window.location.href='/index.html'; return; }
+
+    const isJson = res.headers.get('content-type')?.includes('application/json');
+    responseData  = isJson ? await res.json() : null;
+
+    if(!res.ok) {
+      Toast.show(responseData?.message || `Submission failed (${res.status})`, 'error');
+      setLoading(btn, false);
+      return;
+    }
+    success = true;
+  } catch(err) {
+    Toast.show('Network error. Check your connection.', 'error');
+    setLoading(btn, false);
+    return;
+  }
+
+  setLoading(btn, false);
+
+  // Save to local cache so team members can see it
+  const subInfo = {
+    title,
+    githubUrl,
+    description,
+    fileName:    file?.name || null,
+    submittedAt: responseData?.submittedAt || new Date().toISOString(),
+  };
+  saveSubCache(hackId, subInfo);
+
+  const teamCached = getTeamCache(hackId);
+  if(teamCached) {
+    teamCached.submitted = true;
+    saveTeamCache(hackId, teamCached);
+    renderSubPanel(hackId, teamCached);
+  }
+  Toast.show('Project submitted successfully! 🎉', 'success');
+}
+
+// ── Edit submission (switches back to form, uses PUT next time) ───────────────
+function editSubmission() {
+  const hackId = document.getElementById('hack-sel').value;
+  const teamCached = getTeamCache(hackId);
+  if(teamCached) {
+    teamCached.submitted = false;
+    saveTeamCache(hackId, teamCached);
+    renderSubPanel(hackId, teamCached);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadHackathons);
+</script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>EduEvent — My Quizzes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    .quiz-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+    .quiz-card { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:var(--transition); }
+    .quiz-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+    .quiz-card-top { height:6px; background:linear-gradient(90deg, var(--brand), var(--accent-hackathon)); }
+    .quiz-card-body { padding:20px 22px; }
+    .quiz-card-title { font-family:var(--font-display); font-size:15px; font-weight:700; margin-bottom:6px; }
+    .quiz-card-event { font-size:12px; color:var(--text-muted); margin-bottom:14px; display:flex; align-items:center; gap:5px; }
+    .quiz-meta-row { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+    .quiz-meta-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-secondary); }
+    .quiz-meta-item i { font-size:13px; color:var(--text-muted); }
+    .quiz-card-footer { padding:12px 22px; border-top:0.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .attempt-btn { background:var(--brand); color:#fff; border:none; border-radius:var(--radius-md); padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font-body); display:flex; align-items:center; gap:7px; transition:var(--transition); }
+    .attempt-btn:hover { background:var(--brand-dark); transform:translateY(-1px); }
+    .attempt-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; transform:none; border:0.5px solid var(--border); }
+    .score-chip { font-family:var(--font-mono); font-size:12px; font-weight:500; padding:3px 10px; border-radius:99px; background:rgba(34,197,94,0.1); color:#4ADE80; border:0.5px solid rgba(34,197,94,0.2); }
+    .score-chip.fail { background:rgba(239,68,68,0.1); color:#F87171; border-color:rgba(239,68,68,0.2); }
+    .filter-chip { padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500; background:var(--bg-hover); color:var(--text-secondary); border:0.5px solid var(--border); cursor:pointer; transition:var(--transition); }
+    .filter-chip.active { background:rgba(79,70,229,0.15); color:var(--brand-muted); border-color:rgba(79,70,229,0.3); }
+    .stat-bar { display:flex; gap:14px; }
+    .stat-pill { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-md); padding:14px 20px; flex:1; }
+    .stat-pill .s-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; }
+    .stat-pill .s-val { font-family:var(--font-display); font-size:22px; font-weight:800; margin-top:4px; }
+    @media(max-width:700px){ .stat-bar{flex-direction:column;} .quiz-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div id="app"></div>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+if (!Auth.guardPage('USER')) throw new Error();
+
+document.getElementById('app').innerHTML = `<div class="page-shell">
+${buildTopnav('USER', 'quizzes.html')}
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">My Quizzes</div>
+      <div class="page-desc">Attempt quizzes linked to your registered events</div>
+    </div>
+    <div class="search-wrap" style="min-width:220px;">
+      <i class="ti ti-search"></i>
+      <input type="text" id="search-input" placeholder="Search quizzes…">
+    </div>
+  </div>
+  <div class="stat-bar" style="margin-bottom:24px;">
+    <div class="stat-pill"><div class="s-label">Available</div><div class="s-val" id="s-available">—</div></div>
+    <div class="stat-pill"><div class="s-label">Attempted</div><div class="s-val" id="s-attempted">—</div></div>
+    <div class="stat-pill"><div class="s-label">Passed</div><div class="s-val" style="color:var(--accent-success);" id="s-passed">—</div></div>
+    <div class="stat-pill"><div class="s-label">Best Score</div><div class="s-val" style="color:var(--accent-quiz);" id="s-best">—</div></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="filter-bar">
+    <div class="filter-chip active" onclick="setFilter('all',this)">All</div>
+    <div class="filter-chip" onclick="setFilter('available',this)">Available</div>
+    <div class="filter-chip" onclick="setFilter('attempted',this)">Attempted</div>
+    <div class="filter-chip" onclick="setFilter('upcoming',this)">Upcoming</div>
+  </div>
+  <div class="quiz-grid" id="quiz-grid">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+</div>
+</div>${buildNotifPanel()}${buildUserDropdown()}`;
+
+initNotifToggle([]);
+initAvatarDropdown();
+populateProfile();
+
+let allQuizzes = [];
+let activeFilter = 'all';
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function statusBadge(q) {
+  if (q.attempted) return q.passed
+    ? `<span class="badge badge-active"><i class="ti ti-check"></i> Passed</span>`
+    : `<span class="badge badge-rejected"><i class="ti ti-x"></i> Failed</span>`;
+  if (q.status === 'upcoming')  return `<span class="badge badge-upcoming">Upcoming</span>`;
+  if (q.status === 'active')    return `<span class="badge" style="background:rgba(79,70,229,0.15);color:#A5B4FC;">Open</span>`;
+  return `<span class="badge badge-completed">Closed</span>`;
+}
+
+function renderGrid() {
+  const search = document.getElementById('search-input')?.value?.toLowerCase() || '';
+  const list = allQuizzes.filter(q => {
+    const m = q.title.toLowerCase().includes(search) || (q.eventName||'').toLowerCase().includes(search);
+    if (!m) return false;
+    if (activeFilter === 'available') return q.status === 'active' && !q.attempted;
+    if (activeFilter === 'attempted') return q.attempted;
+    if (activeFilter === 'upcoming')  return q.status === 'upcoming';
+    return true;
+  });
+
+  const grid = document.getElementById('quiz-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-icon"><i class="ti ti-clipboard-x"></i></div>
+      <div class="empty-title">No quizzes found</div>
+      <div class="empty-desc">Try a different filter or register for events that have quizzes.</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(q => `
+    <div class="quiz-card">
+      <div class="quiz-card-top"></div>
+      <div class="quiz-card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <div class="quiz-card-title">${q.title}</div>
+          ${statusBadge(q)}
+        </div>
+        <div class="quiz-card-event"><i class="ti ti-calendar-event"></i>${q.eventName || 'EduEvent Quiz'}</div>
+        <div class="quiz-meta-row">
+          <div class="quiz-meta-item"><i class="ti ti-clock"></i>${q.durationMinutes || 30} min</div>
+          <div class="quiz-meta-item"><i class="ti ti-list-numbers"></i>${q.questionCount || '—'} Qs</div>
+          <div class="quiz-meta-item"><i class="ti ti-target"></i>Pass: ${q.passMark || 60}%</div>
+        </div>
+        ${q.attempted && q.score != null ? `
+        <div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:12px;color:var(--text-muted);">Your score</span>
+          <span class="score-chip ${q.passed ? '' : 'fail'}">${q.score}%</span>
+        </div>` : ''}
+      </div>
+      <div class="quiz-card-footer">
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">
+          ${q.attempted ? 'Attempted · ' + (q.attemptDate || '') : q.status === 'upcoming' ? 'Not open yet' : 'Ready to attempt'}
+        </div>
+        <button class="attempt-btn" ${q.status === 'active' && !q.attempted ? '' : 'disabled'}
+          onclick="startQuiz(${q.id}, ${q.passMark || 60}, ${q.durationMinutes || 30})">
+          <i class="ti ti-player-play"></i>
+          ${q.attempted ? 'Attempted' : 'Attempt'}
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function startQuiz(id, passMark, duration) {
+  window.location.href = `quiz.html?id=${id}&pass=${passMark}&duration=${duration}`;
+}
+
+function updateStats(quizzes) {
+  const scores = quizzes.filter(q => q.score != null).map(q => q.score);
+  document.getElementById('s-available').textContent = quizzes.filter(q => q.status === 'active' && !q.attempted).length;
+  document.getElementById('s-attempted').textContent = quizzes.filter(q => q.attempted).length;
+  document.getElementById('s-passed').textContent    = quizzes.filter(q => q.passed).length;
+  document.getElementById('s-best').textContent      = scores.length ? Math.max(...scores) + '%' : '—';
+}
+
+async function load() {
+  const data = await api.get('/quiz/my-quizzes');
+  if (data && Array.isArray(data)) {
+    allQuizzes = data;
+  } else {
+    // Fallback mock so the page works during development
+    allQuizzes = [
+      { id:1, title:'Data Science Fundamentals', eventName:'Data Science Summit', durationMinutes:60, questionCount:20, passMark:60, status:'active',    attempted:false, score:null,  passed:false },
+      { id:2, title:'ML Concepts Assessment',    eventName:'ML Bootcamp 2025',    durationMinutes:45, questionCount:15, passMark:55, status:'completed', attempted:true,  score:72,    passed:true,  attemptDate:'Jun 3' },
+      { id:3, title:'Web Dev Basics',            eventName:'Web Dev Webinar',     durationMinutes:30, questionCount:10, passMark:50, status:'completed', attempted:true,  score:45,    passed:false, attemptDate:'May 28' },
+      { id:4, title:'DSA Timed Quiz',            eventName:'DSA Sprint',          durationMinutes:90, questionCount:30, passMark:60, status:'active',    attempted:false, score:null,  passed:false },
+      { id:5, title:'Cloud Fundamentals',        eventName:'Cloud Summit',        durationMinutes:60, questionCount:25, passMark:65, status:'upcoming',  attempted:false, score:null,  passed:false },
+    ];
+  }
+  updateStats(allQuizzes);
+  renderGrid();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  load();
+  document.getElementById('search-input')?.addEventListener('input', renderGrid);
+});
+</script>
+</body>
+</html>
