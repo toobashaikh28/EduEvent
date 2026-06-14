@@ -245,10 +245,17 @@ public class TeamService {
         response.setTeamName(team.getName());
         response.setInviteCode(team.getJoinCode());
         response.setLeaderName(team.getLeader().getName());
-        response.setMemberNames(
+        
+        // Map the database entities to the new MemberDto object
+        response.setMembers(
             teamMemberRepository.findAllByTeamIdAndStatus(team.getId(), "ACCEPTED")
                 .stream()
-                .map(m -> m.getUser().getName())
+                .map(m -> new com.tooba.EduEvent.dto.response.MemberDto(
+                        m.getUser().getId(),
+                        m.getUser().getName(),
+                        m.getRole(),
+                        m.getStatus()
+                ))
                 .collect(Collectors.toList())
         );
         return response;

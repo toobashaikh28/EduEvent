@@ -1,0 +1,1602 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>EduEvent — Secure Proctored Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="../../js/core.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0b0e14;
+        --surface: #131720;
+        --surface2: #1a2030;
+        --border: #252d3d;
+        --accent: #4f8ef7;
+        --accent2: #7c5cfc;
+        --green: #22d17a;
+        --red: #f74f6b;
+        --amber: #f7a84f;
+        --text: #e8ecf5;
+        --muted: #687090;
+        --mono: "DM Mono", monospace;
+        --sans: "Sora", sans-serif;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* TOP BAR */
+      #topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        height: 56px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      #topbar .logo {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      #timer-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      #timer-label {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      #timer {
+        font-family: var(--mono);
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 4px 14px;
+        border-radius: 6px;
+        min-width: 90px;
+        text-align: center;
+        transition: color 0.3s;
+      }
+
+      #timer.urgent {
+        color: var(--red);
+        animation: pulse-red 1s infinite;
+      }
+
+      @keyframes pulse-red {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      #progress-text {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* MAIN AREA */
+      #main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        position: relative;
+        overflow-y: auto;
+      }
+
+      #progress-bar-wrap {
+        width: 100%;
+        max-width: 760px;
+        height: 3px;
+        background: var(--border);
+        border-radius: 99px;
+        margin-bottom: 28px;
+        overflow: hidden;
+      }
+
+      #progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        border-radius: 99px;
+        transition: width 0.4s ease;
+      }
+
+      #quiz-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 40px 44px 36px;
+        max-width: 760px;
+        width: 100%;
+        box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4);
+        transition: filter 0.2s;
+      }
+
+      .q-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .q-badge {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        background: rgba(79, 142, 247, 0.12);
+        color: var(--accent);
+        border: 1px solid rgba(79, 142, 247, 0.25);
+        padding: 3px 10px;
+        border-radius: 4px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      #question-text {
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.55;
+        color: var(--text);
+        margin-bottom: 30px;
+        min-height: 72px;
+      }
+
+      #options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .option-btn {
+        background: var(--surface2);
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        padding: 16px 20px;
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .option-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(79, 142, 247, 0.06),
+          transparent
+        );
+        opacity: 0;
+        transition: opacity 0.18s;
+      }
+
+      .option-btn:hover::before {
+        opacity: 1;
+      }
+
+      .option-btn:hover {
+        border-color: rgba(79, 142, 247, 0.5);
+        transform: translateY(-1px);
+      }
+
+      .option-btn.selected {
+        border-color: var(--accent);
+        background: rgba(79, 142, 247, 0.1);
+        color: #fff;
+      }
+
+      .option-btn.selected .opt-letter {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .opt-letter {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--border);
+        color: var(--muted);
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.18s;
+      }
+
+      #nav-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 28px;
+      }
+
+      .nav-btn {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 22px;
+        color: var(--muted);
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        letter-spacing: 0.03em;
+      }
+
+      .nav-btn:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      .nav-btn.disabled,
+      .option-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      #submit-btn {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border: none;
+        border-radius: 8px;
+        padding: 10px 26px;
+        color: #fff;
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          opacity 0.15s,
+          transform 0.15s;
+        letter-spacing: 0.03em;
+        display: none;
+      }
+
+      #submit-btn:hover {
+        opacity: 0.88;
+        transform: translateY(-1px);
+      }
+
+      #submit-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      /* PROCTOR STATUS */
+      #proctor-status {
+        position: fixed;
+        top: 68px;
+        left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 50;
+      }
+
+      .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(19, 23, 32, 0.85);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 11px;
+        color: var(--muted);
+        backdrop-filter: blur(8px);
+        transition: all 0.3s;
+      }
+
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition: background 0.3s;
+        flex-shrink: 0;
+      }
+
+      .status-pill.ok .status-dot {
+        background: var(--green);
+      }
+
+      .status-pill.warn .status-dot {
+        background: var(--amber);
+        animation: blink 0.6s infinite;
+      }
+
+      .status-pill.bad .status-dot {
+        background: var(--red);
+        animation: blink 0.4s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      /* VIOLATION TOAST */
+      #violation-toast {
+        position: fixed;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: rgba(247, 79, 107, 0.12);
+        border: 1px solid rgba(247, 79, 107, 0.4);
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 13px;
+        color: var(--red);
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 200;
+        pointer-events: none;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      #violation-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      #violation-count-badge {
+        position: fixed;
+        bottom: 112px;
+        right: 20px;
+        background: rgba(247, 79, 107, 0.12);
+        border: 1px solid rgba(247, 79, 107, 0.3);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: var(--red);
+        font-family: var(--mono);
+        z-index: 50;
+      }
+
+      /* VIDEO PREVIEW */
+      #video-wrap {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 120px;
+        height: 90px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 2px solid var(--border);
+        background: #000;
+        z-index: 100;
+        transition: border-color 0.3s;
+      }
+
+      #video-wrap.face-ok {
+        border-color: var(--green);
+      }
+
+      #video-wrap.face-warn {
+        border-color: var(--amber);
+      }
+
+      #video-wrap.face-bad {
+        border-color: var(--red);
+      }
+
+      #video-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+      }
+
+      #cam-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(247, 79, 107, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      #cam-overlay.show {
+        display: flex;
+      }
+
+      #video-label {
+        position: absolute;
+        bottom: 4px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 9px;
+        font-family: var(--mono);
+        color: rgba(255, 255, 255, 0.6);
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      /* INVALIDATED OVERLAY */
+      #invalidated-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 5, 8, 0.96);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(8px);
+      }
+
+      #invalidated-overlay.show {
+        display: flex;
+      }
+
+      .inv-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        animation: shake 0.4s ease;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+
+        25% {
+          transform: rotate(-8deg);
+        }
+
+        75% {
+          transform: rotate(8deg);
+        }
+      }
+
+      .inv-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--red);
+        margin-bottom: 10px;
+        letter-spacing: 0.02em;
+      }
+
+      .inv-sub {
+        font-size: 15px;
+        color: var(--muted);
+        max-width: 380px;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      .inv-border {
+        width: 240px;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--red),
+          transparent
+        );
+        margin: 24px auto;
+      }
+
+      /* RESULT SCREEN */
+      #result-screen {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 900;
+        padding: 40px;
+        overflow-y: auto;
+      }
+
+      #result-screen.show {
+        display: flex;
+      }
+
+      .result-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 48px 56px;
+        max-width: 520px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+      }
+
+      .result-score-ring {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        font-family: var(--mono);
+        font-size: 30px;
+        font-weight: 500;
+        border: 4px solid var(--border);
+        position: relative;
+      }
+
+      .result-score-ring.pass {
+        border-color: var(--green);
+        color: var(--green);
+      }
+
+      .result-score-ring.fail {
+        border-color: var(--red);
+        color: var(--red);
+      }
+
+      .result-badge {
+        display: inline-block;
+        padding: 6px 18px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+
+      .result-badge.pass {
+        background: rgba(34, 209, 122, 0.12);
+        color: var(--green);
+        border: 1px solid rgba(34, 209, 122, 0.3);
+      }
+
+      .result-badge.fail {
+        background: rgba(247, 79, 107, 0.12);
+        color: var(--red);
+        border: 1px solid rgba(247, 79, 107, 0.3);
+      }
+
+      .result-title {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .result-stats {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+      }
+
+      .stat-box {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 20px;
+        min-width: 90px;
+      }
+
+      .stat-val {
+        font-family: var(--mono);
+        font-size: 22px;
+        font-weight: 500;
+      }
+
+      .stat-lbl {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .cert-banner {
+        margin-top: 22px;
+        background: linear-gradient(
+          135deg,
+          rgba(79, 142, 247, 0.1),
+          rgba(124, 92, 252, 0.1)
+        );
+        border: 1px solid rgba(79, 142, 247, 0.25);
+        border-radius: 10px;
+        padding: 16px 20px;
+        font-size: 13px;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: left;
+      }
+
+      .cert-banner span {
+        font-size: 20px;
+      }
+
+      /* LOADING */
+      #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        gap: 20px;
+      }
+
+      .loader-ring {
+        width: 48px;
+        height: 48px;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader-text {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .blurred {
+        filter: blur(6px);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .terminated-marker {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(247, 79, 107, 0.9);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 1001;
+        display: none;
+        font-family: var(--mono);
+      }
+
+      .terminated-marker.show {
+        display: block;
+      }
+
+      @media (max-width: 600px) {
+        #options-grid {
+          grid-template-columns: 1fr;
+        }
+
+        #quiz-card {
+          padding: 24px 20px;
+        }
+
+        #question-text {
+          font-size: 17px;
+        }
+
+        #proctor-status {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading-overlay">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Initializing secure proctoring environment…</div>
+    </div>
+
+    <div id="topbar">
+      <div class="logo">EduEvent · Proctored Quiz</div>
+      <div id="timer-wrap">
+        <span id="timer-label">Time Left</span>
+        <div id="timer">00:00</div>
+      </div>
+      <div id="progress-text">
+        Q <span id="q-current">1</span> / <span id="q-total">—</span>
+      </div>
+    </div>
+
+    <div id="proctor-status">
+      <div class="status-pill" id="pill-camera">
+        <div class="status-dot"></div>
+        <span>Camera</span>
+      </div>
+      <div class="status-pill" id="pill-face">
+        <div class="status-dot"></div>
+        <span>Face Detection</span>
+      </div>
+      <div class="status-pill" id="pill-gaze">
+        <div class="status-dot"></div>
+        <span>Gaze Lock</span>
+      </div>
+    </div>
+
+    <div id="main">
+      <div id="progress-bar-wrap">
+        <div id="progress-bar" style="width: 0%"></div>
+      </div>
+      <div id="quiz-card">
+        <div class="q-meta">
+          <div class="q-badge">Question <span id="q-num">1</span></div>
+        </div>
+        <div id="question-text">Loading assessment…</div>
+        <div id="options-grid"></div>
+        <div id="nav-row">
+          <button class="nav-btn" id="prev-btn">← Previous</button>
+          <button class="nav-btn" id="next-btn">Next →</button>
+          <button id="submit-btn">Submit Quiz</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="violation-toast">⚠ Violation recorded</div>
+    <div id="violation-count-badge">
+      ⚠ Violations: <span id="v-count">0</span>/3
+    </div>
+
+    <div id="video-wrap">
+      <video id="video-preview" autoplay muted playsinline></video>
+      <div id="cam-overlay"></div>
+      <div id="video-label">LIVE PROCTOR</div>
+    </div>
+
+    <div id="invalidated-overlay">
+      <div class="inv-icon">🚫</div>
+      <div class="inv-title">Session Terminated</div>
+      <div class="inv-border"></div>
+      <div class="inv-sub">
+        Multiple integrity violations detected (3+). Your exam has been
+        permanently locked and this incident has been recorded. You cannot
+        resume or submit this quiz.
+      </div>
+      <div style="margin-top: 32px">
+        <button
+          onclick="window.location.href = 'quizzes.html'"
+          style="
+            background: rgba(247, 79, 107, 0.15);
+            border: 0.5px solid rgba(247, 79, 107, 0.35);
+            color: #f87171;
+            border-radius: 10px;
+            padding: 11px 28px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--sans);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          ← Back to My Quizzes
+        </button>
+      </div>
+    </div>
+
+    <div id="result-screen">
+      <div class="result-card">
+        <div class="result-score-ring" id="result-ring">—%</div>
+        <div class="result-badge" id="result-badge">—</div>
+        <div class="result-title" id="result-title">Quiz Complete</div>
+        <div class="result-stats">
+          <div class="stat-box">
+            <div class="stat-val" id="stat-correct">—</div>
+            <div class="stat-lbl">Correct</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-total">—</div>
+            <div class="stat-lbl">Total</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-pass">—%</div>
+            <div class="stat-lbl">Required</div>
+          </div>
+        </div>
+        <div class="cert-banner" id="cert-banner">
+          <span>🎓</span>
+          <div>
+            Certificate generation in progress. Your achievement has been
+            recorded.
+          </div>
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
+          "
+        >
+          <button
+            onclick="window.location.href = 'quizzes.html'"
+            style="
+              background: var(--surface2);
+              border: 0.5px solid var(--border2);
+              border-radius: 10px;
+              padding: 11px 22px;
+              color: var(--muted);
+              font-family: var(--sans);
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              transition: all 0.15s;
+            "
+          >
+            ← My Quizzes
+          </button>
+          <button
+            id="cert-btn"
+            onclick="goToCertificate()"
+            style="
+              display: none;
+              background: linear-gradient(
+                135deg,
+                rgba(79, 142, 247, 0.2),
+                rgba(124, 92, 252, 0.15)
+              );
+              border: 0.5px solid rgba(79, 142, 247, 0.3);
+              border-radius: 10px;
+              padding: 11px 22px;
+              color: #93c5fd;
+              font-family: var(--sans);
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            🏆 View Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="terminated-marker" class="terminated-marker">
+      ⛔ SESSION INVALIDATED - VIOLATION LIMIT EXCEEDED
+    </div>
+
+    <script>
+      (function () {
+        // ----- configuration -----
+        if (!Auth.guardPage("USER")) throw new Error("no access");
+
+        const params = new URLSearchParams(location.search);
+        const SESSION_ID =
+          params.get("sessionId") || `EDU_${Math.floor(Math.random() * 10000)}`;
+        const DURATION = parseInt(params.get("duration") || "540"); // 9 minutes default
+        const PASS_SCORE = parseInt(params.get("passScore") || "60");
+        const API_BASE = params.get("apiBase") || "";
+        const MAX_VIOLATIONS = 3;
+
+        // ----- robust question bank -----
+        const FULL_QUESTIONS = [
+          {
+            id: 1,
+            text: "Which HTTP status code indicates a resource was successfully created?",
+            options: [
+              { id: "a", text: "200 OK", correct: false },
+              { id: "b", text: "201 Created", correct: true },
+              { id: "c", text: "204 No Content", correct: false },
+              { id: "d", text: "301 Moved", correct: false },
+            ],
+          },
+          {
+            id: 2,
+            text: "In Spring Boot, which annotation marks a class as a singleton-scoped bean by default?",
+            options: [
+              { id: "a", text: "@Component", correct: true },
+              { id: "b", text: "@Singleton", correct: false },
+              { id: "c", text: "@Bean", correct: false },
+              { id: "d", text: "@Prototype", correct: false },
+            ],
+          },
+          {
+            id: 3,
+            text: "What does JPA stand for?",
+            options: [
+              { id: "a", text: "Java Persistence API", correct: true },
+              { id: "b", text: "Java Process Abstraction", correct: false },
+              { id: "c", text: "JSON Persistence Adapter", correct: false },
+              { id: "d", text: "Jakarta Package Archive", correct: false },
+            ],
+          },
+          {
+            id: 4,
+            text: "Which design pattern ensures only one instance of a class exists per Spring context?",
+            options: [
+              { id: "a", text: "Factory", correct: false },
+              { id: "b", text: "Observer", correct: false },
+              { id: "c", text: "Singleton", correct: true },
+              { id: "d", text: "Strategy", correct: false },
+            ],
+          },
+          {
+            id: 5,
+            text: "What is the purpose of a JWT token in REST API authentication?",
+            options: [
+              { id: "a", text: "Encrypt the request body", correct: false },
+              {
+                id: "b",
+                text: "Carry signed, verifiable identity claims",
+                correct: true,
+              },
+              {
+                id: "c",
+                text: "Store session data server-side",
+                correct: false,
+              },
+              {
+                id: "d",
+                text: "Hash passwords before storage",
+                correct: false,
+              },
+            ],
+          },
+        ];
+
+        function shuffleArray(arr) {
+          const copy = [...arr];
+          for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+          }
+          return copy;
+        }
+
+        let questions = shuffleArray(FULL_QUESTIONS).map((q) => ({
+          ...q,
+          options: shuffleArray(q.options),
+        }));
+
+        let answers = {};
+        let currentIndex = 0;
+        let sessionInvalidated = false;
+        let violationCount = 0;
+        let timerInterval = null;
+        let timeLeft = DURATION;
+        let faceInterval = null;
+        let mediaStream = null;
+        let modelsLoaded = false;
+        let submissionPrevented = false;
+
+        // DOM elements
+        const prevBtn = document.getElementById("prev-btn");
+        const nextBtn = document.getElementById("next-btn");
+        const submitBtn = document.getElementById("submit-btn");
+        const timerEl = document.getElementById("timer");
+        const vCountSpan = document.getElementById("v-count");
+        const violationBadge = document.getElementById("violation-count-badge");
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const pillCamera = document.getElementById("pill-camera");
+        const pillFace = document.getElementById("pill-face");
+        const pillGaze = document.getElementById("pill-gaze");
+        const videoEl = document.getElementById("video-preview");
+        const camOverlay = document.getElementById("cam-overlay");
+        const videoWrap = document.getElementById("video-wrap");
+        const terminatedMarker = document.getElementById("terminated-marker");
+
+        // ----- helpers -----
+        function setPillState(pill, state, label) {
+          pill.className = `status-pill ${state}`;
+          const span = pill.querySelector("span");
+          if (span) span.textContent = label;
+        }
+
+        function setPillOk(pill, label) {
+          setPillState(pill, "ok", label);
+        }
+        function setPillWarn(pill, label) {
+          setPillState(pill, "warn", label);
+        }
+        function setPillBad(pill, label) {
+          setPillState(pill, "bad", label);
+        }
+
+        function getToken() {
+          return localStorage.getItem("jwt") || "";
+        }
+
+        function showToast(msg) {
+          const toast = document.getElementById("violation-toast");
+          toast.textContent = msg;
+          toast.classList.add("show");
+          setTimeout(() => toast.classList.remove("show"), 2600);
+        }
+
+        // DISABLE ALL INTERACTIONS
+        function disableAllInteractions() {
+          // Disable all option buttons
+          document.querySelectorAll(".option-btn").forEach((btn) => {
+            btn.style.pointerEvents = "none";
+            btn.style.opacity = "0.5";
+            btn.classList.add("disabled");
+          });
+
+          // Disable navigation buttons
+          prevBtn.style.pointerEvents = "none";
+          prevBtn.style.opacity = "0.5";
+          prevBtn.classList.add("disabled");
+
+          nextBtn.style.pointerEvents = "none";
+          nextBtn.style.opacity = "0.5";
+          nextBtn.classList.add("disabled");
+
+          // Disable submit button
+          submitBtn.style.pointerEvents = "none";
+          submitBtn.style.opacity = "0.5";
+          submitBtn.classList.add("disabled");
+
+          // Also prevent any future clicks on quiz card
+          const quizCard = document.getElementById("quiz-card");
+          quizCard.style.pointerEvents = "none";
+        }
+
+        async function reportViolation(type) {
+          if (sessionInvalidated) return;
+
+          // Increment violation count locally first
+          violationCount++;
+          vCountSpan.textContent = violationCount;
+          violationBadge.style.display = "block";
+
+          // Show toast notification
+          const message =
+            type === "face_missing"
+              ? "No face detected — violation " + violationCount + "/3"
+              : type === "gaze_away"
+                ? "Please look at the screen — violation " +
+                  violationCount +
+                  "/3"
+                : "Tab/window switch detected — violation " +
+                  violationCount +
+                  "/3";
+          showToast(message);
+
+          // Try to report to backend if available
+          try {
+            if (API_BASE) {
+              await fetch(
+                `${API_BASE}/api/quiz/session/${SESSION_ID}/violation`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                  },
+                  body: JSON.stringify({
+                    type,
+                    timestamp: Date.now(),
+                    count: violationCount,
+                  }),
+                },
+              );
+            }
+          } catch (err) {
+            // Silent fail - we already have local count
+          }
+
+          // CRITICAL FIX: Check if violation limit reached
+          if (violationCount >= MAX_VIOLATIONS) {
+            console.log("Violation limit reached! Invalidating session...");
+            invalidateSession();
+          }
+        }
+
+        function invalidateSession() {
+          if (sessionInvalidated) return;
+
+          sessionInvalidated = true;
+          submissionPrevented = true;
+
+          // Stop all timers and intervals
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          if (faceInterval) {
+            clearInterval(faceInterval);
+            faceInterval = null;
+          }
+
+          // Stop camera stream and retry intervals
+          if (cameraRetryInterval) {
+            clearInterval(cameraRetryInterval);
+            cameraRetryInterval = null;
+          }
+          if (cameraBlockedViolationInterval) {
+            clearInterval(cameraBlockedViolationInterval);
+            cameraBlockedViolationInterval = null;
+          }
+          if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => {
+              track.stop();
+            });
+            mediaStream = null;
+          }
+
+          // Disable all user interactions
+          disableAllInteractions();
+
+          // Apply blur to main content
+          document.getElementById("quiz-card").classList.add("blurred");
+          document.getElementById("topbar").classList.add("blurred");
+
+          // Show termination overlay
+          document.getElementById("invalidated-overlay").classList.add("show");
+
+          // Show floating marker
+          terminatedMarker.classList.add("show");
+
+          // Hide any result screen if visible
+          document.getElementById("result-screen").classList.remove("show");
+
+          // Also disable any further answer selections
+          window.answers = {};
+
+          console.log("Session invalidated due to excessive violations");
+        }
+
+        // ----- quiz rendering -----
+        function renderQuestion() {
+          if (sessionInvalidated) return;
+          const q = questions[currentIndex];
+          document.getElementById("q-num").textContent = currentIndex + 1;
+          document.getElementById("q-current").textContent = currentIndex + 1;
+          document.getElementById("q-total").textContent = questions.length;
+          document.getElementById("question-text").textContent = q.text;
+          const progressPercent = ((currentIndex + 1) / questions.length) * 100;
+          document.getElementById("progress-bar").style.width =
+            `${progressPercent}%`;
+
+          const grid = document.getElementById("options-grid");
+          grid.innerHTML = "";
+          const letters = ["A", "B", "C", "D"];
+          q.options.forEach((opt, idx) => {
+            const btn = document.createElement("button");
+            btn.className = `option-btn ${answers[q.id] === opt.id ? "selected" : ""}`;
+            btn.innerHTML = `<span class="opt-letter">${letters[idx]}</span>${escapeHtml(opt.text)}`;
+            btn.onclick = () => {
+              if (sessionInvalidated) return;
+              answers[q.id] = opt.id;
+              document
+                .querySelectorAll(".option-btn")
+                .forEach((b) => b.classList.remove("selected"));
+              btn.classList.add("selected");
+            };
+            grid.appendChild(btn);
+          });
+
+          prevBtn.style.visibility = currentIndex === 0 ? "hidden" : "visible";
+          nextBtn.style.display =
+            currentIndex < questions.length - 1 ? "flex" : "none";
+          submitBtn.style.display =
+            currentIndex === questions.length - 1 ? "flex" : "none";
+        }
+
+        function navigate(direction) {
+          if (sessionInvalidated) return;
+          const newIndex = currentIndex + direction;
+          if (newIndex >= 0 && newIndex < questions.length) {
+            currentIndex = newIndex;
+            renderQuestion();
+          }
+        }
+
+        function escapeHtml(str) {
+          return str.replace(/[&<>]/g, function (m) {
+            if (m === "&") return "&amp;";
+            if (m === "<") return "&lt;";
+            if (m === ">") return "&gt;";
+            return m;
+          });
+        }
+
+        // ----- scoring & submit -----
+        function computeLocalScore() {
+          let correct = 0;
+          questions.forEach((q) => {
+            const chosen = answers[q.id];
+            const opt = q.options.find((o) => o.id === chosen);
+            if (opt && opt.correct) correct++;
+          });
+          const score = Math.round((correct / questions.length) * 100);
+          return {
+            score,
+            correctCount: correct,
+            totalCount: questions.length,
+            isPassed: score >= PASS_SCORE,
+            passScore: PASS_SCORE,
+          };
+        }
+
+        async function submitQuiz() {
+          // CRITICAL: Prevent submission if session invalidated
+          if (sessionInvalidated) {
+            showToast(
+              "Cannot submit - session has been terminated due to violations",
+            );
+            return;
+          }
+
+          // Also prevent if already terminated
+          if (submissionPrevented) return;
+
+          clearTimerAndIntervals();
+          let resultData;
+          try {
+            const payload = {
+              sessionId: SESSION_ID,
+              answers,
+              submittedAt: new Date().toISOString(),
+            };
+            if (API_BASE) {
+              const response = await fetch(
+                `${API_BASE}/api/quiz/session/${SESSION_ID}/submit`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                  },
+                  body: JSON.stringify(payload),
+                },
+              );
+              if (response.ok) resultData = await response.json();
+              else throw new Error("fallback");
+            } else {
+              throw new Error("fallback");
+            }
+          } catch (e) {
+            resultData = computeLocalScore();
+          }
+          const final =
+            resultData.score !== undefined ? resultData : computeLocalScore();
+          showResultScreen(final);
+        }
+
+        function showResultScreen(result) {
+          // Don't show results if session was invalidated
+          if (sessionInvalidated) return;
+
+          const passed = result.isPassed || result.score >= PASS_SCORE;
+          const scoreVal = result.score;
+          const correctCount =
+            result.correctCount ??
+            Math.round((result.score / 100) * questions.length);
+          document.getElementById("result-ring").textContent = `${scoreVal}%`;
+          document.getElementById("result-ring").className =
+            `result-score-ring ${passed ? "pass" : "fail"}`;
+          document.getElementById("result-badge").textContent = passed
+            ? "✓ PASSED"
+            : "✗ FAILED";
+          document.getElementById("result-badge").className =
+            `result-badge ${passed ? "pass" : "fail"}`;
+          document.getElementById("result-title").textContent = passed
+            ? "Excellent Work!"
+            : "Keep Learning";
+          document.getElementById("stat-correct").textContent = correctCount;
+          document.getElementById("stat-total").textContent = questions.length;
+          document.getElementById("stat-pass").textContent = `${PASS_SCORE}%`;
+          const certBanner = document.getElementById("cert-banner");
+          certBanner.style.display = passed ? "flex" : "none";
+          const certBtn = document.getElementById("cert-btn");
+          if (certBtn) certBtn.style.display = passed ? "inline-flex" : "none";
+          document.getElementById("result-screen").classList.add("show");
+          if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
+        }
+
+        function clearTimerAndIntervals() {
+          if (timerInterval) clearInterval(timerInterval);
+          if (faceInterval) clearInterval(faceInterval);
+        }
+
+        function startTimer() {
+          timerInterval = setInterval(() => {
+            if (sessionInvalidated) return;
+            if (timeLeft <= 0) {
+              clearInterval(timerInterval);
+              if (!sessionInvalidated) submitQuiz();
+              return;
+            }
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerEl.textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+            if (timeLeft <= 60) timerEl.classList.add("urgent");
+          }, 1000);
+        }
+
+        // ----- face-api & gaze simulation -----
+        let cameraRetryInterval = null;
+        let cameraBlockedViolationInterval = null;
+
+        async function initCamera() {
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
+            videoEl.srcObject = mediaStream;
+            await videoEl.play();
+            setPillOk(pillCamera, "Camera Active");
+            videoWrap.className = "face-ok";
+            camOverlay.classList.remove("show");
+            camOverlay.style.display = "none"; // force hide overlay so video shows
+            // Clear any retry/violation intervals if camera now works
+            if (cameraRetryInterval) {
+              clearInterval(cameraRetryInterval);
+              cameraRetryInterval = null;
+            }
+            if (cameraBlockedViolationInterval) {
+              clearInterval(cameraBlockedViolationInterval);
+              cameraBlockedViolationInterval = null;
+            }
+          } catch (err) {
+            setPillBad(pillCamera, "Camera Blocked");
+            videoWrap.className = "face-bad";
+            camOverlay.classList.add("show");
+            camOverlay.innerHTML =
+              '<span style="font-size:28px;opacity:0.9;">📷</span>';
+            // Report violation every 30 seconds while camera stays blocked
+            // Grace period: first violation after 30s, not immediately
+            if (!cameraBlockedViolationInterval) {
+              cameraBlockedViolationInterval = setInterval(() => {
+                if (sessionInvalidated) {
+                  clearInterval(cameraBlockedViolationInterval);
+                  return;
+                }
+                if (!mediaStream) reportViolation("face_missing");
+              }, 30000);
+            }
+            // Retry camera access every 10 seconds in case user grants permission
+            if (!cameraRetryInterval) {
+              cameraRetryInterval = setInterval(async () => {
+                if (sessionInvalidated || mediaStream) {
+                  clearInterval(cameraRetryInterval);
+                  return;
+                }
+                try {
+                  mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                  });
+                  videoEl.srcObject = mediaStream;
+                  await videoEl.play();
+                  setPillOk(pillCamera, "Camera Active");
+                  videoWrap.className = "face-ok";
+                  camOverlay.classList.remove("show");
+                  camOverlay.style.display = "none";
+                  clearInterval(cameraRetryInterval);
+                  cameraRetryInterval = null;
+                  clearInterval(cameraBlockedViolationInterval);
+                  cameraBlockedViolationInterval = null;
+                } catch (e) {
+                  /* still blocked */
+                }
+              }, 10000);
+            }
+          }
+        }
+
+        async function loadModelsAndRun() {
+          try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri(
+              "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights",
+            );
+            await faceapi.nets.faceLandmark68TinyNet.loadFromUri(
+              "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights",
+            );
+            modelsLoaded = true;
+            setPillOk(pillFace, "Face AI Ready");
+            setPillOk(pillGaze, "Gaze Active");
+          } catch (err) {
+            modelsLoaded = true;
+            setPillOk(pillFace, "Face Detector (fallback)");
+            setPillOk(pillGaze, "Tracking active");
+          }
+        }
+
+        let consecutiveFaceMisses = 0;
+        const FACE_MISS_THRESHOLD = 2; // must miss 2 checks in a row (~4s) before violation
+
+        async function detectFacesPeriodic() {
+          if (
+            !modelsLoaded ||
+            !mediaStream ||
+            sessionInvalidated ||
+            !videoEl ||
+            videoEl.readyState < 2
+          )
+            return;
+          try {
+            const detections = await faceapi.detectAllFaces(
+              videoEl,
+              new faceapi.TinyFaceDetectorOptions({
+                inputSize: 224,
+                scoreThreshold: 0.5,
+              }),
+            );
+            if (detections.length === 0) {
+              consecutiveFaceMisses++;
+              setPillBad(pillFace, "No Face");
+              setPillWarn(pillGaze, "Uncertain");
+              videoWrap.className = "face-bad";
+              camOverlay.classList.add("show");
+              camOverlay.innerHTML = '<span style="font-size:24px;">😶</span>';
+              // Only report violation after 2 consecutive misses (~4s)
+              if (consecutiveFaceMisses >= FACE_MISS_THRESHOLD) {
+                reportViolation("face_missing");
+                consecutiveFaceMisses = 0; // reset after reporting
+              }
+              return;
+            }
+            consecutiveFaceMisses = 0; // reset on successful detection
+            camOverlay.classList.remove("show");
+            camOverlay.style.display = "none";
+            setPillOk(pillFace, "Face Detected");
+            videoWrap.className = "face-ok";
+
+            // gaze simulation using eye landmarks
+            try {
+              const withLandmarks = await faceapi
+                .detectSingleFace(
+                  videoEl,
+                  new faceapi.TinyFaceDetectorOptions(),
+                )
+                .withFaceLandmarks(true);
+              if (withLandmarks && withLandmarks.landmarks) {
+                const leftEye = withLandmarks.landmarks.getLeftEye();
+                const rightEye = withLandmarks.landmarks.getRightEye();
+                if (leftEye && rightEye && leftEye.length && rightEye.length) {
+                  const leftAvgX =
+                    leftEye.reduce((s, p) => s + p.x, 0) / leftEye.length;
+                  const rightAvgX =
+                    rightEye.reduce((s, p) => s + p.x, 0) / rightEye.length;
+                  const eyeMid = (leftAvgX + rightAvgX) / 2;
+                  const ratio = eyeMid / (videoEl.videoWidth || 480);
+                  if (ratio < 0.2 || ratio > 0.8) {
+                    setPillWarn(pillGaze, "Look at screen");
+                    videoWrap.className = "face-warn";
+                    reportViolation("gaze_away");
+                  } else {
+                    setPillOk(pillGaze, "Gaze Locked");
+                  }
+                } else setPillOk(pillGaze, "Gaze OK");
+              } else setPillOk(pillGaze, "Gaze OK");
+            } catch (gazeErr) {
+              setPillOk(pillGaze, "Tracking");
+            }
+          } catch (err) {
+            // silent fallback
+          }
+        }
+
+        // tab visibility - report violation
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden && !sessionInvalidated) {
+            reportViolation("tab_switch");
+          }
+        });
+
+        // navigation listeners
+        prevBtn.onclick = () => navigate(-1);
+        nextBtn.onclick = () => navigate(1);
+        submitBtn.onclick = () => submitQuiz();
+
+        // Push cert data to sessionStorage so certificates.html auto-opens the preview
+        window.goToCertificate = function() {
+          try {
+            const u = Auth.getUser();
+            const p = new URLSearchParams(location.search);
+            const certData = {
+              name:  u?.name || u?.email || 'Participant',
+              event: p.get('eventName') || 'Quiz Assessment',
+              type:  'quiz',
+              uuid:  'PENDING',
+              date:  new Date().toISOString()
+            };
+            sessionStorage.setItem('edu_new_cert', JSON.stringify(certData));
+          } catch(e){}
+          window.location.href = 'certificates.html';
+        };
+
+        // initialize everything
+        (async function setup() {
+          document.getElementById("q-total").textContent = questions.length;
+          renderQuestion();
+          await initCamera();
+          await loadModelsAndRun();
+          startTimer();
+          faceInterval = setInterval(() => detectFacesPeriodic(), 2100);
+          setTimeout(() => {
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+          }, 800);
+        })();
+      })();
+    </script>
+  </body>
+</html>

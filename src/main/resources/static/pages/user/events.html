@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>EduEvent — Events</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+    .type-pill{padding:6px 14px;border-radius:99px;border:0.5px solid var(--border-hover);font-size:12px;cursor:pointer;transition:var(--transition);}
+    .type-pill:hover{border-color:var(--brand);color:var(--brand-muted);}
+    .type-pill.active{background:rgba(79,70,229,0.15);border-color:var(--brand);color:var(--brand-muted);}
+    /* Cancel button subtle red ghost */
+    .btn-cancel-reg{
+      background:rgba(239,68,68,0.08);
+      color:#F87171;
+      border:0.5px solid rgba(239,68,68,0.25);
+      border-radius:var(--radius-md);
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      font-family:var(--font-body);
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      transition:var(--transition);
+    }
+    .btn-cancel-reg:hover{background:rgba(239,68,68,0.16);border-color:rgba(239,68,68,0.45);}
+    .reg-confirmed-row{display:flex;align-items:center;gap:8px;}
+  </style>
+</head>
+<body>
+<div id="toast-container"></div><div id="app"></div>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>
+if(!Auth.guardPage('USER'))throw new Error();
+
+document.getElementById('app').innerHTML=`<div class="page-shell">
+${buildTopnav('USER','events.html')}
+<div class="page-content">
+  <div class="page-header"><div><div class="page-title">Events</div><div class="page-desc">Browse and register for upcoming events</div></div></div>
+  <div style="background:var(--bg-surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="search-wrap" style="min-width:180px;max-width:260px;"><i class="ti ti-search"></i><input type="text" placeholder="Search events…" id="sq" oninput="applyF()"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;" id="type-pills">
+      <div class="type-pill active" onclick="setType('',this)">All</div>
+      <div class="type-pill" onclick="setType('hackathon',this)">🏆 Hackathons</div>
+      <div class="type-pill" onclick="setType('webinar',this)">💻 Webinars</div>
+      <div class="type-pill" onclick="setType('conference',this)">🎓 Conferences</div>
+      <div class="type-pill" onclick="setType('quiz',this)">📝 Quizzes</div>
+    </div>
+    <select id="ss" onchange="applyF()" style="margin-left:auto;">
+      <option value="">All Statuses</option>
+      <option value="upcoming">Upcoming</option>
+      <option value="active">Active Now</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+  <div class="ev-grid" id="egrid">
+    <div class="skeleton skeleton-card" style="height:250px;"></div>
+    <div class="skeleton skeleton-card" style="height:250px;"></div>
+    <div class="skeleton skeleton-card" style="height:250px;"></div>
+  </div>
+  <div id="eempty" style="display:none;">
+    <div class="empty-state" style="padding:80px;">
+      <div class="empty-icon"><i class="ti ti-calendar-off"></i></div>
+      <div class="empty-title">No events found</div>
+      <div class="empty-desc">Try adjusting filters.</div>
+    </div>
+  </div>
+</div></div>${buildNotifPanel()}${buildUserDropdown()}
+
+<!-- Register Modal -->
+<div class="modal-overlay" id="reg-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title" id="reg-t">Register</div>
+      <button class="icon-btn" onclick="document.getElementById('reg-modal').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="reg-body"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('reg-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" id="reg-btn" onclick="confirmReg()"><i class="ti ti-check"></i> Confirm Registration</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Registration Modal -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Cancel Registration</div>
+      <button class="icon-btn" onclick="document.getElementById('cancel-modal').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:4px 0 16px;">
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
+        Are you sure you want to cancel your registration for <strong id="cancel-event-name">this event</strong>?
+        You can re-register later if spots are still available.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="document.getElementById('cancel-modal').classList.remove('open')">Keep Registration</button>
+      <button class="btn btn-danger" id="cancel-confirm-btn" onclick="confirmCancel()"><i class="ti ti-x"></i> Yes, Cancel</button>
+    </div>
+  </div>
+</div>`;
+
+initNotifToggle([]);initAvatarDropdown();populateProfile();
+
+let EVENTS = [];
+let activeType = '', selId = null, cancelId = null;
+
+// ── localStorage helpers ─────────────────────────────────────────────────────
+// Key is user-scoped so different accounts don't share state
+function regKey() {
+  const u = Auth.getUser();
+  return `edu_regs_${u?.id || 'guest'}`;
+}
+function getRegs() {
+  try { return JSON.parse(localStorage.getItem(regKey()) || '{}'); } catch(e){ return {}; }
+}
+function setReg(eventId, registered) {
+  const regs = getRegs();
+  if(registered) regs[eventId] = true;
+  else delete regs[eventId];
+  localStorage.setItem(regKey(), JSON.stringify(regs));
+}
+// Apply saved local state on top of API response
+function mergeLocalState(events) {
+  const regs = getRegs();
+  return events.map(e => ({ ...e, registered: e.registered || !!regs[e.id] }));
+}
+
+const bem={hackathon:'hack',webinar:'webinar',conference:'conference',quiz:'quiz'};
+const bemo={hackathon:'🏆',webinar:'💻',conference:'🎓',quiz:'📝'};
+
+function setType(t,el) {
+  activeType=t;
+  document.querySelectorAll('.type-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  applyF();
+}
+
+function footerHTML(e) {
+  if(e.status === 'completed') {
+    return `<span style="font-size:12px;color:var(--text-muted);">Event ended</span>`;
+  }
+  if(e.registered) {
+    return `<div class="reg-confirmed-row">
+      <span class="badge badge-active"><i class="ti ti-check"></i> Registered</span>
+      <button class="btn-cancel-reg" onclick="openCancel(${e.id})"><i class="ti ti-x"></i> Cancel</button>
+    </div>`;
+  }
+  return `<button class="btn btn-primary btn-sm" onclick="openReg(${e.id})"><i class="ti ti-plus"></i> Register</button>`;
+}
+
+function applyF() {
+  const q = document.getElementById('sq').value.toLowerCase();
+  const s = document.getElementById('ss').value;
+  const f = EVENTS.filter(e =>
+    (!activeType || e.type === activeType) &&
+    (!s || e.status === s) &&
+    (!q || e.name.toLowerCase().includes(q))
+  );
+  const g = document.getElementById('egrid'), em = document.getElementById('eempty');
+  if(!f.length) { g.innerHTML=''; em.style.display=''; return; }
+  em.style.display='none';
+  g.innerHTML=f.map(e=>`
+    <div class="event-card" id="ecard-${e.id}">
+      <div class="event-card-banner ${bem[e.type]||'hack'}"><span class="event-card-emoji">${bemo[e.type]||'✨'}</span></div>
+      <div class="event-card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <div class="event-card-title">${e.name}</div>
+          <span class="badge badge-${e.status==='active'?'active':e.status==='upcoming'?'upcoming':'completed'}" style="flex-shrink:0;">${e.status||'Active'}</span>
+        </div>
+        <div class="event-card-meta">
+          <span><i class="ti ti-calendar" style="font-size:12px;"></i> ${e.date ? fmt.date(e.date) : 'TBD'}</span>
+          <span><i class="ti ti-user" style="font-size:12px;"></i> ${e.org}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;height:36px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${e.desc||'No description available.'}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="progress-bar" style="flex:1;">
+            <div class="progress-fill" style="width:${Math.min(100,Math.round(e.reg/e.max*100)||0)}%;background:var(--brand);"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);">${e.reg}/${e.max}</span>
+        </div>
+      </div>
+      <div class="event-card-footer">
+        <span class="badge badge-${e.type||'hackathon'}">${e.type||'Event'}</span>
+        <div id="efoot-${e.id}">${footerHTML(e)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function openReg(id) {
+  const e = EVENTS.find(x=>x.id===id);
+  if(!e) return;
+  selId = id;
+  document.getElementById('reg-t').textContent = `Register: ${e.name}`;
+  document.getElementById('reg-body').innerHTML = `
+    <div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:6px;">${e.name}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">${e.org} · ${e.date ? fmt.date(e.date) : 'TBD'}</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">${e.desc}</div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);padding:8px 12px;background:rgba(79,70,229,0.06);border-radius:var(--radius-md);border:0.5px solid rgba(79,70,229,0.15);">
+      <i class="ti ti-info-circle" style="color:var(--brand-muted);"></i> You will receive event updates via notifications.
+    </div>`;
+  document.getElementById('reg-modal').classList.add('open');
+}
+
+function openCancel(id) {
+  const e = EVENTS.find(x=>x.id===id);
+  if(!e) return;
+  cancelId = id;
+  document.getElementById('cancel-event-name').textContent = e.name;
+  document.getElementById('cancel-modal').classList.add('open');
+}
+
+// ── API calls ────────────────────────────────────────────────────────────────
+
+async function loadEvents() {
+  const data = await api.get('/events');
+  if(!data) { document.getElementById('egrid').innerHTML=''; document.getElementById('eempty').style.display=''; return; }
+  const raw = data.map(e => ({
+    id: e.id, name: e.title, type: e.type?.toLowerCase(), status: e.status?.toLowerCase(),
+    date: e.startTime, org: e.createdBy || 'Organizer',
+    reg: e.registeredCount || 0, max: e.capacity || 100,
+    registered: e.isRegistered || false, desc: e.description || ''
+  }));
+  // Merge in any locally-cached registrations (survives reload / logout-login)
+  EVENTS = mergeLocalState(raw);
+  applyF();
+}
+
+async function confirmReg() {
+  const e = EVENTS.find(x=>x.id===selId);
+  if(!e) return;
+  const btn = document.getElementById('reg-btn');
+  setLoading(btn, true);
+  const data = await api.post(`/events/${selId}/register`, {});
+  setLoading(btn, false);
+  if(!data) return;
+
+  // Persist to localStorage so it survives reload
+  e.registered = true; e.reg++;
+  setReg(selId, true);
+
+  document.getElementById('reg-modal').classList.remove('open');
+  // Update just the footer cell — no full re-render needed
+  const foot = document.getElementById(`efoot-${selId}`);
+  if(foot) foot.innerHTML = footerHTML(e);
+  Toast.show(`Registered for ${e.name}!`, 'success');
+}
+
+async function confirmCancel() {
+  const e = EVENTS.find(x=>x.id===cancelId);
+  if(!e) return;
+  const btn = document.getElementById('cancel-confirm-btn');
+  setLoading(btn, true);
+
+  // Call cancel endpoint — adjust path to match your backend
+  const data = await api.post(`/events/${cancelId}/cancel`, {});
+  setLoading(btn, false);
+
+  if(data === null) {
+    // api.post returns null on error (toast already shown)
+    // But if your backend returns 204 No Content, treat missing body as success too
+    // Uncomment the next line if 204 should still clear local state:
+    // /* fall through */
+    return;
+  }
+
+  // Remove from localStorage and update UI
+  e.registered = false; if(e.reg > 0) e.reg--;
+  setReg(cancelId, false);
+
+  document.getElementById('cancel-modal').classList.remove('open');
+  const foot = document.getElementById(`efoot-${cancelId}`);
+  if(foot) foot.innerHTML = footerHTML(e);
+  Toast.show(`Registration cancelled for ${e.name}.`, 'info');
+}
+
+document.addEventListener('DOMContentLoaded', loadEvents);
+</script>
+</body>
+</html>

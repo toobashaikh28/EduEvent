@@ -5,6 +5,7 @@ import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
 import com.tooba.EduEvent.service.CertificateService;
 import com.tooba.EduEvent.service.HackathonResultsService;
+import com.tooba.EduEvent.mediator.NotificationMediator;
 import com.tooba.EduEvent.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class HackathonResultsServiceImpl implements HackathonResultsService {
     private final RegistrationRepository registrationRepository;
     private final CertificateService certificateService;
     private final NotificationService notificationService;
+    private final NotificationMediator notificationMediator;
 
     @Override
     @Transactional
@@ -94,6 +96,15 @@ public class HackathonResultsServiceImpl implements HackathonResultsService {
             if (rank <= 3) {
                 for (TeamMember member : members) {
                     certificateService.generate(member.getUser(), hackathon);
+                    // ── MEDIATOR: notify each winner ─────────────────────────
+                    notificationMediator.notify(
+                        this,
+                        "WINNER",
+                        member.getUser().getId(),
+                        "Congratulations! Your team '" + team.getName() + "' placed #" + rank
+                            + " in " + hackathon.getTitle() + "! Your certificate is ready."
+                    );
+                    // ─────────────────────────────────────────────────────────
                 }
                 certsIssued = true;
                 log.info("Certificates issued for rank {} team: {}", rank, team.getName());

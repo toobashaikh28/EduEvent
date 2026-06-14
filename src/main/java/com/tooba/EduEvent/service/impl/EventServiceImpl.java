@@ -1,5 +1,9 @@
 package com.tooba.EduEvent.service.impl;
 
+import com.tooba.EduEvent.chain.EventHandler;
+import com.tooba.EduEvent.chain.handlers.AuthorizationHandler;
+import com.tooba.EduEvent.chain.handlers.DuplicateCheckHandler;
+import com.tooba.EduEvent.chain.handlers.EventValidationHandler;
 import com.tooba.EduEvent.dto.request.EventRequest;
 import com.tooba.EduEvent.dto.response.EventResponse;
 import com.tooba.EduEvent.entity.Event;
@@ -32,15 +36,28 @@ public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
 
+    // Chain of Responsibility handlers
+    private final AuthorizationHandler authorizationHandler;
+    private final EventValidationHandler validationHandler;
+    private final DuplicateCheckHandler duplicateCheckHandler;
+
+    /**
+     * Builds the Chain of Responsibility:
+     * Auth → Validation → DuplicateCheck
+     * Returns the head of the chain.
+     */
+    private EventHandler buildChain() {
+        authorizationHandler
+            .setNext(validationHandler)
+            .setNext(duplicateCheckHandler);
+        return authorizationHandler;
+    }
+
     @Override
     public List<EventResponse> getAllEvents(String type, String status, LocalDateTime date) {
-        // Fix: use DB-level filters instead of findAll() + Java stream filtering.
-        // Each filter hits an indexed column — no full-table scan.
         List<Event> events;
 
         if (type != null && !type.isBlank() && status != null && !status.isBlank()) {
-            // Both filters: query DB for type first, then filter status in memory
-            // (avoids adding a combined @Query for now; both lists are already small)
             events = eventRepository.findByTypeIgnoreCase(type.trim()).stream()
                     .filter(e -> e.getStatus() != null &&
                             e.getStatus().equalsIgnoreCase(status.trim()))
@@ -53,7 +70,6 @@ public class EventServiceImpl implements EventService {
             events = eventRepository.findAll();
         }
 
-        // Apply optional date filter (startTime after given date)
         if (date != null) {
             events = events.stream()
                     .filter(e -> e.getStartTime() != null && e.getStartTime().isAfter(date))
@@ -76,6 +92,11 @@ public class EventServiceImpl implements EventService {
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "Admin not found"));
+
+        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
+        // Auth → Validation → DuplicateCheck (any handler can reject and stop)
+        buildChain().handle(request, admin, "CREATE");
+        // ─────────────────────────────────────────────────────────────────────
 
         String bannerPath = saveBanner(banner);
         String normalizedType = normalizeType(request.getType());
@@ -103,12 +124,17 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
+        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
+        // Reuse Auth + Validation for UPDATE (skip duplicate check — title can stay same)
+        User admin = event.getAdmin();
+        authorizationHandler.setNext(validationHandler);
+        authorizationHandler.handle(request, admin, "UPDATE");
+        // ─────────────────────────────────────────────────────────────────────
+
         event.setTitle(request.getTitle());
         event.setType(normalizeType(request.getType()));
         event.setDescription(request.getDescription());
         if (request.getCapacity() != null) event.setCapacity(request.getCapacity());
-        // Fix: don't use startTime from request on update if it's in the past —
-        // @Future on EventRequest only applies to creation; set directly here.
         event.setStartTime(request.getStartTime());
         event.setEndTime(request.getEndTime());
         if (request.getStatus() != null) event.setStatus(request.getStatus().toUpperCase());
@@ -122,9 +148,16 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public void deleteEvent(Long id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found with id: " + id);
-        }
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Event not found with id: " + id));
+
+        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
+        // Auth check only for DELETE
+        authorizationHandler.setNext(null);
+        authorizationHandler.handle(new EventRequest(), event.getAdmin(), "DELETE");
+        // ─────────────────────────────────────────────────────────────────────
+
         eventRepository.deleteById(id);
     }
 
@@ -147,7 +180,6 @@ public class EventServiceImpl implements EventService {
     private String saveBanner(MultipartFile banner) {
         if (banner == null || banner.isEmpty()) return null;
         try {
-            // Fix: use configurable base path — falls back to project dir in dev
             Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads", "banners");
             Files.createDirectories(uploadDir);
             String originalName = banner.getOriginalFilename();

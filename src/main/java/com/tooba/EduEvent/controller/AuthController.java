@@ -8,6 +8,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.tooba.EduEvent.entity.User;
+import com.tooba.EduEvent.repository.UserRepository;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.HashMap;
+import org.springframework.http.HttpStatus;
 
 import java.util.Map;
 
@@ -17,6 +22,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
 
     // Task: Build POST /api/auth/register
     @PostMapping("/register")
@@ -26,9 +32,20 @@ public class AuthController {
 
     // Task: Build POST /api/auth/login
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
         String token = authService.login(request);
-        return ResponseEntity.ok(token);
+
+        // Load user details to include name, email, role in response
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("name",  user.getName());
+        response.put("email", user.getEmail());
+        response.put("role",  user.getRole());   // "USER", "ADMIN", or "JUDGE"
+
+        return ResponseEntity.ok(response);
     }
 
     // Task: POST /api/auth/forgot-password

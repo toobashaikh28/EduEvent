@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/global.css">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; overflow:hidden; position:relative; }
+    .bg-grid { position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.45; }
+    .bg-orb { position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px); }
+    .bg-orb.a { width:500px;height:500px;background:rgba(79,70,229,0.1);top:-120px;left:-100px; }
+    .bg-orb.b { width:400px;height:400px;background:rgba(217,70,239,0.07);bottom:-100px;right:-80px; }
+    .auth-wrap { position:relative;z-index:1;width:100%;max-width:420px;padding:0 20px; }
+    .auth-logo { display:flex;align-items:center;gap:10px;margin-bottom:28px; }
+    .auth-logo-icon { width:38px;height:38px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:18px;color:#fff; }
+    .auth-logo-name { font-family:var(--font-display);font-size:20px;font-weight:800; }
+    .auth-card { background:var(--bg-surface);border:0.5px solid var(--border-hover);border-radius:var(--radius-xl);padding:32px; }
+    .auth-tabs { display:flex;gap:2px;background:var(--bg-hover);border-radius:var(--radius-md);padding:3px;margin-bottom:26px; }
+    .auth-tab { flex:1;text-align:center;padding:8px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);cursor:pointer;transition:var(--transition); }
+    .auth-tab.active { background:var(--bg-card);color:var(--text-primary);font-weight:500; }
+    .auth-heading { font-family:var(--font-display);font-size:21px;font-weight:800;letter-spacing:-0.5px;margin-bottom:5px; }
+    .auth-sub { font-size:13px;color:var(--text-muted);margin-bottom:24px; }
+    .field-stack { display:flex;flex-direction:column;gap:14px;margin-bottom:20px; }
+    .field-lbl { font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:5px; }
+    .two-col { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+    .err-box { background:rgba(239,68,68,0.1);border:0.5px solid rgba(239,68,68,0.25);color:#F87171;padding:10px 13px;border-radius:var(--radius-md);font-size:13px;display:none;margin-bottom:14px; }
+    .auth-footer { margin-top:16px;text-align:center;font-size:12px;color:var(--text-muted); }
+    .auth-footer a { color:var(--brand-muted); }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+
+<div class="auth-wrap">
+  <div class="auth-logo">
+    <div class="auth-logo-icon">E</div>
+    <span class="auth-logo-name">EduEvent</span>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" id="tab-reg" onclick="switchTab('register')">Register</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login">
+      <div class="auth-heading">Welcome back</div>
+      <div class="auth-sub">Sign in to your EduEvent account</div>
+      <div class="err-box" id="login-err"></div>
+      <div class="field-stack">
+        <div>
+          <div class="field-lbl">Email</div>
+          <div class="input-icon-wrap">
+            <i class="ti ti-mail"></i>
+            <input type="email" id="l-email" placeholder="you@example.com" autocomplete="email">
+          </div>
+        </div>
+        <div>
+          <div class="field-lbl">Password</div>
+          <div class="input-icon-wrap">
+            <i class="ti ti-lock"></i>
+            <input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password">
+            <button class="pw-eye" onclick="togglePw('l-pw',this)"><i class="ti ti-eye"></i></button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()" style="padding:11px;font-size:14px;font-weight:600;">
+        <i class="ti ti-login"></i> Sign In
+      </button>
+      <div class="auth-footer">Forgot password? <a href="#">Reset here</a></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="form-reg" style="display:none;">
+      <div class="auth-heading">Create account</div>
+      <div class="auth-sub">Join EduEvent to participate in events</div>
+      <div class="err-box" id="reg-err"></div>
+      <div class="field-stack">
+        <div class="two-col">
+          <div>
+            <div class="field-lbl">First Name</div>
+            <div class="input-icon-wrap"><i class="ti ti-user"></i><input type="text" id="r-fname" placeholder="Ali"></div>
+          </div>
+          <div>
+            <div class="field-lbl">Last Name</div>
+            <input type="text" id="r-lname" placeholder="Khan">
+          </div>
+        </div>
+        <div>
+          <div class="field-lbl">Email</div>
+          <div class="input-icon-wrap"><i class="ti ti-mail"></i><input type="email" id="r-email" placeholder="ali@ssuet.edu.pk"></div>
+        </div>
+        <div>
+          <div class="field-lbl">Password</div>
+          <div class="input-icon-wrap">
+            <i class="ti ti-lock"></i>
+            <input type="password" id="r-pw" placeholder="Min. 8 characters">
+            <button class="pw-eye" onclick="togglePw('r-pw',this)"><i class="ti ti-eye"></i></button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" id="reg-btn" onclick="doRegister()" style="padding:11px;font-size:14px;font-weight:600;">
+        <i class="ti ti-user-plus"></i> Create Account
+      </button>
+      <div class="auth-footer">By registering you agree to the <a href="#">Terms of Use</a></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+  // Redirect if already logged in
+  if (Auth.isLoggedIn()) Auth.redirectByRole();
+
+  function switchTab(tab) {
+    document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+    document.getElementById('form-reg').style.display   = tab === 'register' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-reg').classList.toggle('active', tab === 'register');
+  }
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.querySelector('i').className = inp.type === 'password' ? 'ti ti-eye' : 'ti ti-eye-off';
+  }
+
+  async function doLogin() {
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-err');
+    err.style.display = 'none';
+    const email = document.getElementById('l-email').value.trim();
+    const pw    = document.getElementById('l-pw').value;
+    if (!email || !pw) { err.textContent = 'Please fill all fields.'; err.style.display='block'; return; }
+    setLoading(btn, true);
+    const data = await api.post('/auth/login', { email, password: pw });
+    setLoading(btn, false);
+    if (!data) { err.textContent = 'Invalid email or password.'; err.style.display='block'; return; }
+    Auth.setToken(data.token);
+    Auth.setUser({ name: data.name, email: data.email, role: data.role });
+    Auth.redirectByRole();
+  }
+
+  async function doRegister() {
+    const btn = document.getElementById('reg-btn');
+    const err = document.getElementById('reg-err');
+    err.style.display = 'none';
+    const fname = document.getElementById('r-fname').value.trim();
+    const lname = document.getElementById('r-lname').value.trim();
+    const email = document.getElementById('r-email').value.trim();
+    const pw    = document.getElementById('r-pw').value;
+    if (!fname || !email || !pw) { err.textContent='Please fill all required fields.'; err.style.display='block'; return; }
+    if (pw.length < 8) { err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
+    setLoading(btn, true);
+    const data = await api.post('/auth/register', { name:`${fname} ${lname}`.trim(), email, password: pw });
+    setLoading(btn, false);
+    if (!data) return;
+    Toast.show('Account created! Please sign in.', 'success');
+    setTimeout(() => switchTab('login'), 1000);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('form-login').style.display !== 'none') doLogin();
+      else doRegister();
+    }
+  });
+</script>
+</body>
+</html>

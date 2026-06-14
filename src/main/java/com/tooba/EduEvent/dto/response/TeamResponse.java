@@ -9,5 +9,5 @@ public class TeamResponse {
     private String teamName;
     private String inviteCode;
     private String leaderName;
-    private List<String> memberNames;
+    private List<MemberDto> members; // Updated this line!
 }

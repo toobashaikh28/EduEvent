@@ -27,4 +27,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     
     // Required by QuizSessionScheduler.sendHourlyQuizReminders()
     List<Event> findByStartTimeBetweenAndStatus(LocalDateTime start, LocalDateTime end, String status);
+
+    boolean existsByTitleIgnoreCase(String title);
 }

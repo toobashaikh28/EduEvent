@@ -40,32 +40,23 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Auth endpoints — fully public
+                // 1. Public Assets: Allow all frontend files in root and subfolders
+                .requestMatchers("/", "/*.html", "/css/**", "/js/**", "/images/**", "/pages/**").permitAll() 
+                
+                // 2. Auth endpoints: Fully public
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Static quiz HTML page — public
-                .requestMatchers("/quiz.html").permitAll()
+                // 3. Public API resources
+                .requestMatchers("/api/events", "/api/events/**").permitAll()
+                .requestMatchers("/api/certificates/verify/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
 
-                // FIX 7: Each requestMatchers(HttpMethod, String) call takes ONE method + ONE path.
-                // User-facing quiz session actions require authentication (JWT) but not ADMIN role.
+                // 4. Protected Quiz endpoints (Authenticated users only)
                 .requestMatchers(HttpMethod.POST, "/api/quiz/*/start").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/quiz/session/*/submit").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/quiz/session/*/violation").authenticated()
 
-                // All other /api/quiz/** (create quiz, add questions, view results) → authenticated.
-                // @PreAuthorize("hasRole('ADMIN')") on controller methods enforces the ADMIN check.
-                .requestMatchers("/api/quiz/**").authenticated()
-
-                // Event discovery — public
-                .requestMatchers("/api/events", "/api/events/**").permitAll()
-
-                // Certificate verification — public
-                .requestMatchers("/api/certificates/verify/**").permitAll()
-
-                // Uploaded files — public (static serving)
-                .requestMatchers("/uploads/**").permitAll()
-
-                // Everything else requires a valid JWT
+                // 5. Default: Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -79,10 +70,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:8080"
-        ));
+        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setAllowCredentials(true);

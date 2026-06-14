@@ -1,0 +1,256 @@
+/* ─── EduEvent Judge Portal — Layout ─── */
+
+.judge-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.judge-topnav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border-bottom: 0.5px solid var(--border);
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  gap: 0;
+}
+
+.judge-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: 36px;
+  text-decoration: none;
+}
+
+.judge-logo-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #4F46E5, #D946EF);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 15px; color: #fff;
+}
+
+.judge-logo-text {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 800;
+  color: var(--text-primary);
+}
+
+.judge-logo-badge {
+  font-size: 10px; font-weight: 600;
+  background: rgba(217,70,239,0.2);
+  color: #E879F9;
+  border: 0.5px solid rgba(217,70,239,0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.judge-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.judge-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.judge-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.judge-nav-link.active {
+  color: #E879F9;
+  background: rgba(217,70,239,0.1);
+  font-weight: 500;
+}
+
+.judge-nav-link i { font-size: 16px; }
+
+.judge-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.judge-avatar-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D946EF, #4F46E5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.judge-avatar-btn:hover { border-color: #E879F9; }
+
+.judge-page {
+  flex: 1;
+  padding: 32px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Submission Accordion ─────────────── */
+.accordion-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: var(--transition);
+}
+
+.accordion-card:hover { border-color: var(--border-hover); }
+
+.accordion-card.expanded { border-color: rgba(217,70,239,0.3); }
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.accordion-header:hover { background: var(--bg-hover); }
+
+.accordion-body {
+  display: none;
+  padding: 0 20px 20px;
+  border-top: 0.5px solid var(--border);
+}
+
+.accordion-body.open { display: block; }
+
+/* ── Scoring Form ─────────────────────── */
+.score-criterion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.score-criterion:last-child { border-bottom: none; }
+
+.score-criterion-label {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.score-criterion-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.score-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper-btn {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  border: 0.5px solid var(--border-hover);
+  color: var(--text-primary);
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.stepper-btn:hover { background: var(--bg-active); border-color: var(--brand); }
+
+.stepper-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  width: 32px;
+  text-align: center;
+}
+
+.total-score-display {
+  background: linear-gradient(135deg, rgba(217,70,239,0.12), rgba(79,70,229,0.1));
+  border: 0.5px solid rgba(217,70,239,0.25);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Results Summary ──────────────────── */
+.result-team-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+
+.result-team-card.rank-1 { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.04); }
+.result-team-card.rank-2 { border-color: rgba(148,163,184,0.3); }
+.result-team-card.rank-3 { border-color: rgba(180,83,9,0.3); }
+
+/* ── Hackathon selector card ──────────── */
+.hack-select-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.hack-select-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #D946EF, #4F46E5);
+}
+
+.hack-select-card:hover { border-color: rgba(217,70,239,0.3); }
+.hack-select-card.active { border-color: rgba(217,70,239,0.5); background: rgba(217,70,239,0.05); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .judge-topnav { padding: 0 16px; }
+  .judge-nav-link span { display: none; }
+  .judge-page { padding: 20px 16px; }
+  .judge-logo-text, .judge-logo-badge { display: none; }
+}

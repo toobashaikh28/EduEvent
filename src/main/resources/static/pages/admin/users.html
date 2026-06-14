@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduEvent Admin — Users</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../css/global.css">
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    select { width: auto; }
+    .user-avatar { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0; }
+    .role-admin { background:rgba(79,70,229,0.15);color:#A5B4FC; }
+    .role-participant { background:rgba(20,184,166,0.15);color:#5EEAD4; }
+    .role-judge { background:rgba(245,158,11,0.15);color:#FCD34D; }
+    .status-active { background:rgba(34,197,94,0.12);color:#4ADE80; }
+    .status-suspended { background:rgba(239,68,68,0.12);color:#F87171; }
+  </style>
+</head>
+<body>
+<script src="../../js/core.js"></script>
+<script src="../../js/components/components.js"></script>
+<script>if(!Auth.guardPage("ADMIN"))throw new Error();</script>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-icon">E</div><span class="sidebar-logo-text">EduEvent</span><span class="sidebar-logo-badge">Admin</span></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Insights</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item"><a href="leaderboards.html"><span class="nav-icon"><i class="ti ti-trophy"></i></span><span>Leaderboards</span></a></li>
+        <li class="nav-item"><a href="analytics.html"><span class="nav-icon"><i class="ti ti-chart-bar"></i></span><span>Analytics</span></a></li>
+        <li class="nav-item"><a href="certificates.html"><span class="nav-icon"><i class="ti ti-certificate"></i></span><span>Certificates</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <ul class="sidebar-nav">
+        <li class="nav-item active"><a href="users.html"><span class="nav-icon"><i class="ti ti-users"></i></span><span>Users</span></a></li>
+        <li class="nav-item"><a href="notifications.html"><span class="nav-icon"><i class="ti ti-bell"></i></span><span>Notifications</span><span class="nav-badge">3</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-profile" data-action="logout" title="Log out">
+        <div class="admin-avatar" id="admin-avatar">SA</div>
+        <div class="admin-info"><div class="admin-name" id="admin-name">Super Admin</div><div class="admin-role" id="admin-role">Administrator</div></div>
+        <i class="ti ti-logout" style="font-size:14px;color:var(--text-muted);margin-left:auto;"></i>
+      </div>
+    </div>
+  </aside>
+  <header class="topbar">
+    <div class="topbar-title">Users</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="window.location.href='notifications.html'"><i class="ti ti-bell"></i><span class="notif-dot"></span></button>
+      <button class="icon-btn"><i class="ti ti-search"></i></button>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">User Management</div>
+        <div class="page-desc">Manage participants, judges, and admins</div>
+      </div>
+      <button class="btn btn-primary" onclick="openAddUser()"><i class="ti ti-user-plus"></i> Add User</button>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      <div class="stat-card c-brand"><div class="stat-label">Total Users</div><div class="stat-value">284</div></div>
+      <div class="stat-card c-teal"><div class="stat-label">Participants</div><div class="stat-value">261</div></div>
+      <div class="stat-card c-amber"><div class="stat-label">Judges</div><div class="stat-value">18</div></div>
+      <div class="stat-card c-green"><div class="stat-label">Admins</div><div class="stat-value">5</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+        <div class="filter-row" style="flex:1;display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="search-wrap" style="min-width:200px;max-width:280px;">
+            <i class="ti ti-search"></i>
+            <input type="text" placeholder="Search name or email…" oninput="filterTable('users-table', this.value)">
+          </div>
+          <select onchange="filterRole(this.value)">
+            <option value="">All Roles</option>
+            <option value="ADMIN">Admin</option>
+            <option value="PARTICIPANT">Participant</option>
+            <option value="JUDGE">Judge</option>
+          </select>
+          <select onchange="filterUserStatus(this.value)">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Events</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border);">
+        <span style="font-size:12px;color:var(--text-muted);">Showing 1–10 of 284 users</span>
+        <div class="pagination">
+          <button class="page-btn"><i class="ti ti-chevron-left"></i></button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn"><i class="ti ti-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Add User</div>
+      <button class="icon-btn" onclick="document.getElementById('user-modal').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">First Name</label><input type="text" id="uf-fname" placeholder="Ali"></div>
+      <div class="form-group"><label class="form-label">Last Name</label><input type="text" id="uf-lname" placeholder="Khan"></div>
+      <div class="form-group full"><label class="form-label">Email</label><input type="email" id="uf-email" placeholder="ali.khan@example.com"></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select id="uf-role"><option value="PARTICIPANT">Participant</option><option value="JUDGE">Judge</option><option value="ADMIN">Admin</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Department</label><input type="text" id="uf-dept" placeholder="CS / SWE / EE…"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('user-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()"><i class="ti ti-user-plus"></i> Add User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const avatarColors = ['#4F46E5','#14B8A6','#D946EF','#F59E0B','#3B82F6','#22C55E','#EF4444'];
+
+const USERS = [
+  { id:1, name:'Ali Khan', email:'ali.khan@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-01', events:6, status:'active' },
+  { id:2, name:'Sara Baig', email:'sara.baig@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-01', events:4, status:'active' },
+  { id:3, name:'Dr. Tariq Mehmood', email:'tariq.mehmood@ssuet.edu.pk', role:'JUDGE', joined:'2024-08-15', events:3, status:'active' },
+  { id:4, name:'Umar Shah', email:'umar.shah@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-10-01', events:2, status:'active' },
+  { id:5, name:'Fatima Noor', email:'fatima.noor@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-15', events:5, status:'active' },
+  { id:6, name:'Prof. Aisha Siddiqui', email:'aisha.siddiqui@ssuet.edu.pk', role:'JUDGE', joined:'2024-08-01', events:4, status:'active' },
+  { id:7, name:'Super Admin', email:'admin@eduevent.io', role:'ADMIN', joined:'2024-07-01', events:0, status:'active' },
+  { id:8, name:'Hassan Ali', email:'hassan.ali@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-01-10', events:3, status:'active' },
+  { id:9, name:'Ayesha Malik', email:'ayesha.malik@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-02-01', events:1, status:'suspended' },
+  { id:10, name:'Zaid Raza', email:'zaid.raza@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-01-20', events:2, status:'active' },
+];
+
+let displayUsers = [...USERS];
+
+function initials(name) { return name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); }
+function avatarColor(name) { return avatarColors[name.charCodeAt(0) % avatarColors.length]; }
+
+function renderUsers(users) {
+  document.getElementById('users-tbody').innerHTML = users.map(u => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="user-avatar" style="background:${avatarColor(u.name)};">${initials(u.name)}</div>
+          <span>${u.name}</span>
+        </div>
+      </td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${u.email}</td>
+      <td><span class="badge role-${u.role.toLowerCase()}">${u.role}</span></td>
+      <td>${fmt.date(u.joined)}</td>
+      <td>${u.events}</td>
+      <td><span class="badge status-${u.status}">${u.status}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" title="Edit" onclick="editUser(${u.id})"><i class="ti ti-edit"></i></button>
+          ${u.status === 'active'
+            ? `<button class="btn btn-secondary btn-sm" title="Suspend" onclick="toggleSuspend(${u.id})"><i class="ti ti-user-off"></i></button>`
+            : `<button class="btn btn-success btn-sm" title="Restore" onclick="toggleSuspend(${u.id})"><i class="ti ti-user-check"></i></button>`}
+          <button class="btn btn-danger btn-sm" title="Delete" onclick="deleteUser(${u.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterRole(role) {
+  displayUsers = role ? USERS.filter(u => u.role === role) : [...USERS];
+  renderUsers(displayUsers);
+}
+
+function filterUserStatus(status) {
+  displayUsers = status ? USERS.filter(u => u.status === status) : [...USERS];
+  renderUsers(displayUsers);
+}
+
+function openAddUser() { document.getElementById('user-modal').classList.add('open'); }
+
+function editUser(id) { Toast.show('Edit functionality coming soon.', 'info'); }
+
+function toggleSuspend(id) {
+  const u = USERS.find(u => u.id === id);
+  if (!u) return;
+  const action = u.status === 'active' ? 'suspend' : 'restore';
+  confirmAction(`${action.charAt(0).toUpperCase()+action.slice(1)} user <strong>${u.name}</strong>?`, () => {
+    u.status = u.status === 'active' ? 'suspended' : 'active';
+    renderUsers(displayUsers);
+    Toast.show(`User ${action}d.`, 'success');
+  });
+}
+
+function deleteUser(id) {
+  const u = USERS.find(u => u.id === id);
+  confirmAction(`Permanently delete <strong>${u?.name}</strong>?`, () => {
+    const idx = USERS.findIndex(u => u.id === id);
+    if (idx !== -1) USERS.splice(idx, 1);
+    displayUsers = displayUsers.filter(u => u.id !== id);
+    renderUsers(displayUsers);
+    Toast.show('User deleted.', 'success');
+  });
+}
+
+function saveUser() {
+  const fname = document.getElementById('uf-fname').value.trim();
+  const lname = document.getElementById('uf-lname').value.trim();
+  const email = document.getElementById('uf-email').value.trim();
+  if (!fname || !email) { Toast.show('Name and email are required.', 'warning'); return; }
+  const newUser = { id: Date.now(), name: `${fname} ${lname}`, email, role: document.getElementById('uf-role').value, joined: new Date().toISOString().split('T')[0], events: 0, status: 'active' };
+  USERS.unshift(newUser);
+  displayUsers.unshift(newUser);
+  document.getElementById('user-modal').classList.remove('open');
+  renderUsers(displayUsers);
+  Toast.show('User added successfully.', 'success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateAdminProfile();
+  renderUsers(USERS);
+  document.querySelectorAll('[data-action="logout"]').forEach(btn =>
+    btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
+  document.getElementById('user-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('user-modal')) document.getElementById('user-modal').classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

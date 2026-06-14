@@ -1,0 +1,320 @@
+/* ─── EduEvent User Portal — Layout Overrides ─── */
+/* Extends global.css with top-nav shell for participant portal */
+
+/* ── Top Nav Shell ────────────────────────────── */
+.user-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border-bottom: 0.5px solid var(--border);
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  gap: 0;
+}
+
+.topnav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: 40px;
+  text-decoration: none;
+}
+
+.topnav-logo-icon {
+  width: 30px; height: 30px;
+  background: var(--brand);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 15px; color: #fff;
+  flex-shrink: 0;
+}
+
+.topnav-logo-text {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 800;
+  color: var(--text-primary);
+}
+
+.topnav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.topnav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.topnav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.topnav-link.active {
+  color: var(--brand-muted);
+  background: rgba(79,70,229,0.12);
+  font-weight: 500;
+}
+
+.topnav-link i { font-size: 16px; }
+
+.topnav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.user-avatar-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent-hack) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.user-avatar-btn:hover {
+  border-color: var(--brand-muted);
+}
+
+.user-page {
+  flex: 1;
+  padding: 32px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Rank Badge ──────────────────────── */
+.rank-card {
+  background: linear-gradient(135deg, rgba(79,70,229,0.15) 0%, rgba(217,70,239,0.1) 100%);
+  border: 0.5px solid rgba(79,70,229,0.3);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rank-number {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4F46E5, #D946EF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+/* ── Quiz Interface ──────────────────── */
+.quiz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0.5px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 10px;
+}
+
+.quiz-option:hover {
+  border-color: var(--brand);
+  background: rgba(79,70,229,0.05);
+}
+
+.quiz-option.selected {
+  border-color: var(--brand);
+  background: rgba(79,70,229,0.1);
+}
+
+.quiz-option.correct {
+  border-color: var(--accent-success);
+  background: rgba(34,197,94,0.08);
+}
+
+.quiz-option.wrong {
+  border-color: var(--accent-danger);
+  background: rgba(239,68,68,0.08);
+}
+
+.option-letter {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.quiz-option.selected .option-letter {
+  background: var(--brand);
+  color: #fff;
+}
+
+.quiz-progress-bar {
+  height: 4px;
+  background: var(--bg-hover);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+/* ── Event Cards ──────────────────────── */
+.event-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.event-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.event-card-banner {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card-banner.hack { background: linear-gradient(135deg, rgba(217,70,239,0.25), rgba(79,70,229,0.2)); }
+.event-card-banner.webinar { background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(99,102,241,0.2)); }
+.event-card-banner.conference { background: linear-gradient(135deg, rgba(20,184,166,0.25), rgba(6,182,212,0.2)); }
+.event-card-banner.quiz { background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(239,68,68,0.15)); }
+
+.event-card-banner-emoji { font-size: 36px; opacity: 0.7; }
+
+.event-card-body { padding: 16px 18px; }
+.event-card-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.event-card-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.event-card-footer { padding: 12px 18px; border-top: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+
+/* ── Team member cards ──────────────────── */
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border);
+}
+
+.member-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+
+/* ── Certificate card (user view) ──────── */
+.cert-card-user {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.cert-card-user:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+
+.cert-banner {
+  height: 90px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.cert-banner.hack { background: linear-gradient(135deg, rgba(217,70,239,0.2), rgba(79,70,229,0.15)); }
+.cert-banner.quiz { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.12)); }
+.cert-banner.conf { background: linear-gradient(135deg, rgba(20,184,166,0.2), rgba(59,130,246,0.15)); }
+.cert-banner.web { background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(99,102,241,0.12)); }
+
+.cert-emoji { font-size: 30px; }
+.cert-place-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px; }
+.cert-place-1 { background: rgba(245,158,11,0.2); color: #FCD34D; }
+.cert-place-pass { background: rgba(34,197,94,0.15); color: #4ADE80; }
+.cert-place-att { background: rgba(79,70,229,0.15); color: #A5B4FC; }
+
+.cert-body { padding: 14px 16px; }
+.cert-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.cert-event { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.cert-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.cert-footer-user { padding: 10px 16px; border-top: 0.5px solid var(--border); }
+
+/* ── Timer ──────────────────────────────── */
+.timer-display {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+}
+
+.timer-display.warn { color: var(--accent-warn); }
+.timer-display.danger { color: var(--accent-danger); animation: pulse 1s ease infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Notification item (user) ──────────── */
+.notif-dot-user {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--brand);
+  flex-shrink: 0;
+}
+
+/* ── Responsive topnav ──────────────────── */
+@media (max-width: 768px) {
+  .topnav { padding: 0 16px; }
+  .topnav-link span { display: none; }
+  .topnav-links { gap: 0; }
+  .user-page { padding: 20px 16px; }
+  .topnav-logo-text { display: none; }
+}
