@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EduEvent Admin — Leaderboards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../css/global.css">
   <style>
@@ -13,20 +13,20 @@
     select { width: auto; }
     .podium-wrap { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; align-items:flex-end; margin-bottom:24px; }
     .podium-block { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:20px 16px; text-align:center; }
-    .podium-block.first { border-color:rgba(245,158,11,0.4); background:rgba(245,158,11,0.05); }
-    .podium-block.second { border-color:rgba(148,163,184,0.3); }
-    .podium-block.third { border-color:rgba(180,83,9,0.3); }
+    .podium-block.first { border-left:4px solid var(--accent-yellow); background:linear-gradient(180deg,#FEF8E3,var(--bg-card)); }
+    .podium-block.second { border-left:4px solid var(--accent-lilac); }
+    .podium-block.third { border-left:4px solid var(--accent-peach); }
     .podium-medal { font-size:32px; margin-bottom:8px; }
     .podium-name { font-family:var(--font-display); font-size:15px; font-weight:700; }
     .podium-score { font-family:var(--font-mono); font-size:22px; font-weight:500; margin:6px 0; }
-    .podium-score.gold { color:#F59E0B; }
-    .podium-score.silver { color:#94A3B8; }
-    .podium-score.bronze { color:#B45309; }
+    .podium-score.gold { color:#C99A1E; }
+    .podium-score.silver { color:#9C8FC4; }
+    .podium-score.bronze { color:#C77A45; }
     .podium-event { font-size:11px; color:var(--text-muted); }
     .rank-num { font-family:var(--font-display); font-weight:800; font-size:18px; min-width:32px; text-align:center; }
-    .rank-num.gold { color:#F59E0B; }
-    .rank-num.silver { color:#94A3B8; }
-    .rank-num.bronze { color:#B45309; }
+    .rank-num.gold { color:#C99A1E; }
+    .rank-num.silver { color:#9C8FC4; }
+    .rank-num.bronze { color:#C77A45; }
     .rank-num.normal { color:var(--text-muted); font-size:14px; }
   </style>
 </head>

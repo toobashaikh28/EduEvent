@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>EduEvent Judge — Results</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../css/global.css">
   <style>
@@ -33,7 +33,7 @@ ${buildTopnav('JUDGE','results.html')}
     <span style="font-size:12px;color:var(--text-muted);" id="rm">—</span>
     <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="Toast.show('Exporting CSV…','info')"><i class="ti ti-download"></i> Export CSV</button>
   </div>
-  <div id="warn" style="display:none;background:rgba(245,158,11,0.08);border:0.5px solid rgba(245,158,11,0.25);border-radius:var(--radius-lg);padding:11px 16px;margin-bottom:18px;font-size:13px;color:var(--text-secondary);"><i class="ti ti-alert-triangle" style="color:#FCD34D;margin-right:8px;"></i>Some teams not yet scored. Results may change.</div>
+  <div id="warn" style="display:none;background:rgba(245,158,11,0.08);border:0.5px solid rgba(245,158,11,0.25);border-radius:var(--radius-lg);padding:11px 16px;margin-bottom:18px;font-size:13px;color:var(--text-secondary);"><i class="ti ti-alert-triangle" style="color:#E0A93B;margin-right:8px;"></i>Some teams not yet scored. Results may change.</div>
   <div class="podium-wrap" id="podium"></div>
   <div class="card" style="margin-bottom:20px;">
     <div class="card-header"><div><div class="card-title">Full Rankings</div><div class="card-subtitle">Click a row to expand criteria breakdown</div></div><div id="sc-badge"></div></div>
@@ -57,7 +57,7 @@ function loadR(id){
 function renderPodium(teams){
   const r=[...teams].filter(t=>t.total!==null).sort((a,b)=>b.total-a.total);const t3=r.slice(0,3);
   const ord=[t3[1],t3[0],t3[2]],cls=['pb p2','pb p1','pb p3'],med=['🥈','🥇','🥉'],sc=['silver','gold','bronze'];
-  document.getElementById('podium').innerHTML=ord.map((t,i)=>t?`<div class="${cls[i]}"><div style="font-size:30px;margin-bottom:8px;">${med[i]}</div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:4px;">${t.name}</div><div style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:${i===0?'#94A3B8':i===1?'#F59E0B':'#B45309'};">${fmt.score(t.total)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${t.m} members</div></div>`:'<div></div>').join('');
+  document.getElementById('podium').innerHTML=ord.map((t,i)=>t?`<div class="${cls[i]}"><div style="font-size:30px;margin-bottom:8px;">${med[i]}</div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:4px;">${t.name}</div><div style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:${i===0?'#9C8FC4':i===1?'#E0A93B':'#C77A45'};">${fmt.score(t.total)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${t.m} members</div></div>`:'<div></div>').join('');
 }
 function renderTable(teams){
   const r=[...teams].sort((a,b)=>{if(a.total===null&&b.total===null)return 0;if(a.total===null)return 1;if(b.total===null)return-1;return b.total-a.total;});
@@ -67,7 +67,7 @@ function renderTable(teams){
     <td style="font-weight:600;">${t.name} <i class="ti ti-chevron-${isExp?'up':'down'}" style="font-size:11px;color:var(--text-muted);"></i></td>
     <td style="color:var(--text-muted);">${t.m}</td>
     ${CR.map(k=>`<td>${t[k]!==null?`<span style="font-family:var(--font-mono);">${t[k]}/10</span>`:'<span style="color:var(--text-muted);">—</span>'}`).join('')}
-    <td>${t.total!==null?`<span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:${rank===1?'#F59E0B':rank===2?'#94A3B8':rank===3?'#B45309':'var(--text-primary)'};">${fmt.score(t.total)}</span>`:'<span style="color:var(--text-muted);">Pending</span>'}</td>
+    <td>${t.total!==null?`<span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:${rank===1?'#E0A93B':rank===2?'#9C8FC4':rank===3?'#C77A45':'var(--text-primary)'};">${fmt.score(t.total)}</span>`:'<span style="color:var(--text-muted);">Pending</span>'}</td>
     <td><span class="badge badge-${t.total!==null?'active':'pending'}">${t.total!==null?'Scored':'Pending'}</span></td>
   </tr>${isExp&&t.total!==null?`<tr class="exp-row"><td colspan="10"><div class="exp-inner open">${CR.map((k,ci)=>{const lbs=['Innovation','Technical','Impact','Presentation','Completeness'],ws=[20,25,20,20,15];return`<div style="background:var(--bg-card);border-radius:var(--radius-md);padding:12px;border:0.5px solid var(--border);"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${lbs[ci]}</div><div style="font-family:var(--font-display);font-size:20px;font-weight:800;margin-bottom:5px;">${t[k]}/10</div><div class="progress-bar" style="height:5px;"><div class="progress-fill" style="width:${(t[k]||0)*10}%;background:var(--brand);"></div></div><div style="font-size:10px;color:var(--text-muted);margin-top:3px;">Weight: ${ws[ci]}%</div></div>`;}).join('')}</div></td></tr>`:''}`;}).join('');
 }
@@ -77,7 +77,7 @@ function renderMy(teams){
   if(!sc.length){document.getElementById('ms').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No scoring data yet.</div>';return;}
   const avg=sc.reduce((s,t)=>s+t.total,0)/sc.length;
   document.getElementById('ms').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;"><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Teams Scored</div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;">${sc.length}</div></div><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">My Avg Score</div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--brand-muted);">${fmt.score(avg)}</div></div><div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:12px;text-align:center;"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Range</div><div style="font-family:var(--font-display);font-size:18px;font-weight:800;">${fmt.score(Math.min(...sc.map(t=>t.total)))}–${fmt.score(Math.max(...sc.map(t=>t.total)))}</div></div></div>
-  ${sc.sort((a,b)=>b.total-a.total).map(t=>`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><span style="font-size:13px;font-weight:500;min-width:120px;">${t.name}</span><div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:${t.total}%;background:linear-gradient(90deg,#D946EF,#4F46E5);"></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:600;min-width:36px;text-align:right;">${fmt.score(t.total)}</span></div>`).join('')}`;
+  ${sc.sort((a,b)=>b.total-a.total).map(t=>`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><span style="font-size:13px;font-weight:500;min-width:120px;">${t.name}</span><div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:${t.total}%;background:linear-gradient(90deg,#C5A9E8,#7C6FCD);"></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:600;min-width:36px;text-align:right;">${fmt.score(t.total)}</span></div>`).join('')}`;
 }
 document.addEventListener('DOMContentLoaded',()=>loadR('1'));
 </script>

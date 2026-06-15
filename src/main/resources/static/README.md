@@ -128,11 +128,11 @@ api.download('/certificates/1/download')    // returns Blob → triggers save
 | Token | Value |
 |-------|-------|
 | `--bg-base` | `#0F0F11` |
-| `--brand` | `#4F46E5` |
-| `--accent-hackathon` | `#D946EF` |
-| `--accent-webinar` | `#3B82F6` |
-| `--accent-conference` | `#14B8A6` |
-| `--accent-quiz` | `#F59E0B` |
+| `--brand` | `#7C6FCD` |
+| `--accent-hackathon` | `#C5A9E8` |
+| `--accent-webinar` | `#89C4E1` |
+| `--accent-conference` | `#80CDB8` |
+| `--accent-quiz` | `#E0A93B` |
 | Font (headings) | Plus Jakarta Sans 800 |
 | Font (body) | DM Sans |
 | Font (code/scores) | DM Mono |

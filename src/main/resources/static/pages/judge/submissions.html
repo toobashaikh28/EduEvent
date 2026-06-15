@@ -6,7 +6,7 @@
     <title>EduEvent Judge — Submissions</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
     <link
@@ -164,7 +164,7 @@ ${buildTopnav("JUDGE", "submissions.html")}
               const open = exp === sub.id;
               return `<div class="acc ${open ? "exp" : ""}">
       <div class="acc-hdr" onclick="toggle(${sub.id})">
-        <div style="width:38px;height:38px;border-radius:50%;background:${sub.status === "scored" ? "rgba(34,197,94,0.15)" : "rgba(217,70,239,0.15)"};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sub.status === "scored" ? "#4ADE80" : "#E879F9"};flex-shrink:0;">${fmt.initials(sub.team)}</div>
+        <div style="width:38px;height:38px;border-radius:50%;background:${sub.status === "scored" ? "rgba(34,197,94,0.15)" : "rgba(217,70,239,0.15)"};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${sub.status === "scored" ? "#6DD5A0" : "#C5A9E8"};flex-shrink:0;">${fmt.initials(sub.team)}</div>
         <div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:14px;font-weight:600;">${sub.team}</span><span class="badge badge-hackathon" style="font-size:10px;">${sub.hack}</span></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${sub.members.join(" · ")} · Submitted ${fmt.date(sub.date)}</div></div>
         <div style="text-align:right;margin-right:10px;flex-shrink:0;">${sub.score !== null ? `<div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--accent-success);">${fmt.score(sub.score)}</div><div style="font-size:10px;color:var(--text-muted);">Scored</div>` : '<span class="badge badge-pending">Pending</span>'}</div>
         <i class="ti ti-chevron-${open ? "up" : "down"}" style="color:var(--text-muted);font-size:13px;flex-shrink:0;"></i>

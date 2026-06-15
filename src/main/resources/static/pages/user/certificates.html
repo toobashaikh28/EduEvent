@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>EduEvent — Certificates</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <!-- Certificate fonts loaded separately so they're available inside the cert canvas -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
@@ -17,13 +17,13 @@
     .cc{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition);}
     .cc:hover{border-color:var(--border-hover);transform:translateY(-2px);}
     .cb{height:88px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;}
-    .cb.hack{background:linear-gradient(135deg,rgba(217,70,239,0.2),rgba(79,70,229,0.15));}
-    .cb.quiz{background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.12));}
-    .cb.conf{background:linear-gradient(135deg,rgba(20,184,166,0.2),rgba(59,130,246,0.15));}
-    .cb.web{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(99,102,241,0.12));}
+    .cb.hack{background:linear-gradient(135deg,#C5A9E8,#9D7FE0);}
+    .cb.quiz{background:linear-gradient(135deg,#F5D77A,#F6B08A);}
+    .cb.conf{background:linear-gradient(135deg,#80CDB8,#89C4E1);}
+    .cb.web{background:linear-gradient(135deg,#89C4E1,#A6B8E8);}
 
     /* ── Modal overlay ── */
-    .cprev{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+    .cprev{position:fixed;inset:0;background:rgba(30,27,58,0.40);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
     .cprev.open{display:flex;}
     .cdoc{background:var(--bg-card);border:0.5px solid var(--border-hover);border-radius:var(--radius-xl);width:100%;max-width:720px;overflow:hidden;animation:modalIn 0.2s ease;}
     @keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
@@ -33,9 +33,9 @@
     #cert-canvas{
       width:100%;
       aspect-ratio:1.414/1; /* A4 landscape ratio */
-      background:#0e1018;
+      background:#FFFFFF;
       border-radius:12px;
-      border:1px solid rgba(255,255,255,0.08);
+      border:1px solid var(--border-hover);
       position:relative;
       overflow:hidden;
       font-family:'Outfit',sans-serif;
@@ -59,20 +59,20 @@
       padding:30px 48px;
       gap:0;
     }
-    .cert-org{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(165,180,252,0.7);margin-bottom:10px;}
-    .cert-headline{font-family:'Playfair Display',serif;font-size:clamp(13px,2.8vw,22px);font-weight:700;color:#e8ecf5;margin-bottom:8px;line-height:1.2;}
-    .cert-subline{font-size:clamp(9px,1.4vw,11px);color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
-    .cert-name{font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(18px,4.5vw,34px);font-weight:400;color:#fff;margin-bottom:12px;line-height:1.1;}
+    .cert-org{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--brand);margin-bottom:10px;}
+    .cert-headline{font-family:'Playfair Display',serif;font-size:clamp(13px,2.8vw,22px);font-weight:700;color:var(--text-primary);margin-bottom:8px;line-height:1.2;}
+    .cert-subline{font-size:clamp(9px,1.4vw,11px);color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
+    .cert-name{font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(18px,4.5vw,34px);font-weight:400;color:var(--brand);margin-bottom:12px;line-height:1.1;}
     .cert-divider{width:60px;height:2px;border-radius:2px;margin:0 auto 12px;background:linear-gradient(90deg,transparent,currentColor,transparent);}
-    .cert-event-label{font-size:clamp(8px,1.3vw,11px);color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;}
-    .cert-event-name{font-family:'Playfair Display',serif;font-size:clamp(13px,2.5vw,19px);font-weight:700;margin-bottom:16px;}
-    .cert-desc{font-size:clamp(8px,1.2vw,11px);color:rgba(255,255,255,0.45);line-height:1.6;max-width:80%;margin:0 auto 18px;}
+    .cert-event-label{font-size:clamp(8px,1.3vw,11px);color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;}
+    .cert-event-name{font-family:'Playfair Display',serif;font-size:clamp(13px,2.5vw,19px);font-weight:700;margin-bottom:16px;color:var(--text-primary);}
+    .cert-desc{font-size:clamp(8px,1.2vw,11px);color:var(--text-secondary);line-height:1.6;max-width:80%;margin:0 auto 18px;}
     .cert-footer{display:flex;align-items:flex-end;justify-content:space-between;width:100%;margin-top:auto;}
     .cert-footer-block{text-align:center;}
-    .cert-footer-line{width:80px;height:1px;background:rgba(255,255,255,0.2);margin:0 auto 5px;}
-    .cert-footer-label{font-size:clamp(7px,1vw,9px);color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;}
+    .cert-footer-line{width:80px;height:1px;background:var(--border-strong);margin:0 auto 5px;}
+    .cert-footer-label{font-size:clamp(7px,1vw,9px);color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;}
     .cert-seal{width:clamp(36px,6vw,54px);height:clamp(36px,6vw,54px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:clamp(14px,2.5vw,20px);font-weight:700;color:#fff;flex-shrink:0;}
-    .cert-uuid{font-family:'DM Mono',monospace;font-size:clamp(6px,0.9vw,9px);color:rgba(255,255,255,0.25);letter-spacing:0.5px;}
+    .cert-uuid{font-family:'DM Mono',monospace;font-size:clamp(6px,0.9vw,9px);color:var(--text-muted);letter-spacing:0.5px;}
   </style>
 </head>
 <body>
@@ -113,28 +113,28 @@ ${buildTopnav('USER','certificates.html')}
         <div class="bg-glow" id="glow2" style="width:240px;height:240px;bottom:-60px;right:-60px;"></div>
         <!-- corner ornaments (inline SVG) -->
         <svg class="corner tl" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0 L140 0 L140 10 Q10 10 10 140 L0 140 Z" fill="rgba(255,255,255,0.04)"/>
-          <path d="M0 0 L60 0 Q4 4 0 60 Z" fill="rgba(255,255,255,0.06)"/>
-          <circle cx="8" cy="8" r="3" fill="rgba(255,255,255,0.15)"/>
-          <circle cx="20" cy="8" r="1.5" fill="rgba(255,255,255,0.08)"/>
-          <circle cx="8" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+          <path d="M0 0 L140 0 L140 10 Q10 10 10 140 L0 140 Z" fill="rgba(124,111,205,0.07)"/>
+          <path d="M0 0 L60 0 Q4 4 0 60 Z" fill="rgba(124,111,205,0.11)"/>
+          <circle cx="8" cy="8" r="3" fill="rgba(124,111,205,0.28)"/>
+          <circle cx="20" cy="8" r="1.5" fill="rgba(124,111,205,0.14)"/>
+          <circle cx="8" cy="20" r="1.5" fill="rgba(124,111,205,0.14)"/>
         </svg>
         <svg class="corner tr" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0 L140 0 L140 140 Q130 10 0 10 Z" fill="rgba(255,255,255,0.04)"/>
-          <path d="M140 0 L80 0 Q136 4 140 60 Z" fill="rgba(255,255,255,0.06)"/>
-          <circle cx="132" cy="8" r="3" fill="rgba(255,255,255,0.15)"/>
-          <circle cx="120" cy="8" r="1.5" fill="rgba(255,255,255,0.08)"/>
-          <circle cx="132" cy="20" r="1.5" fill="rgba(255,255,255,0.08)"/>
+          <path d="M0 0 L140 0 L140 140 Q130 10 0 10 Z" fill="rgba(124,111,205,0.07)"/>
+          <path d="M140 0 L80 0 Q136 4 140 60 Z" fill="rgba(124,111,205,0.11)"/>
+          <circle cx="132" cy="8" r="3" fill="rgba(124,111,205,0.28)"/>
+          <circle cx="120" cy="8" r="1.5" fill="rgba(124,111,205,0.14)"/>
+          <circle cx="132" cy="20" r="1.5" fill="rgba(124,111,205,0.14)"/>
         </svg>
         <svg class="corner bl" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 140 L0 0 L10 0 Q10 130 140 130 L140 140 Z" fill="rgba(255,255,255,0.04)"/>
-          <path d="M0 140 L0 80 Q4 136 60 140 Z" fill="rgba(255,255,255,0.06)"/>
-          <circle cx="8" cy="132" r="3" fill="rgba(255,255,255,0.15)"/>
+          <path d="M0 140 L0 0 L10 0 Q10 130 140 130 L140 140 Z" fill="rgba(124,111,205,0.07)"/>
+          <path d="M0 140 L0 80 Q4 136 60 140 Z" fill="rgba(124,111,205,0.11)"/>
+          <circle cx="8" cy="132" r="3" fill="rgba(124,111,205,0.28)"/>
         </svg>
         <svg class="corner br" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M140 140 L0 140 L0 130 Q130 130 130 0 L140 0 Z" fill="rgba(255,255,255,0.04)"/>
-          <path d="M140 140 L80 140 Q136 136 140 80 Z" fill="rgba(255,255,255,0.06)"/>
-          <circle cx="132" cy="132" r="3" fill="rgba(255,255,255,0.15)"/>
+          <path d="M140 140 L0 140 L0 130 Q130 130 130 0 L140 0 Z" fill="rgba(124,111,205,0.07)"/>
+          <path d="M140 140 L80 140 Q136 136 140 80 Z" fill="rgba(124,111,205,0.11)"/>
+          <circle cx="132" cy="132" r="3" fill="rgba(124,111,205,0.28)"/>
         </svg>
         <!-- Certificate body -->
         <div class="cert-body">
@@ -150,13 +150,13 @@ ${buildTopnav('USER','certificates.html')}
             <div class="cert-footer-block">
               <div class="cert-footer-line"></div>
               <div class="cert-footer-label" id="cv-date">—</div>
-              <div style="font-size:8px;color:rgba(255,255,255,0.2);margin-top:2px;">Issue Date</div>
+              <div style="font-size:8px;margin-top:2px;color:var(--text-muted);">Issue Date</div>
             </div>
             <div class="cert-seal" id="cv-seal">E</div>
             <div class="cert-footer-block">
               <div class="cert-footer-line"></div>
               <div class="cert-uuid" id="cv-uuid">—</div>
-              <div style="font-size:8px;color:rgba(255,255,255,0.2);margin-top:2px;">Verification ID</div>
+              <div style="font-size:8px;margin-top:2px;color:var(--text-muted);">Verification ID</div>
             </div>
           </div>
         </div>
@@ -188,14 +188,14 @@ const bgs={hack:'hack',quiz:'quiz',conf:'conf',web:'web'};
 
 // Gradient palettes per cert type
 const PALETTES = {
-  hack: { bg:'#0e0818', glow1:'rgba(139,92,246,0.4)', glow2:'rgba(217,70,239,0.3)', accent:'#A78BFA', seal:'linear-gradient(135deg,#7C3AED,#D946EF)', divider:'#A78BFA' },
-  quiz: { bg:'#0f0e08', glow1:'rgba(245,158,11,0.35)', glow2:'rgba(239,68,68,0.2)',  accent:'#FCD34D', seal:'linear-gradient(135deg,#D97706,#EF4444)', divider:'#FCD34D' },
-  conf: { bg:'#08100f', glow1:'rgba(20,184,166,0.35)', glow2:'rgba(59,130,246,0.25)', accent:'#5EEAD4', seal:'linear-gradient(135deg,#0D9488,#3B82F6)', divider:'#5EEAD4' },
-  web:  { bg:'#080e18', glow1:'rgba(59,130,246,0.35)', glow2:'rgba(99,102,241,0.25)', accent:'#93C5FD', seal:'linear-gradient(135deg,#2563EB,#6366F1)', divider:'#93C5FD' },
+  hack: { bg:'#FAF7FF', glow1:'rgba(197,169,232,0.40)', glow2:'rgba(157,127,224,0.28)', accent:'#7C6FCD', seal:'linear-gradient(135deg,#9D7FE0,#C5A9E8)', divider:'#C5A9E8' },
+  quiz: { bg:'#FFFCF5', glow1:'rgba(245,215,122,0.45)', glow2:'rgba(246,176,138,0.30)', accent:'#C99A1E', seal:'linear-gradient(135deg,#F5D77A,#F6B08A)', divider:'#F5D77A' },
+  conf: { bg:'#F5FCFA', glow1:'rgba(128,205,184,0.45)', glow2:'rgba(137,196,225,0.30)', accent:'#2A8A6A', seal:'linear-gradient(135deg,#80CDB8,#89C4E1)', divider:'#80CDB8' },
+  web:  { bg:'#F5FAFE', glow1:'rgba(137,196,225,0.45)', glow2:'rgba(124,111,205,0.25)', accent:'#3A7FA8', seal:'linear-gradient(135deg,#89C4E1,#9D7FE0)', divider:'#89C4E1' },
 };
 
-const pbg={'Earned':'rgba(34,197,94,0.15)','2nd Place':'rgba(245,158,11,0.15)','Passed':'rgba(34,197,94,0.15)','Attendee':'rgba(79,70,229,0.15)','1st Place':'rgba(245,158,11,0.2)','3rd Place':'rgba(180,83,9,0.15)'};
-const ptc={'Earned':'#4ADE80','2nd Place':'#FCD34D','Passed':'#4ADE80','Attendee':'#A5B4FC','1st Place':'#FCD34D','3rd Place':'#D97706'};
+const pbg={'Earned':'#D7F7E9','2nd Place':'#F0EAFF','Passed':'#D7F7E9','Attendee':'#EDE9FF','1st Place':'#FEF8E3','3rd Place':'#FDF0E8'};
+const ptc={'Earned':'#2A8A5A','2nd Place':'#6A5DC0','Passed':'#2A8A5A','Attendee':'#6A5DC0','1st Place':'#9A7A10','3rd Place':'#C77A45'};
 let activeCert = null;
 
 async function loadCerts() {
@@ -232,7 +232,7 @@ function render() {
     <div class="cc">
       <div class="cb ${bgs[c.type]||'web'}">
         <span style="font-size:30px;">${c.emoji}</span>
-        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${pbg[c.place]||'rgba(79,70,229,0.15)'};color:${ptc[c.place]||'#A5B4FC'};">${c.place}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${pbg[c.place]||'rgba(79,70,229,0.15)'};color:${ptc[c.place]||'#9D93D8'};">${c.place}</span>
       </div>
       <div style="padding:13px 15px;">
         <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${c.event}</div>

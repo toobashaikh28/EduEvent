@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EduEvent Admin — Users</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../css/global.css">
   <style>
     @keyframes spin { to { transform: rotate(360deg); } }
     select { width: auto; }
     .user-avatar { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0; }
-    .role-admin { background:rgba(79,70,229,0.15);color:#A5B4FC; }
-    .role-participant { background:rgba(20,184,166,0.15);color:#5EEAD4; }
-    .role-judge { background:rgba(245,158,11,0.15);color:#FCD34D; }
-    .status-active { background:rgba(34,197,94,0.12);color:#4ADE80; }
-    .status-suspended { background:rgba(239,68,68,0.12);color:#F87171; }
+    .role-admin { background:var(--brand-light);color:var(--brand); }
+    .role-participant { background:#E0F6F1;color:#2A8A6A; }
+    .role-judge { background:#FEF8E3;color:#9A7A10; }
+    .status-active { background:#D7F7E9;color:#2A8A5A; }
+    .status-suspended { background:#FEE8E8;color:#D94F4F; }
   </style>
 </head>
 <body>
@@ -157,7 +157,7 @@
 </div>
 
 <script>
-const avatarColors = ['#4F46E5','#14B8A6','#D946EF','#F59E0B','#3B82F6','#22C55E','#EF4444'];
+const avatarColors = ['#7C6FCD','#80CDB8','#C5A9E8','#E0A93B','#89C4E1','#6DD5A0','#F28B8B'];
 
 const USERS = [
   { id:1, name:'Ali Khan', email:'ali.khan@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-01', events:6, status:'active' },

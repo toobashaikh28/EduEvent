@@ -6,7 +6,7 @@
     <title>EduEvent Judge — Scoring</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
     <link
@@ -89,7 +89,7 @@ ${buildTopnav('JUDGE','scoring.html')}
     </select>
     <select id="ts" onchange="loadTeam(this.value)" style="min-width:180px;"><option value="">— Select team —</option></select>
     <div id="status-wrap" style="display:none;margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <span id="save-tag" style="font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:#FCD34D;border:0.5px solid rgba(245,158,11,0.25);padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:0.5px;">Draft</span>
+      <span id="save-tag" style="font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:#E0A93B;border:0.5px solid rgba(245,158,11,0.25);padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:0.5px;">Draft</span>
     </div>
   </div>
   <div id="empty-sc"><div class="empty-state" style="padding:80px;"><div class="empty-icon"><i class="ti ti-pencil-star"></i></div><div class="empty-title">Select a team to score</div><div class="empty-desc">Choose a hackathon and team above.</div></div></div>
@@ -98,7 +98,7 @@ ${buildTopnav('JUDGE','scoring.html')}
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:16px;border-bottom:0.5px solid var(--border);">
-            <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#D946EF,#4F46E5);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;" id="t-init">—</div>
+            <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#C5A9E8,#7C6FCD);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;" id="t-init">—</div>
             <div style="flex:1;"><div style="font-family:var(--font-display);font-size:16px;font-weight:700;" id="t-name">—</div><div style="font-size:12px;color:var(--text-muted);" id="t-meta">—</div></div>
             <div style="display:flex;gap:8px;"><a href="#" id="t-gh" target="_blank" class="btn btn-secondary btn-sm"><i class="ti ti-brand-github"></i> GitHub</a><button class="btn btn-secondary btn-sm" onclick="Toast.show('Downloading…','info')"><i class="ti ti-download"></i> Files</button></div>
           </div>
@@ -121,7 +121,7 @@ ${buildTopnav('JUDGE','scoring.html')}
         <button class="btn btn-primary btn-full" style="padding:12px;font-size:14px;" id="sub-sc" onclick="submitScore()"><i class="ti ti-send"></i> Submit Score</button>
         <button class="btn btn-secondary btn-full" onclick="clearSc()"><i class="ti ti-refresh"></i> Reset</button>
         <div class="card"><div style="font-size:12px;font-weight:600;margin-bottom:10px;">Scoring Guide</div>
-          ${[['9–10','Exceptional','var(--accent-success)'],['7–8','Good','#60A5FA'],['5–6','Average','var(--accent-warn)'],['3–4','Below avg','#F97316'],['0–2','Poor','var(--accent-danger)']].map(([r,l,c])=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-muted);">${r}</span><span style="color:${c};">${l}</span></div>`).join('')}
+          ${[['9–10','Exceptional','var(--accent-success)'],['7–8','Good','#89C4E1'],['5–6','Average','var(--accent-warn)'],['3–4','Below avg','#F6B08A'],['0–2','Poor','var(--accent-danger)']].map(([r,l,c])=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-muted);">${r}</span><span style="color:${c};">${l}</span></div>`).join('')}
         </div>
       </div>
     </div>
@@ -216,9 +216,9 @@ function updateTotal(){
   const el=document.getElementById('ring'), gr=document.getElementById('grade');
   let col, gl;
   if(t>=85){col='var(--accent-success)';gl='🏆 Exceptional';}
-  else if(t>=70){col='#60A5FA';gl='✅ Good';}
+  else if(t>=70){col='#89C4E1';gl='✅ Good';}
   else if(t>=55){col='var(--accent-warn)';gl='⚠️ Average';}
-  else if(t>=40){col='#F97316';gl='📉 Below Avg';}
+  else if(t>=40){col='#F6B08A';gl='📉 Below Avg';}
   else{col='var(--accent-danger)';gl='❌ Poor';}
   
   document.getElementById('rv').style.color=col;
@@ -260,7 +260,7 @@ async function submitScore(){
   const st = document.getElementById('save-tag');
   st.textContent = 'Submitted';
   st.style.background = 'rgba(34,197,94,0.12)';
-  st.style.color = '#4ADE80';
+  st.style.color = '#6DD5A0';
   
   curT.scoreValue = total;
   

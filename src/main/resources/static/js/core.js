@@ -135,8 +135,8 @@ function confirmAction(message, onConfirm, danger = true) {
   overlay.innerHTML = `
     <div class="modal confirm-dialog">
       <div style="text-align:center;padding:8px 0 20px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-          <i class="ti ti-alert-triangle" style="color:#F87171;font-size:22px;"></i>
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(248,113,113,0.14);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+          <i class="ti ti-alert-triangle" style="color:#FCA5A5;font-size:22px;"></i>
         </div>
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:8px;">Confirm Action</div>
         <div style="font-size:13px;color:var(--text-secondary);">${message}</div>
@@ -167,7 +167,7 @@ const fmt = {
   score(n)   { return Number(n || 0).toFixed(1); },
   initials(name) { return (name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); },
   avatarColor(name) {
-    const colors = ['#4F46E5','#14B8A6','#D946EF','#F59E0B','#3B82F6','#22C55E','#EF4444'];
+    const colors = ['#38BDF8','#34D399','#A78BFA','#FBBF24','#22D3EE','#F472B6','#FB923C'];
     return colors[(name||'A').charCodeAt(0) % colors.length];
   }
 };
@@ -261,11 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ═══════════════════════════════════════════
-   EDUEVENT — MOTION ENGINE (Premium Dark + Aurora)
+   EDUEVENT — MOTION ENGINE (Bright Pastel · Premium SaaS)
    Self-contained, dependency-free, 60fps.
-   • Scroll/entrance reveals (IntersectionObserver)
+   • Page-enter choreography (chrome → content stagger)
+   • Scroll/entrance reveals (IntersectionObserver, blur-to-sharp)
    • Animated number counters
-   • Button ripple + card 3D tilt
+   • Magnetic primary buttons + soft brand ripple
+   • Refined cursor-glow + micro-tilt (tasteful, ≤3°)
+   • Chart.js pastel + animation defaults
    • MutationObserver catches dynamically-rendered content
    • Honors prefers-reduced-motion
 ═══════════════════════════════════════════ */
@@ -279,6 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '.quiz-stat-pill', '.empty-state'
   ].join(',');
   const TILT_SEL = '.stat-card, .event-card, .cert-card, .cert-card-user, .hack-card';
+  const MAGNET_SEL = '.btn-primary';
+  const CHROME_SEL = '.topbar, .topnav, .judge-topnav, .sidebar';
   const COUNTER_SEL = '.stat-value, .rank-number, .quiz-stat-pill .val';
 
   let io = null;
@@ -342,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(tick);
   }
 
-  /* Button ripple (event delegation) */
+  /* Soft brand-tinted ripple (event delegation) */
   document.addEventListener('pointerdown', e => {
     if (reduced) return;
     const btn = e.target.closest && e.target.closest('.btn');
@@ -358,12 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => ink.remove(), 600);
   }, { passive: true });
 
-  /* 3D tilt (rAF-throttled) */
+  /* Refined cursor-glow + micro-tilt (rAF-throttled, tasteful ≤3°) */
   function bindTilt(root) {
     if (reduced) return;
     (root && root.querySelectorAll ? root : document).querySelectorAll(TILT_SEL).forEach(card => {
       if (card.dataset.tilt) return;
       card.dataset.tilt = '1';
+      card.classList.add('tilt');
       let raf = null;
       card.addEventListener('pointermove', ev => {
         if (ev.pointerType === 'touch') return;
@@ -373,14 +379,57 @@ document.addEventListener('DOMContentLoaded', () => {
           const r = card.getBoundingClientRect();
           const px = (ev.clientX - r.left) / r.width - 0.5;
           const py = (ev.clientY - r.top) / r.height - 0.5;
-          card.style.transform = `perspective(800px) translateY(-4px) rotateX(${(-py * 5).toFixed(2)}deg) rotateY(${(px * 5).toFixed(2)}deg)`;
+          card.style.setProperty('--mx', ((ev.clientX - r.left) / r.width * 100) + '%');
+          card.style.setProperty('--my', ((ev.clientY - r.top) / r.height * 100) + '%');
+          card.classList.add('glow');
+          card.style.transform = `perspective(900px) translateY(-4px) rotateX(${(-py * 3).toFixed(2)}deg) rotateY(${(px * 3).toFixed(2)}deg)`;
         });
       });
-      card.addEventListener('pointerleave', () => { card.style.transform = ''; });
+      card.addEventListener('pointerleave', () => { card.style.transform = ''; card.classList.remove('glow'); });
     });
   }
 
-  function scan(root) { setupReveals(root); bindTilt(root); }
+  /* Magnetic primary buttons — nudge toward cursor (~4px) */
+  function bindMagnet(root) {
+    if (reduced) return;
+    (root && root.querySelectorAll ? root : document).querySelectorAll(MAGNET_SEL).forEach(btn => {
+      if (btn.dataset.magnet) return;
+      btn.dataset.magnet = '1';
+      btn.addEventListener('pointermove', ev => {
+        if (ev.pointerType === 'touch') return;
+        const r = btn.getBoundingClientRect();
+        const mx = (ev.clientX - r.left) / r.width - 0.5;
+        const my = (ev.clientY - r.top) / r.height - 0.5;
+        btn.style.transform = `translate(${(mx * 7).toFixed(1)}px, ${(my * 5 - 1).toFixed(1)}px)`;
+      });
+      btn.addEventListener('pointerleave', () => { btn.style.transform = ''; });
+    });
+  }
+
+  /* Page-enter choreography: chrome fades/slides in on load */
+  function playPageEnter() {
+    if (reduced) return;
+    document.querySelectorAll(CHROME_SEL).forEach(el => el.classList.add('page-enter'));
+  }
+
+  /* Chart.js pastel + entrance-animation defaults (only if Chart is present) */
+  function applyChartDefaults() {
+    if (!window.Chart || window.__eduChartThemed) return;
+    window.__eduChartThemed = true;
+    const C = window.Chart;
+    try {
+      C.defaults.font.family = "'DM Sans', sans-serif";
+      C.defaults.color = '#9490B5';
+      C.defaults.borderColor = 'rgba(124,111,205,0.12)';
+      if (!reduced) { C.defaults.animation = { duration: 900, easing: 'easeOutQuart' }; }
+      else { C.defaults.animation = false; }
+      if (C.defaults.plugins && C.defaults.plugins.legend && C.defaults.plugins.legend.labels) {
+        C.defaults.plugins.legend.labels.color = '#4A4570';
+      }
+    } catch (_) {}
+  }
+
+  function scan(root) { setupReveals(root); bindTilt(root); bindMagnet(root); }
 
   /* Observe dynamically-injected content (pages replace #app after load) */
   function startObserver() {
@@ -396,8 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function init() {
+    playPageEnter();
+    applyChartDefaults();
     scan(document);
     startObserver();
+    // Chart.js may load after core.js — retry defaults shortly
+    setTimeout(applyChartDefaults, 300);
     // Safety net: never leave content hidden if observer misfires
     setTimeout(() => document.querySelectorAll('.reveal:not(.in)').forEach(el => el.classList.add('in')), 1800);
   }

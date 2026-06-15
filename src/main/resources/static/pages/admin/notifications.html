@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EduEvent Admin — Notifications</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../css/global.css">
   <style>
@@ -162,12 +162,12 @@
 
 <script>
 let NOTIFS = [
-  { id:1, icon:'ti-trophy', color:'#F59E0B', bg:'rgba(245,158,11,0.12)', title:'Winners announced', body:'ML Bootcamp 2025 winners have been announced. Certificates are being generated.', time:'2 mins ago', unread:true, type:'system' },
-  { id:2, icon:'ti-certificate', color:'#22C55E', bg:'rgba(34,197,94,0.12)', title:'Certificates issued', body:'12 certificates issued for Data Science Quiz participants.', time:'18 mins ago', unread:true, type:'system' },
-  { id:3, icon:'ti-user-plus', color:'#4F46E5', bg:'rgba(79,70,229,0.12)', title:'New registration', body:'Zaid Khan registered for the upcoming Web Dev Webinar.', time:'34 mins ago', unread:true, type:'system' },
-  { id:4, icon:'ti-calendar-plus', color:'#14B8A6', bg:'rgba(20,184,166,0.12)', title:'Event created', body:'IEEE Tech Conference has been created and is now visible to participants.', time:'1 hr ago', unread:false, type:'system' },
-  { id:5, icon:'ti-bell', color:'#D946EF', bg:'rgba(217,70,239,0.12)', title:'Broadcast sent', body:'Reminder sent to all participants: DSA Sprint ends in 24 hours.', time:'3 hrs ago', unread:false, type:'broadcast' },
-  { id:6, icon:'ti-alert-triangle', color:'#EF4444', bg:'rgba(239,68,68,0.12)', title:'Quiz violation detected', body:'Ayesha Raza triggered a tab-switch alert during Data Science Quiz.', time:'5 hrs ago', unread:false, type:'system' },
+  { id:1, icon:'ti-trophy', color:'#E0A93B', bg:'rgba(245,158,11,0.12)', title:'Winners announced', body:'ML Bootcamp 2025 winners have been announced. Certificates are being generated.', time:'2 mins ago', unread:true, type:'system' },
+  { id:2, icon:'ti-certificate', color:'#6DD5A0', bg:'rgba(34,197,94,0.12)', title:'Certificates issued', body:'12 certificates issued for Data Science Quiz participants.', time:'18 mins ago', unread:true, type:'system' },
+  { id:3, icon:'ti-user-plus', color:'#7C6FCD', bg:'rgba(79,70,229,0.12)', title:'New registration', body:'Zaid Khan registered for the upcoming Web Dev Webinar.', time:'34 mins ago', unread:true, type:'system' },
+  { id:4, icon:'ti-calendar-plus', color:'#80CDB8', bg:'rgba(20,184,166,0.12)', title:'Event created', body:'IEEE Tech Conference has been created and is now visible to participants.', time:'1 hr ago', unread:false, type:'system' },
+  { id:5, icon:'ti-bell', color:'#C5A9E8', bg:'rgba(217,70,239,0.12)', title:'Broadcast sent', body:'Reminder sent to all participants: DSA Sprint ends in 24 hours.', time:'3 hrs ago', unread:false, type:'broadcast' },
+  { id:6, icon:'ti-alert-triangle', color:'#F28B8B', bg:'rgba(239,68,68,0.12)', title:'Quiz violation detected', body:'Ayesha Raza triggered a tab-switch alert during Data Science Quiz.', time:'5 hrs ago', unread:false, type:'system' },
 ];
 
 let feedFilter = 'all';
@@ -238,7 +238,7 @@ function sendNotif() {
 
   const type = document.getElementById('n-type').value;
   const iconMap = { info:'ti-info-circle', warning:'ti-alert-triangle', success:'ti-circle-check', danger:'ti-alert-octagon' };
-  const colorMap = { info:'#4F46E5', warning:'#F59E0B', success:'#22C55E', danger:'#EF4444' };
+  const colorMap = { info:'#7C6FCD', warning:'#E0A93B', success:'#6DD5A0', danger:'#F28B8B' };
   const bgMap = { info:'rgba(79,70,229,0.12)', warning:'rgba(245,158,11,0.12)', success:'rgba(34,197,94,0.12)', danger:'rgba(239,68,68,0.12)' };
 
   NOTIFS.unshift({ id: Date.now(), icon: iconMap[type], color: colorMap[type], bg: bgMap[type], title, body, time: 'just now', unread: true, type: 'broadcast' });

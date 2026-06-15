@@ -1,0 +1,12 @@
+{
+  "name": "eduevent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduEvent — Spring Boot app. This package.json only proxies npm commands to the Maven wrapper; there is no Node build (the UI is static files served by Spring Boot).",
+  "scripts": {
+    "start": "mvnw spring-boot:run",
+    "dev": "mvnw spring-boot:run",
+    "build": "mvnw clean package",
+    "test": "mvnw test"
+  }
+}

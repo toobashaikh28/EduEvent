@@ -6,7 +6,7 @@
     <title>EduEvent Admin — Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
     <link
@@ -60,7 +60,7 @@ ${buildUserDropdown()}`;
         {
           id: 1,
           icon: "ti-trophy",
-          color: "#F59E0B",
+          color: "#E0A93B",
           bg: "rgba(245,158,11,0.12)",
           title: "Winners announced",
           body: "ML Bootcamp 2025 winners announced.",
@@ -70,7 +70,7 @@ ${buildUserDropdown()}`;
         {
           id: 2,
           icon: "ti-certificate",
-          color: "#22C55E",
+          color: "#6DD5A0",
           bg: "rgba(34,197,94,0.12)",
           title: "Certificates issued",
           body: "12 certs for Data Science Quiz.",
@@ -155,7 +155,7 @@ ${buildUserDropdown()}`;
         // --- Render Activity (Mocked fallback, as this requires a global event bus in Spring Boot) ---
         document.getElementById("activity").innerHTML = `
     <div style="display:flex;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border);">
-      <div style="width:30px;height:30px;border-radius:var(--radius-md);background:rgba(79,70,229,0.1);color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;"><i class="ti ti-refresh"></i></div>
+      <div style="width:30px;height:30px;border-radius:var(--radius-md);background:rgba(79,70,229,0.1);color:#7C6FCD;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;"><i class="ti ti-refresh"></i></div>
       <div><div style="font-size:12px;">Analytics dashboard synced</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Just now</div></div>
     </div>`;
 
@@ -182,10 +182,10 @@ ${buildUserDropdown()}`;
             datasets: [
               {
                 data: regValues.length ? regValues : [0],
-                backgroundColor: "rgba(79,70,229,0.7)",
-                borderColor: "#4F46E5",
+                backgroundColor: "rgba(124,111,205,0.75)",
+                borderColor: "#7C6FCD",
                 borderWidth: 1,
-                borderRadius: 4,
+                borderRadius: 6,
               },
             ],
           },
@@ -219,13 +219,13 @@ ${buildUserDropdown()}`;
                   typeCounts.webinar,
                 ],
                 backgroundColor: [
-                  "rgba(217,70,239,0.7)", // Hackathon
-                  "rgba(20,184,166,0.7)", // Conference
-                  "rgba(245,158,11,0.7)", // Quiz
-                  "rgba(59,130,246,0.7)", // Webinar
+                  "#C5A9E8", // Hackathon
+                  "#80CDB8", // Conference
+                  "#F5D77A", // Quiz
+                  "#89C4E1", // Webinar
                 ],
-                borderColor: ["#D946EF", "#14B8A6", "#F59E0B", "#3B82F6"],
-                borderWidth: 1,
+                borderColor: "#FFFFFF",
+                borderWidth: 3,
               },
             ],
           },

@@ -4,13 +4,13 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>EduEvent — My Quizzes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../css/global.css">
   <style>
     .quiz-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
     .quiz-card { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:var(--transition); }
-    .quiz-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+    .quiz-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:var(--shadow-md); }
     .quiz-card-top { height:6px; background:linear-gradient(90deg, var(--brand), var(--accent-hackathon)); }
     .quiz-card-body { padding:20px 22px; }
     .quiz-card-title { font-family:var(--font-display); font-size:15px; font-weight:700; margin-bottom:6px; }
@@ -22,10 +22,10 @@
     .attempt-btn { background:var(--brand); color:#fff; border:none; border-radius:var(--radius-md); padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font-body); display:flex; align-items:center; gap:7px; transition:var(--transition); }
     .attempt-btn:hover { background:var(--brand-dark); transform:translateY(-1px); }
     .attempt-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; transform:none; border:0.5px solid var(--border); }
-    .score-chip { font-family:var(--font-mono); font-size:12px; font-weight:500; padding:3px 10px; border-radius:99px; background:rgba(34,197,94,0.1); color:#4ADE80; border:0.5px solid rgba(34,197,94,0.2); }
-    .score-chip.fail { background:rgba(239,68,68,0.1); color:#F87171; border-color:rgba(239,68,68,0.2); }
+    .score-chip { font-family:var(--font-mono); font-size:12px; font-weight:500; padding:3px 10px; border-radius:99px; background:#D7F7E9; color:#2A8A5A; border:0.5px solid rgba(109,213,160,0.4); }
+    .score-chip.fail { background:#FEE8E8; color:#D94F4F; border-color:#F9C4C4; }
     .filter-chip { padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500; background:var(--bg-hover); color:var(--text-secondary); border:0.5px solid var(--border); cursor:pointer; transition:var(--transition); }
-    .filter-chip.active { background:rgba(79,70,229,0.15); color:var(--brand-muted); border-color:rgba(79,70,229,0.3); }
+    .filter-chip.active { background:var(--brand-light); color:var(--brand); border-color:var(--border-strong); }
     .stat-bar { display:flex; gap:14px; }
     .stat-pill { background:var(--bg-card); border:0.5px solid var(--border); border-radius:var(--radius-md); padding:14px 20px; flex:1; }
     .stat-pill .s-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; }
@@ -93,7 +93,7 @@ function statusBadge(q) {
     ? `<span class="badge badge-active"><i class="ti ti-check"></i> Passed</span>`
     : `<span class="badge badge-rejected"><i class="ti ti-x"></i> Failed</span>`;
   if (q.status === 'upcoming')  return `<span class="badge badge-upcoming">Upcoming</span>`;
-  if (q.status === 'active')    return `<span class="badge" style="background:rgba(79,70,229,0.15);color:#A5B4FC;">Open</span>`;
+  if (q.status === 'active')    return `<span class="badge" style="background:rgba(79,70,229,0.15);color:#9D93D8;">Open</span>`;
   return `<span class="badge badge-completed">Closed</span>`;
 }
 
