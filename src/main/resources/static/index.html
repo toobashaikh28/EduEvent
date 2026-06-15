@@ -187,6 +187,7 @@
     if (!data) { err.textContent = 'Invalid email or password.'; err.style.display='block'; return; }
     Auth.setToken(data.token);
     Auth.setUser({ name: data.name, email: data.email, role: data.role });
+    sessionStorage.setItem('eduSplash', '1');   // play intro on the dashboard
     Auth.redirectByRole();
   }
 

@@ -242,8 +242,52 @@ document.addEventListener('click', e => {
   });
 });
 
+/* ── Login splash (ElevenLabs-style intro) ──── */
+function playLoginSplash() {
+  if (sessionStorage.getItem('eduSplash') !== '1') return;
+  sessionStorage.removeItem('eduSplash');           // one-shot per login
+  if (!document.body) return;
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Sparkles streaming from the unicorn's horn (upper-left of the figure)
+  const glyphs = ['✨','⭐','🌟','✦','💫'];
+  let sparks = '';
+  for (let i = 0; i < 14; i++) {
+    const g = glyphs[i % glyphs.length];
+    const top  = (8 + Math.random() * 40).toFixed(0);
+    const left = (-2 + Math.random() * 22).toFixed(0);
+    const delay = (Math.random() * 2.2).toFixed(2);
+    const dur   = (0.7 + Math.random() * 0.7).toFixed(2);
+    const size  = (1.2 + Math.random() * 1.8).toFixed(1);
+    sparks += `<span class="spark" style="top:${top}%;left:${left}%;font-size:${size}vh;animation-delay:${delay}s;animation-duration:${dur}s;">${g}</span>`;
+  }
+
+  const horseImg = `<img class="u" src="/images/horse-gallop.gif" alt="" draggable="false">`;
+
+  const splash = document.createElement('div');
+  splash.className = 'edu-splash';
+  splash.innerHTML = `
+    <div class="edu-splash__fill"></div>
+    <div class="edu-unicorn">${horseImg}${sparks}</div>
+    <div class="edu-splash__word">
+      <span class="edu-splash__logo">E</span>
+      <span class="edu-splash__name">EduEvent</span>
+    </div>`;
+  document.body.appendChild(splash);
+
+  if (reduced) {
+    splash.classList.add('reduced');
+    setTimeout(() => splash.remove(), 800);
+  } else {
+    // horse gallops across (~3s) painting colour in → name reveals → fades → remove
+    setTimeout(() => splash.remove(), 5300);
+  }
+}
+
 /* ── DOM ready init ─────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  playLoginSplash();
   populateProfile();
   setActiveNav();
 
