@@ -859,7 +859,7 @@ tbody td:first-child { color: var(--text-primary); font-weight: 600; }
   display: flex; align-items: center; justify-content: center;
   background: #0A0A12;
   overflow: hidden;
-  animation: eduSplashOut 0.7s var(--ease-out) 2.5s forwards;
+  animation: eduSplashOut 0.7s var(--ease-out) 3.0s forwards;
 }
 /* Colour sheet revealed from the CENTRE outwards in every direction */
 .edu-splash__fill {
@@ -872,7 +872,7 @@ tbody td:first-child { color: var(--text-primary); font-weight: 600; }
     linear-gradient(120deg, #141432 0%, #0A0A12 70%);
   filter: blur(6px);
   clip-path: circle(0% at 50% 50%);
-  animation: eduFill 1.6s cubic-bezier(0.33,0,0.4,1) 0.1s forwards;
+  animation: eduFill 0.8s cubic-bezier(0.33,0,0.4,1) 0.1s forwards;
 }
 .edu-splash__fill::after {
   content: ''; position: absolute; inset: -10%;
@@ -888,7 +888,7 @@ tbody td:first-child { color: var(--text-primary); font-weight: 600; }
   position: relative; z-index: 3;
   display: flex; align-items: center; gap: 16px;
   opacity: 0; transform: translateY(16px) scale(0.96); filter: blur(8px);
-  animation: eduWordIn 0.8s var(--ease-out) 1.7s forwards;
+  animation: eduWordIn 0.6s var(--ease-out) 0.9s forwards;
 }
 .edu-splash__logo {
   width: clamp(44px, 5vw, 62px); height: clamp(44px, 5vw, 62px);

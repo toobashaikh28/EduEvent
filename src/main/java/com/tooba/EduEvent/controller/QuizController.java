@@ -10,8 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,8 +37,8 @@ public class QuizController {
 
     // Participant: quizzes for the events I'm registered for, with my attempt status
     @GetMapping("/my-quizzes")
-    public ResponseEntity<List<UserQuizResponse>> getMyQuizzes(@AuthenticationPrincipal UserDetails user) {
-        return ResponseEntity.ok(quizService.getMyQuizzes(user.getUsername()));
+    public ResponseEntity<List<UserQuizResponse>> getMyQuizzes(Authentication authentication) {
+        return ResponseEntity.ok(quizService.getMyQuizzes(authentication.getName()));
     }
 
     // Admin: edit quiz settings (duration / pass score / randomize)
@@ -81,8 +80,8 @@ public class QuizController {
     @PostMapping("/{id}/start")
     public ResponseEntity<QuizSessionResponse> startQuiz(
             @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(quizService.startQuiz(id, userDetails.getUsername()));
+            Authentication authentication) {
+        return ResponseEntity.ok(quizService.startQuiz(id, authentication.getName()));
     }
 
     // Submit quiz
@@ -90,9 +89,9 @@ public class QuizController {
     public ResponseEntity<QuizResultResponse> submitQuiz(
             @PathVariable String id,
             @RequestBody SubmitQuizRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        // Bug 3 fix: pass the caller's email so the service can verify session ownership
-        return ResponseEntity.ok(quizService.submitQuiz(id, request, userDetails.getUsername()));
+            Authentication authentication) {
+        // pass the caller's email so the service can verify session ownership
+        return ResponseEntity.ok(quizService.submitQuiz(id, request, authentication.getName()));
     }
 
     // Record violation

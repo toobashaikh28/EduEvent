@@ -149,15 +149,9 @@ public class QuizServiceImpl implements QuizService {
                     "This quiz isn't open yet — its event is not active.");
         }
 
-        // 🛡️ Guard 2: Verify application lifecycle enrollment status
-        boolean isRegistered = registrationRepository
-                .existsByUserIdAndEventIdAndStatus(user.getId(), event.getId(), RegistrationStatus.REGISTERED);
-        if (!isRegistered) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You must be registered for this event to take the quiz.");
-        }
+        // (Open to all participants — no event-registration requirement.)
 
-        // 🛡️ Guard 3: Block concurrent or already-passed sessions
+        // 🛡️ Guard: Block concurrent or already-passed sessions
         quizSessionRepository.findFirstByQuizIdAndUserIdAndStatusIn(quizId, user.getId(), List.of("ONGOING", "COMPLETED"))
                 .ifPresent(existing -> {
                     if ("ONGOING".equals(existing.getStatus())) {
@@ -303,21 +297,14 @@ public class QuizServiceImpl implements QuizService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Events the user is registered for
-        List<String> eventIds = registrationRepository.findByUserId(user.getId()).stream()
-                .filter(r -> r.getStatus() == RegistrationStatus.REGISTERED)
-                .map(Registration::getEventId)
-                .distinct()
-                .collect(Collectors.toList());
-        if (eventIds.isEmpty()) return List.of();
-
-        // This user's sessions grouped by quiz
+        // Every quiz the admin has created is visible to every participant
+        // This user's sessions grouped by quiz (for their personal attempt status)
         Map<String, List<QuizSession>> sessionsByQuiz = quizSessionRepository.findByUserId(user.getId())
                 .stream().collect(Collectors.groupingBy(QuizSession::getQuizId));
 
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("MMM d");
 
-        return quizRepository.findByEventIdIn(eventIds).stream().map(q -> {
+        return quizRepository.findAll().stream().map(q -> {
             Event ev = eventRepository.findById(q.getEventId()).orElse(null);
             String title = ev != null ? ev.getTitle() : "Quiz";
             String evStatus = (ev != null && ev.getStatus() != null) ? ev.getStatus().toUpperCase() : "UPCOMING";

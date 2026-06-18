@@ -546,8 +546,8 @@ function playLoginSplash() {
     splash.classList.add('reduced');
     setTimeout(() => splash.remove(), 800);
   } else {
-    // colour paints in → name reveals → fades → remove
-    setTimeout(() => splash.remove(), 3200);
+    // colour paints in fast → name reveals → holds ~2s → fades → remove
+    setTimeout(() => splash.remove(), 3800);
   }
 }
 
