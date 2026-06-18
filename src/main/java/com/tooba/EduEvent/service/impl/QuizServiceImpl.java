@@ -40,7 +40,6 @@ public class QuizServiceImpl implements QuizService {
     private final QuizSessionRepository quizSessionRepository;
     private final ViolationRepository violationRepository;
     private final UserRepository userRepository;
-    private final RegistrationRepository registrationRepository;
     private final EventRepository eventRepository;
     private final CertificateService certificateService;
     private final NotificationMediator notificationMediator;
