@@ -11,7 +11,11 @@ services:
     envVars:
       - key: MONGODB_URI      # MongoDB Atlas connection string
         sync: false
+      - key: JWT_SECRET       # random 32+ char string (generate one)
+        generateValue: true
       - key: MAIL_USERNAME    # Gmail address for outgoing mail
         sync: false
       - key: MAIL_PASSWORD    # Gmail app password (16 chars)
+        sync: false
+      - key: APP_BASE_URL     # public URL once known (e.g. https://eduevent.me)
         sync: false
