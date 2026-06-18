@@ -240,8 +240,8 @@ function render() {
         <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">${c.uuid.substring(0,8)} · ${fmt.date(c.date)}</div>
       </div>
       <div style="padding:10px 14px;border-top:0.5px solid var(--border);display:flex;gap:7px;">
-        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="prevCert(${c.id})"><i class="ti ti-eye"></i> Preview</button>
-        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="dlById(${c.id})"><i class="ti ti-download"></i> PDF</button>
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="prevCert('${c.id}')"><i class="ti ti-eye"></i> Preview</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="dlById('${c.id}')"><i class="ti ti-download"></i> PDF</button>
       </div>
     </div>`).join('');
 }
@@ -290,7 +290,7 @@ async function dlCert() {
 
   try {
     // Try real backend PDF first
-    const TOKEN = localStorage.getItem('edu_token');
+    const TOKEN = Auth.getToken();
     const res = await fetch(`/api/certificates/${activeCert.id}/download`, {
       headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}
     });

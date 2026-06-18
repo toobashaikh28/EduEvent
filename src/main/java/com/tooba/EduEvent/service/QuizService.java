@@ -9,15 +9,19 @@ import java.util.List;
 
 public interface QuizService {
     QuizResponse createQuiz(QuizRequest request);
-    QuestionResponse addQuestionToQuiz(Long quizId, QuestionRequest request);
-    List<QuestionResponse> getQuestionsByQuiz(Long quizId);
-    void deleteQuestion(Long questionId);
+    List<QuizResponse> getAllQuizzes();
+    QuizResponse updateQuiz(String id, QuizRequest request);
+    void deleteQuiz(String id);
+    QuestionResponse addQuestionToQuiz(String quizId, QuestionRequest request);
+    List<QuestionResponse> getQuestionsByQuiz(String quizId);
+    void deleteQuestion(String questionId);
     
-    QuizSessionResponse startQuiz(Long quizId, String userEmail);
-    QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request, String userEmail);
-    ViolationResponse recordViolation(Long sessionId, ViolationRequest request);
+    QuizSessionResponse startQuiz(String quizId, String userEmail);
+    QuizResultResponse submitQuiz(String sessionId, SubmitQuizRequest request, String userEmail);
+    ViolationResponse recordViolation(String sessionId, ViolationRequest request);
     
-    List<AdminQuizResultResponse> getQuizResults(Long quizId);
+    List<AdminQuizResultResponse> getQuizResults(String quizId);
     List<QuizResultResponse> getMyQuizHistory(String userEmail);
-    QuizResultResponse getSessionResult(Long sessionId, String userEmail);
+    List<UserQuizResponse> getMyQuizzes(String userEmail);
+    QuizResultResponse getSessionResult(String sessionId, String userEmail);
 }

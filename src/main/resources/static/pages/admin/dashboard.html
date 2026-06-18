@@ -5,22 +5,68 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>EduEvent Admin — Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
     <link rel="stylesheet" href="../../css/global.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+      .kpi-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:18px; }
+      .dash-a { display:grid; grid-template-columns:1.7fr 1fr; gap:18px; margin-bottom:18px; }
+      .dash-b { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-bottom:18px; }
+      .dash-c { display:grid; grid-template-columns:1.7fr 1fr; gap:18px; margin-bottom:18px; }
+      @media (max-width:1150px){ .kpi-strip{grid-template-columns:repeat(2,1fr);} .dash-a,.dash-b,.dash-c{grid-template-columns:1fr;} }
+
+      /* Welcome band */
+      .welcome {
+        position:relative; overflow:hidden; border-radius:var(--radius-xl);
+        border:1px solid rgba(0,229,255,0.22); padding:24px 28px; margin-bottom:20px;
+        background:linear-gradient(120deg, rgba(0,229,255,0.10), rgba(255,46,151,0.06) 60%, transparent);
+        display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      }
+      .welcome::before {
+        content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+        background:linear-gradient(90deg, transparent, rgba(0,229,255,0.14), transparent);
+        transform:translateX(-100%); animation:wsweep 6s ease-in-out infinite;
+      }
+      @keyframes wsweep { 0%{transform:translateX(-100%);} 55%,100%{transform:translateX(100%);} }
+      .welcome > * { position:relative; z-index:1; }
+      .welcome h1 { font-family:var(--font-display); font-size:24px; font-weight:800; letter-spacing:-0.6px; }
+      .welcome h1 .g { background:var(--grad-neon); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+      .welcome p { color:var(--text-secondary); font-size:13px; margin-top:5px; }
+
+      /* KPI tile with sparkline accent */
+      .kpi { position:relative; background:var(--bg-card); border:1px solid rgba(0,229,255,0.14);
+        border-radius:var(--radius-lg); padding:16px 18px; overflow:hidden; transition:var(--transition); }
+      .kpi:hover { border-color:rgba(0,229,255,0.4); box-shadow:0 0 0 1px rgba(0,229,255,0.14), 0 12px 40px -18px rgba(0,229,255,0.5); transform:translateY(-3px); }
+      .kpi .kc { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+      .kpi .kic { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+      .kpi .klabel { font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text-muted); }
+      .kpi .kval { font-family:var(--font-display); font-size:30px; font-weight:800; letter-spacing:-1px; line-height:1; }
+      .kpi .ksub { font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:5px; }
+      .k-cyan .kic{background:rgba(0,229,255,0.14);color:#00E5FF;} .k-cyan .kval{color:#EAF0FF;}
+      .k-green .kic{background:rgba(43,255,136,0.14);color:#2BFF88;}
+      .k-magenta .kic{background:rgba(255,46,151,0.14);color:#FF2E97;}
+      .k-violet .kic{background:rgba(179,136,255,0.14);color:#B388FF;}
+      .k-amber .kic{background:rgba(255,201,60,0.14);color:#FFC93C;}
+      .kpi .kbar { position:absolute; left:0; top:0; bottom:0; width:3px; }
+      .k-cyan .kbar{background:#00E5FF;} .k-green .kbar{background:#2BFF88;} .k-magenta .kbar{background:#FF2E97;}
+      .k-violet .kbar{background:#B388FF;} .k-amber .kbar{background:#FFC93C;}
+
+      .chart-box { height:240px; position:relative; }
+      .chart-box.sm { height:200px; }
+      #cities-map { height:340px; border-radius:12px; overflow:hidden; background:#0A0A12; border:1px solid var(--border); }
+      .ring-wrap { height:210px; position:relative; display:flex; align-items:center; justify-content:center; }
+      .ring-wrap .rc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+      .ring-wrap .rn { font-family:var(--font-display); font-size:32px; font-weight:800; color:#EAF0FF; }
+      .ring-wrap .rl { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    </style>
   </head>
   <body>
     <div id="toast-container"></div>
     <div id="app"></div>
     <script src="../../js/core.js"></script>
     <script src="../../js/components/components.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
       if (!Auth.guardPage("ADMIN")) throw new Error("no access");
 
@@ -29,220 +75,216 @@
   ${buildAdminSidebar("dashboard.html")}
   ${buildAdminTopbar("Dashboard")}
   <main class="main-content">
-    <div class="page-header">
-      <div><div class="page-title">Overview</div><div class="page-desc">Platform summary</div></div>
-      <button class="btn btn-primary btn-sm" onclick="loadDash()"><i class="ti ti-refresh"></i> Refresh</button>
+
+    <div class="welcome">
+      <div>
+        <h1>Welcome back, <span class="g" id="wname">Admin</span></h1>
+        <p>Here's your platform at a glance — live data across events, quizzes, and certificates.</p>
+      </div>
+      <button class="btn btn-primary" onclick="reloadAll()"><i class="ti ti-refresh"></i> Refresh</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;" id="stat-grid">
-      ${skeletonCards(5)}
+
+    <div class="kpi-strip" id="kpi-strip">
+      ${["k-cyan ti-users REGISTRATIONS","k-green ti-checkbox PASS RATE","k-amber ti-chart-dots AVG SCORE","k-violet ti-certificate CERTIFICATES","k-magenta ti-user-minus DROPOUTS"].map((s,i)=>{const[c,ic,...l]=s.split(" ");return `
+      <div class="kpi ${c}"><div class="kbar"></div>
+        <div class="kc"><div class="kic"><i class="ti ${ic}"></i></div><div class="klabel">${l.join(" ")}</div></div>
+        <div class="kval" id="kpi-${i}">—</div>
+        <div class="ksub" id="kpis-${i}"></div>
+      </div>`;}).join("")}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-      <div class="card"><div class="card-header"><div><div class="card-title">Registrations by Event</div><div class="card-subtitle">Live enrollment data</div></div></div><canvas id="chart-reg" style="max-height:200px;"></canvas></div>
-      <div class="card"><div class="card-header"><div><div class="card-title">Event Type Breakdown</div></div></div><canvas id="chart-type" style="max-height:200px;"></canvas></div>
-    </div>
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+
+    <div class="dash-a">
       <div class="card">
-        <div class="card-header"><div class="card-title">Recent Events</div><a href="events.html" class="btn btn-secondary btn-sm">View all</a></div>
-        <div id="recent-events"></div>
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-activity"></i> Registration Activity</div><span class="wh-action" id="act-sum" style="font-size:11px;font-weight:600;color:var(--brand);"></span></div>
+        <div class="chart-box"><canvas id="chart-activity"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-title">System Activity</div></div>
-        <div id="activity"></div>
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-chart-donut"></i> Event Type Breakdown</div></div>
+        <div class="chart-box"><canvas id="chart-type"></canvas></div>
       </div>
+    </div>
+
+    <div class="dash-b">
+      <div class="card">
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-chart-histogram"></i> Quiz Score Distribution</div></div>
+        <div class="chart-box sm"><canvas id="chart-scores"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-certificate"></i> Monthly Certificates</div></div>
+        <div class="chart-box sm"><canvas id="chart-certs"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-target-arrow"></i> Pass Rate</div></div>
+        <div class="ring-wrap"><canvas id="chart-ring"></canvas><div class="rc"><div class="rn" id="ring-num">—</div><div class="rl">overall pass rate</div></div></div>
+      </div>
+    </div>
+
+    <div class="dash-c">
+      <div class="card">
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-map-2"></i> Registrations by City</div><span class="wh-action" id="cities-total" style="font-size:11px;font-weight:600;color:var(--brand);"></span></div>
+        <div id="cities-map"></div>
+      </div>
+      <div class="card">
+        <div class="widget-head"><div class="wh-title"><i class="ti ti-building-community"></i> Top Cities</div></div>
+        <div id="cities-list"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="widget-head"><div class="wh-title"><i class="ti ti-calendar-event"></i> Recent Events</div><a class="wh-action" href="events.html" title="View all"><i class="ti ti-arrow-right"></i></a></div>
+      <div id="recent-events"></div>
     </div>
   </main>
 </div>
 ${buildNotifPanel()}
 ${buildUserDropdown()}`;
 
-      // Mock Notifications (Admin notifications usually require a separate WebSocket or specific endpoint not in the guide)
-      const NOTIFS = [
-        {
-          id: 1,
-          icon: "ti-trophy",
-          color: "#E0A93B",
-          bg: "rgba(245,158,11,0.12)",
-          title: "Winners announced",
-          body: "ML Bootcamp 2025 winners announced.",
-          time: "2m ago",
-          unread: true,
-        },
-        {
-          id: 2,
-          icon: "ti-certificate",
-          color: "#6DD5A0",
-          bg: "rgba(34,197,94,0.12)",
-          title: "Certificates issued",
-          body: "12 certs for Data Science Quiz.",
-          time: "1h ago",
-          unread: true,
-        },
-      ];
-      initNotifToggle(NOTIFS);
-      initAvatarDropdown();
-      populateProfile();
+      initNotifToggle([]); initAvatarDropdown(); populateAdminProfile();
+      document.querySelectorAll('[data-action="logout"]').forEach((b) => b.addEventListener("click", () => confirmAction("Log out?", () => Auth.logout())));
+      const u = Auth.getUser(); if (u && u.name) document.getElementById("wname").textContent = u.name.split(" ")[0];
 
-      // Store chart instances so we can destroy them on refresh to prevent overlapping
-      let regChartInstance = null;
-      let typeChartInstance = null;
+      let chA=null, chT=null, chS=null, chC=null, chR=null;
+      const NEON = ["#00E5FF","#FF2E97","#6AA8FF","#2BFF88","#B388FF","#FFC93C"];
 
-      async function loadDash() {
-        // Fetch real analytics data from the backend concurrently
-        const [regData, quizData, dropData, certData, eventsData] =
-          await Promise.all([
-            api.get("/admin/analytics/registrations").catch(() => []),
-            api.get("/admin/analytics/quiz-stats").catch(() => []),
-            api.get("/admin/analytics/dropouts").catch(() => []),
-            api.get("/admin/analytics/certificates").catch(() => []),
-            api.get("/events").catch(() => []), // To populate recent events and the doughnut chart
-          ]);
-
-        // --- Calculate Aggregate Stats ---
-        let totalReg = 0;
-        regData.forEach((r) => (totalReg += r.count || 0));
-
-        let totalDropouts = 0;
-        dropData.forEach((d) => (totalDropouts += d.count || 0));
-
-        let totalCerts = 0;
-        // If the endpoint returns a list of objects { eventTitle, count }, sum them. If it returns a raw number, use it.
-        if (Array.isArray(certData))
-          certData.forEach((c) => (totalCerts += c.count || 0));
-        else if (typeof certData === "number") totalCerts = certData;
-
-        let avgScore = 0,
-          avgPassRate = 0;
-        if (quizData && quizData.length > 0) {
-          let scoreSum = 0,
-            passRateSum = 0;
-          quizData.forEach((q) => {
-            scoreSum += q.avgScore || 0;
-            passRateSum += q.passRate || 0;
-          });
-          avgScore = (scoreSum / quizData.length).toFixed(1);
-          avgPassRate = Math.round(passRateSum / quizData.length);
-        }
-
-        // --- Render Stat Grid ---
-        document.getElementById("stat-grid").innerHTML = `
-    <div class="stat-card c-brand"><div class="stat-label">Total Registrations</div><div class="stat-value">${totalReg}</div><div class="stat-delta up"><i class="ti ti-users"></i> Platform-wide</div></div>
-    <div class="stat-card c-teal"><div class="stat-label">Pass Rate</div><div class="stat-value">${avgPassRate}%</div><div class="stat-delta up"><i class="ti ti-check"></i> Average</div></div>
-    <div class="stat-card c-amber"><div class="stat-label">Avg Quiz Score</div><div class="stat-value">${avgScore}</div><div class="stat-delta"><i class="ti ti-pencil"></i> / 100</div></div>
-    <div class="stat-card c-green"><div class="stat-label">Certificates</div><div class="stat-value">${totalCerts}</div><div class="stat-delta up"><i class="ti ti-certificate"></i> Issued</div></div>
-    <div class="stat-card c-red"><div class="stat-label">Dropouts</div><div class="stat-value">${totalDropouts}</div><div class="stat-delta down"><i class="ti ti-door-exit"></i> Cancellations</div></div>`;
-
-        // --- Render Recent Events ---
-        if (eventsData.length === 0) {
-          document.getElementById("recent-events").innerHTML =
-            `<div style="padding:16px;color:var(--text-muted);font-size:13px;">No events created yet.</div>`;
-        } else {
-          // Sort by start date (newest first) and take top 4
-          const sortedEvents = [...eventsData]
-            .sort((a, b) => new Date(b.startTime) - new Date(a.startTime))
-            .slice(0, 4);
-          document.getElementById("recent-events").innerHTML = sortedEvents
-            .map((e) => {
-              const type = e.type?.toLowerCase() || "event";
-              return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-${type});flex-shrink:0;"></div>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${e.title}</div><div style="font-size:11px;color:var(--text-muted);">${e.startTime ? fmt.date(e.startTime) : "TBD"}</div></div>
-        <span class="badge badge-${type}">${type}</span>
-      </div>`;
-            })
-            .join("");
-        }
-
-        // --- Render Activity (Mocked fallback, as this requires a global event bus in Spring Boot) ---
-        document.getElementById("activity").innerHTML = `
-    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border);">
-      <div style="width:30px;height:30px;border-radius:var(--radius-md);background:rgba(79,70,229,0.1);color:#7C6FCD;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;"><i class="ti ti-refresh"></i></div>
-      <div><div style="font-size:12px;">Analytics dashboard synced</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Just now</div></div>
-    </div>`;
-
-        // --- CHARTS ---
-        Chart.defaults.color = "#9494A8";
-        Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
-        Chart.defaults.font.family = "'DM Sans',sans-serif";
-
-        // Chart 1: Registrations per Event (Bar Chart mapped to real API data)
-        if (regChartInstance) regChartInstance.destroy();
-        const regCtx = document.getElementById("chart-reg").getContext("2d");
-
-        const regLabels = regData.map((r) =>
-          r.eventTitle.length > 15
-            ? r.eventTitle.substring(0, 15) + "..."
-            : r.eventTitle,
-        );
-        const regValues = regData.map((r) => r.count);
-
-        regChartInstance = new Chart(regCtx, {
-          type: "bar",
-          data: {
-            labels: regLabels.length ? regLabels : ["No Data"],
-            datasets: [
-              {
-                data: regValues.length ? regValues : [0],
-                backgroundColor: "rgba(124,111,205,0.75)",
-                borderColor: "#7C6FCD",
-                borderWidth: 1,
-                borderRadius: 6,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-          },
-        });
-
-        // Chart 2: Event Type Breakdown (Doughnut mapped to real event types)
-        if (typeChartInstance) typeChartInstance.destroy();
-
-        // Calculate totals per type
-        let typeCounts = { hackathon: 0, conference: 0, quiz: 0, webinar: 0 };
-        eventsData.forEach((e) => {
-          const t = e.type?.toLowerCase();
-          if (typeCounts[t] !== undefined) typeCounts[t]++;
-        });
-
-        typeChartInstance = new Chart(document.getElementById("chart-type"), {
-          type: "doughnut",
-          data: {
-            labels: ["Hackathons", "Conferences", "Quizzes", "Webinars"],
-            datasets: [
-              {
-                data: [
-                  typeCounts.hackathon,
-                  typeCounts.conference,
-                  typeCounts.quiz,
-                  typeCounts.webinar,
-                ],
-                backgroundColor: [
-                  "#C5A9E8", // Hackathon
-                  "#80CDB8", // Conference
-                  "#F5D77A", // Quiz
-                  "#89C4E1", // Webinar
-                ],
-                borderColor: "#FFFFFF",
-                borderWidth: 3,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            cutout: "65%",
-            plugins: {
-              legend: {
-                position: "bottom",
-                labels: { padding: 14, boxWidth: 12 },
-              },
-            },
-          },
-        });
+      function countUp(el, to, dec=0, suffix="") {
+        const dur=900, t0=performance.now();
+        (function tick(t){ const p=Math.min(1,(t-t0)/dur); const v=to*(1-Math.pow(1-p,3));
+          el.textContent=(dec?v.toFixed(dec):Math.round(v).toLocaleString())+suffix;
+          if(p<1) requestAnimationFrame(tick); })(t0);
       }
 
-      document.addEventListener("DOMContentLoaded", loadDash);
+      async function reloadAll(){ await loadDash(); await loadCities(); }
+
+      async function loadDash() {
+        applyChartTheme();
+        const [o, eventsData] = await Promise.all([
+          api.get("/admin/analytics/overview?days=30").catch(()=>({})),
+          api.get("/events").catch(()=>[]),
+        ]);
+        const ov = o || {}; const events = Array.isArray(eventsData)?eventsData:[];
+
+        // KPI strip (animated)
+        countUp(document.getElementById("kpi-0"), ov.totalRegistrations||0);
+        countUp(document.getElementById("kpi-1"), Math.round(ov.passRate||0), 0, "%");
+        countUp(document.getElementById("kpi-2"), ov.avgQuizScore||0, 1);
+        countUp(document.getElementById("kpi-3"), ov.certificatesIssued||0);
+        countUp(document.getElementById("kpi-4"), ov.dropouts||0);
+        document.getElementById("kpis-0").innerHTML = '<i class="ti ti-trending-up" style="color:#2BFF88"></i> active sign-ups';
+        document.getElementById("kpis-1").innerHTML = 'across all quizzes';
+        document.getElementById("kpis-2").innerHTML = 'mean of completed';
+        document.getElementById("kpis-3").innerHTML = 'issued to date';
+        document.getElementById("kpis-4").innerHTML = 'cancelled + waitlisted';
+
+        renderActivity(ov.regTimeLabels||[], ov.regTimeValues||[]);
+        document.getElementById("act-sum").textContent = `${(ov.totalRegistrations||0).toLocaleString()} total`;
+        renderType(ov.typeLabels, ov.typeValues, events);
+        renderScores(ov.scoreBandLabels||[], ov.scoreBandValues||[]);
+        renderCerts(ov.certMonthLabels||[], ov.certMonthValues||[]);
+        renderRing(Math.round(ov.passRate||0));
+        renderRecent(events);
+      }
+
+      function renderActivity(labels, values){
+        const ctx=document.getElementById("chart-activity").getContext("2d");
+        chA?.destroy();
+        const grad=gradientFill(ctx,"rgba(0,229,255,0.42)","rgba(0,229,255,0)",240);
+        chA=new Chart(ctx,{type:"line",data:{labels:labels.length?labels:["—"],datasets:[{data:values,borderColor:"#00E5FF",backgroundColor:grad,borderWidth:2.5,fill:true,tension:0.42,pointRadius:0,pointHoverRadius:5,pointBackgroundColor:"#FF2E97"}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:1000,easing:"easeOutQuart"},plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#7C82A6",font:{size:11}},grid:{color:"rgba(0,229,255,0.08)"},border:{display:false}},
+                    x:{ticks:{color:"#7C82A6",font:{size:10},maxTicksLimit:8,autoSkip:true},grid:{display:false},border:{display:false}}}}});
+      }
+
+      function renderType(labels, values, events){
+        if(!labels||!labels.length){ const tc={}; events.forEach(e=>{const t=(e.type||"other").toLowerCase();tc[t]=(tc[t]||0)+1;});
+          const ent=Object.entries(tc).sort((a,b)=>b[1]-a[1]); labels=ent.map(([k])=>k.charAt(0).toUpperCase()+k.slice(1)); values=ent.map(([,v])=>v); }
+        const has=labels&&labels.length;
+        chT?.destroy();
+        chT=new Chart(document.getElementById("chart-type"),{type:"doughnut",
+          data:{labels:has?labels:["No events"],datasets:[{data:has?values:[1],backgroundColor:has?labels.map((_,i)=>NEON[i%NEON.length]):["rgba(148,148,168,0.25)"],borderColor:"rgba(0,0,0,0)",borderWidth:3}]},
+          options:{responsive:true,maintainAspectRatio:false,cutout:"62%",animation:{animateRotate:true,animateScale:true,duration:1000,easing:"easeOutQuart"},plugins:{legend:{position:"bottom",labels:{padding:12,boxWidth:12,color:"#AEB4D0"}}}}});
+      }
+
+      function renderScores(labels, values){
+        const ctx=document.getElementById("chart-scores").getContext("2d");
+        chS?.destroy();
+        const g=ctx.createLinearGradient(0,0,0,200); g.addColorStop(0,"#00E5FF"); g.addColorStop(1,"#FF2E97");
+        const has=values.some(v=>v>0);
+        chS=new Chart(ctx,{type:"bar",data:{labels:labels.length?labels:["0-20","21-40","41-60","61-80","81-100"],datasets:[{data:has?values:[0,0,0,0,0],backgroundColor:g,borderRadius:6,maxBarThickness:34}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*70:0},plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#7C82A6",font:{size:10}},grid:{color:"rgba(0,229,255,0.07)"},border:{display:false}},x:{ticks:{color:"#7C82A6",font:{size:10}},grid:{display:false},border:{display:false}}}}});
+      }
+
+      function renderCerts(labels, values){
+        const ctx=document.getElementById("chart-certs").getContext("2d");
+        chC?.destroy();
+        const g=gradientFill(ctx,"rgba(43,255,136,0.55)","rgba(43,255,136,0.04)",200);
+        chC=new Chart(ctx,{type:"bar",data:{labels,datasets:[{data:values,backgroundColor:g,borderColor:"#2BFF88",borderWidth:1,borderRadius:6,maxBarThickness:30}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:"easeOutQuart",delay:c=>c.type==="data"&&c.mode==="default"?c.dataIndex*70:0},plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true,ticks:{precision:0,color:"#7C82A6",font:{size:10}},grid:{color:"rgba(0,229,255,0.07)"},border:{display:false}},x:{ticks:{color:"#7C82A6",font:{size:10}},grid:{display:false},border:{display:false}}}}});
+      }
+
+      function renderRing(pct){
+        document.getElementById("ring-num").textContent = pct+"%";
+        const ctx=document.getElementById("chart-ring").getContext("2d");
+        chR?.destroy();
+        const g=ctx.createLinearGradient(0,0,200,0); g.addColorStop(0,"#00E5FF"); g.addColorStop(1,"#FF2E97");
+        chR=new Chart(ctx,{type:"doughnut",data:{datasets:[{data:[pct,100-pct],backgroundColor:[g,"rgba(255,255,255,0.06)"],borderWidth:0}]},
+          options:{responsive:true,maintainAspectRatio:false,cutout:"78%",rotation:-90,animation:{animateRotate:true,duration:1100,easing:"easeOutQuart"},plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+      }
+
+      const TYPE_ICON={hackathon:"ti-tournament",webinar:"ti-device-laptop",conference:"ti-microphone-2",quiz:"ti-clipboard-check"};
+      const TYPE_LR={hackathon:"lr-violet",webinar:"lr-cyan",conference:"lr-green",quiz:"lr-amber"};
+      function renderRecent(events){
+        const box=document.getElementById("recent-events");
+        if(!events.length){ box.innerHTML=`<div class="empty-state" style="padding:24px;"><div class="empty-icon"><i class="ti ti-calendar-off"></i></div><div class="empty-title">No events yet</div></div>`; return; }
+        const sorted=[...events].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime)).slice(0,5);
+        box.innerHTML=sorted.map(e=>{const t=(e.type||"event").toLowerCase();const ic=TYPE_ICON[t]||"ti-calendar-event";const lr=TYPE_LR[t]||"lr-blue";
+          return `<div class="list-row ${lr}"><div class="lr-icon"><i class="ti ${ic}"></i></div><div class="lr-main"><div class="lr-label">${e.title||"Untitled"}</div><div class="lr-sub">${e.startTime?fmt.date(e.startTime):"TBD"}</div></div><span class="badge badge-${t}">${t}</span></div>`;}).join("");
+      }
+
+      // ── Registrations by City (glowing ECharts world map + arcs) ───
+      const CITY_LL = {
+        karachi:[67.0011,24.8607], lahore:[74.3587,31.5204], islamabad:[73.0479,33.6844],
+        rawalpindi:[73.0169,33.5651], faisalabad:[73.1350,31.4504], multan:[71.5249,30.1575],
+        peshawar:[71.5249,34.0151], quetta:[66.9750,30.1798], hyderabad:[68.3578,25.3960],
+        gujranwala:[74.1945,32.1877], sialkot:[74.5229,32.4945], sukkur:[68.8574,27.7052],
+        bahawalpur:[71.6836,29.3956], abbottabad:[73.2215,34.1688], sargodha:[72.6711,32.0836],
+        mardan:[72.0231,34.1989], mirpur:[73.7518,33.1478], sahiwal:[73.1114,30.6660],
+        dubai:[55.2708,25.2048], london:[-0.1276,51.5072], "new york":[-74.0060,40.7128],
+        toronto:[-79.3832,43.6532], delhi:[77.2090,28.6139], "abu dhabi":[54.3773,24.4539],
+      };
+      let cmap=null, worldReady=false;
+      async function ensureWorld(){
+        if(worldReady) return true; if(typeof echarts==="undefined") return false;
+        try{ const geo=await fetch("https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/world.json").then(r=>r.json()); echarts.registerMap("world",geo); worldReady=true; return true; }catch(e){ return false; }
+      }
+      async function loadCities(){
+        const data=await api.get("/admin/analytics/cities").catch(()=>[]); const list=Array.isArray(data)?data:[];
+        const total=list.reduce((s,c)=>s+(c.count||0),0)||1;
+        document.getElementById("cities-total").textContent=list.length?`${list.length} cities`:"";
+        const colors=["lr-cyan","lr-magenta","lr-blue","lr-violet"];
+        document.getElementById("cities-list").innerHTML=list.length
+          ? list.slice(0,8).map((c,i)=>`<div class="list-row ${colors[i%colors.length]}"><div class="lr-icon"><i class="ti ti-map-pin"></i></div><div class="lr-main"><div class="lr-label">${c.city}</div><div class="lr-sub">${Math.round((c.count/total)*100)}% of users</div></div><div class="lr-value">${c.count}</div></div>`).join("")
+          : `<div class="empty-state" style="padding:24px;"><div class="empty-icon"><i class="ti ti-map-off"></i></div><div class="empty-title">No city data yet</div><div class="empty-desc">Cities appear as users register with their city.</div></div>`;
+        const el=document.getElementById("cities-map"); const ok=await ensureWorld();
+        if(!ok){ el.innerHTML=`<div class="empty-state" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div class="empty-icon"><i class="ti ti-map-off"></i></div><div class="empty-title">Map needs an internet connection</div></div>`; return; }
+        if(!cmap){ cmap=echarts.init(el,null,{renderer:"canvas"}); window.addEventListener("resize",()=>cmap.resize()); }
+        const pts=list.map(c=>{const ll=CITY_LL[(c.city||"").toLowerCase()]; return ll?{name:c.city,value:[ll[0],ll[1],c.count]}:null;}).filter(Boolean);
+        const hub=pts[0]; const arcs=hub?pts.slice(1).map(p=>({coords:[hub.value.slice(0,2),p.value.slice(0,2)]})):[];
+        const maxv=Math.max(1,...pts.map(p=>p.value[2]));
+        cmap.setOption({backgroundColor:"transparent",
+          tooltip:{trigger:"item",backgroundColor:"rgba(8,8,16,0.95)",borderColor:"rgba(0,229,255,0.4)",borderWidth:1,textStyle:{color:"#EAF0FF"},padding:10,
+            formatter:p=>p.seriesType==="effectScatter"?`<b style="color:#00E5FF">${p.name}</b><br/>${p.value[2]} user${p.value[2]===1?"":"s"}`:""},
+          geo:{map:"world",roam:false,silent:true,zoom:1.2,top:6,bottom:6,itemStyle:{areaColor:"#0C1A30",borderColor:"rgba(0,229,255,0.22)",borderWidth:0.6,shadowBlur:16,shadowColor:"rgba(0,160,255,0.25)"},emphasis:{disabled:true}},
+          series:[
+            {type:"lines",coordinateSystem:"geo",zlevel:2,data:arcs,effect:{show:true,period:4.5,trailLength:0.4,symbol:"arrow",symbolSize:6,color:"#FF2E97"},lineStyle:{width:1.2,opacity:0.55,curveness:0.32,color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:"#00E5FF"},{offset:1,color:"#FF2E97"}])}},
+            {type:"scatter",coordinateSystem:"geo",zlevel:1,data:pts,symbolSize:v=>10+(v[2]/maxv)*26,itemStyle:{color:"rgba(0,229,255,0.12)",shadowBlur:20,shadowColor:"#00E5FF"},silent:true},
+            {type:"effectScatter",coordinateSystem:"geo",zlevel:3,data:pts,rippleEffect:{brushType:"stroke",scale:3.4,period:3.5},symbolSize:v=>6+(v[2]/maxv)*22,itemStyle:{color:"#00E5FF",shadowBlur:14,shadowColor:"#00E5FF"},label:{show:true,position:"right",formatter:"{b}",color:"#CFE9FF",fontSize:10,textShadowColor:"#00E5FF",textShadowBlur:6}},
+          ]},true);
+        cmap.resize();
+      }
+
+      document.addEventListener("DOMContentLoaded", () => { loadDash(); loadCities(); });
     </script>
   </body>
 </html>

@@ -18,27 +18,27 @@ public class DashboardResponse {
 
     // --- NESTED SUMMARY CLASSES ---
     @Data @Builder public static class EventSummary {
-        private Long eventId;
+        private String eventId;
         private String title;
         private String type;
         private String status;
     }
 
     @Data @Builder public static class QuizSummary {
-        private Long quizId;
+        private String quizId;
         private String eventTitle;
         private Integer durationMinutes;
         private Double passScore;
     }
 
     @Data @Builder public static class TeamSummary {
-        private Long teamId;
+        private String teamId;
         private String teamName;
         private String hackathonTitle;
     }
 
     @Data @Builder public static class NotificationSummary {
-        private Long id;
+        private String id;
         private String message;
         private String timeAgo;
     }

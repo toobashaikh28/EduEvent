@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class ViolationResponse {
-    private Long violationId;
+    private String violationId;
     private Integer totalCount;
     private String sessionStatus; // so frontend knows if INVALIDATED
 }

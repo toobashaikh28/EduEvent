@@ -26,4 +26,7 @@ public class RegisterRequest {
     // Optional: USER, ADMIN, JUDGE — defaults to USER if not sent
     @Pattern(regexp = "USER|ADMIN|JUDGE", message = "Role must be USER, ADMIN, or JUDGE")
     private String role;
+
+    // City the user is registering from (used for the registrations-by-city map)
+    private String city;
 }

@@ -7,8 +7,8 @@ import com.tooba.EduEvent.dto.request.ViolationRequest;
 import com.tooba.EduEvent.dto.response.*;
 import com.tooba.EduEvent.entity.*;
 import com.tooba.EduEvent.repository.*;
-import com.tooba.EduEvent.service.CertificateService; // 1. Imported CertificateService
-import com.tooba.EduEvent.service.LeaderboardService; // Imported LeaderboardService
+import com.tooba.EduEvent.service.CertificateService;
+import com.tooba.EduEvent.service.LeaderboardService;
 import org.springframework.cache.annotation.CacheEvict;
 import com.tooba.EduEvent.mediator.NotificationMediator;
 import com.tooba.EduEvent.service.QuizService;
@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -24,39 +23,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j // Added for error logging
+@Slf4j
 public class QuizServiceImpl implements QuizService {
 
-    /** FIX 3: Maximum violations before session is invalidated (inclusive threshold). */
+    /** Maximum violations before session is invalidated (inclusive threshold). */
     private static final int MAX_VIOLATIONS = 3;
 
     private final QuizRepository quizRepository;
     private final LeaderboardService leaderboardService;
     private final QuestionRepository questionRepository;
-    private final OptionRepository optionRepository;
     private final QuizSessionRepository quizSessionRepository;
     private final ViolationRepository violationRepository;
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
     private final EventRepository eventRepository;
-    private final CertificateService certificateService; // 2. Injected CertificateService
+    private final CertificateService certificateService;
     private final NotificationMediator notificationMediator;
 
     // ── CREATE QUIZ ───────────────────────────────────────────────────────────
 
     @Override
-    @Transactional
     public QuizResponse createQuiz(QuizRequest request) {
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + request.getEventId()));
 
         Quiz quiz = Quiz.builder()
-                .event(event)
+                .eventId(event.getId())
                 .durationMinutes(request.getDurationMinutes() != null ? request.getDurationMinutes() : 30)
                 .passScore(request.getPassScore() != null ? request.getPassScore() : new java.math.BigDecimal("50.00"))
                 .randomize(request.getRandomize() != null ? request.getRandomize() : true)
@@ -65,33 +63,57 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    @Transactional
-    public QuestionResponse addQuestionToQuiz(Long quizId, QuestionRequest request) {
+    public List<QuizResponse> getAllQuizzes() {
+        return quizRepository.findAll().stream()
+                .map(this::mapToQuizResponseWithStats)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public QuizResponse updateQuiz(String id, QuizRequest request) {
+        Quiz quiz = quizRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
+        if (request.getDurationMinutes() != null) quiz.setDurationMinutes(request.getDurationMinutes());
+        if (request.getPassScore() != null)       quiz.setPassScore(request.getPassScore());
+        if (request.getRandomize() != null)        quiz.setRandomize(request.getRandomize());
+        return mapToQuizResponseWithStats(quizRepository.save(quiz));
+    }
+
+    @Override
+    public void deleteQuiz(String id) {
+        if (!quizRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found");
+        }
+        // remove the quiz and its questions
+        questionRepository.findByQuizId(id).forEach(q -> questionRepository.deleteById(q.getId()));
+        quizRepository.deleteById(id);
+    }
+
+    @Override
+    public QuestionResponse addQuestionToQuiz(String quizId, QuestionRequest request) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
 
-        Question question = Question.builder()
-                .quiz(quiz)
-                .questionText(request.getText())
-                .build();
-        Question saved = questionRepository.save(question);
-
         List<Option> options = request.getOptions().stream().map(o ->
                 Option.builder()
-                        .question(saved)
+                        .id(UUID.randomUUID().toString())
                         .optionText(o.getOptionText())
                         .isCorrect(o.isCorrect())
                         .build()
         ).collect(Collectors.toList());
-        optionRepository.saveAll(options);
-        saved.setOptions(options);
+
+        Question question = Question.builder()
+                .quizId(quiz.getId())
+                .questionText(request.getText())
+                .options(options)
+                .build();
+        Question saved = questionRepository.save(question);
 
         return mapToQuestionResponse(saved);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<QuestionResponse> getQuestionsByQuiz(Long quizId) {
+    public List<QuestionResponse> getQuestionsByQuiz(String quizId) {
         quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
         return questionRepository.findByQuizId(quizId).stream()
@@ -100,8 +122,7 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    @Transactional
-    public void deleteQuestion(Long questionId) {
+    public void deleteQuestion(String questionId) {
         if (!questionRepository.existsById(questionId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found");
         }
@@ -111,30 +132,33 @@ public class QuizServiceImpl implements QuizService {
     // ── START QUIZ ────────────────────────────────────────────────────────────
 
     @Override
-    @Transactional
-    public QuizSessionResponse startQuiz(Long quizId, String userEmail) {
+    public QuizSessionResponse startQuiz(String quizId, String userEmail) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
 
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // 🛡️ Guard 1: Block initialization if host event is not LIVE
-        if (quiz.getEvent() == null || !"LIVE".equals(quiz.getEvent().getStatus())) {
+        Event event = eventRepository.findById(quiz.getEventId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quiz event not found"));
+
+        // 🛡️ Guard 1: the host event must be open (LIVE or ACTIVE)
+        String evStatus = event.getStatus() != null ? event.getStatus().toUpperCase() : "";
+        if (!evStatus.equals("LIVE") && !evStatus.equals("ACTIVE")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Quiz cannot be started because the associated event is not LIVE.");
+                    "This quiz isn't open yet — its event is not active.");
         }
 
         // 🛡️ Guard 2: Verify application lifecycle enrollment status
         boolean isRegistered = registrationRepository
-                .existsByUserIdAndEventIdAndStatus(user.getId(), quiz.getEvent().getId(), RegistrationStatus.REGISTERED);
+                .existsByUserIdAndEventIdAndStatus(user.getId(), event.getId(), RegistrationStatus.REGISTERED);
         if (!isRegistered) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You must be registered for this event to take the quiz.");
         }
 
-        // 🛡️ Guard 3: Block multiple concurrent tracks or historical passed instances
-        quizSessionRepository.findActiveOrCompletedSession(quizId, user.getId())
+        // 🛡️ Guard 3: Block concurrent or already-passed sessions
+        quizSessionRepository.findFirstByQuizIdAndUserIdAndStatusIn(quizId, user.getId(), List.of("ONGOING", "COMPLETED"))
                 .ifPresent(existing -> {
                     if ("ONGOING".equals(existing.getStatus())) {
                         throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -148,16 +172,14 @@ public class QuizServiceImpl implements QuizService {
                     }
                 });
 
-        // Instantiate database trace record
         QuizSession session = QuizSession.builder()
-                .quiz(quiz)
-                .user(user)
+                .quizId(quiz.getId())
+                .userId(user.getId())
                 .startTime(LocalDateTime.now())
                 .status("ONGOING")
                 .build();
         QuizSession savedSession = quizSessionRepository.save(session);
 
-        // Map and prepare question array listings
         List<Question> questions = new ArrayList<>(questionRepository.findByQuizId(quizId));
         if (Boolean.TRUE.equals(quiz.getRandomize())) {
             Collections.shuffle(questions);
@@ -187,44 +209,45 @@ public class QuizServiceImpl implements QuizService {
     // ── SUBMIT QUIZ ───────────────────────────────────────────────────────────
 
     @Override
-    @Transactional
-    @CacheEvict(value = "global-leaderboard", allEntries = true) // 🔥 Clears cache when a new score is submitted
-    public QuizResultResponse submitQuiz(Long sessionId, SubmitQuizRequest request, String userEmail) {
+    @CacheEvict(value = "global-leaderboard", allEntries = true)
+    public QuizResultResponse submitQuiz(String sessionId, SubmitQuizRequest request, String userEmail) {
         QuizSession session = quizSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
 
-        // Bug 3 fix: verify the session belongs to the caller
-        if (!session.getUser().getEmail().equals(userEmail)) {
+        User sessionUser = userRepository.findById(session.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session user not found"));
+
+        // verify the session belongs to the caller
+        if (!sessionUser.getEmail().equals(userEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Access Denied: You can only submit your own quiz session.");
         }
 
-        // 🛡️ Guard 4: Block grading attempts if security engine terminated the track
         if ("INVALIDATED".equals(session.getStatus())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "SessionInvalidated: Submission rejected. This trace has been terminated due to proctoring breaches.");
         }
-
         if (!"ONGOING".equals(session.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "This session is already " + session.getStatus());
         }
 
-        Quiz quiz = session.getQuiz();
+        Quiz quiz = quizRepository.findById(session.getQuizId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
+
         long minutesElapsed = java.time.Duration.between(session.getStartTime(), LocalDateTime.now()).toMinutes();
         if (minutesElapsed > quiz.getDurationMinutes()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "TimeLimitExceeded: Time limit exceeded. Your session has expired.");
         }
 
-        // Processing grade scores
-        Map<Long, Long> answers = request.getAnswers();
+        Map<String, String> answers = request.getAnswers();
         List<Question> questions = questionRepository.findByQuizId(quiz.getId());
         int totalCount = questions.size();
         int correctCount = 0;
 
         for (Question q : questions) {
-            Long selectedOptionId = answers.get(q.getId());
+            String selectedOptionId = answers != null ? answers.get(q.getId()) : null;
             if (selectedOptionId == null) continue;
             boolean isCorrect = q.getOptions().stream()
                     .anyMatch(o -> o.getId().equals(selectedOptionId) && Boolean.TRUE.equals(o.getIsCorrect()));
@@ -239,15 +262,16 @@ public class QuizServiceImpl implements QuizService {
         session.setStatus("COMPLETED");
         quizSessionRepository.save(session);
 
-        // 🔥 MERGE INTO LEADERBOARD (Step 4 Logic)
-        leaderboardService.upsertQuizScore(session.getUser().getId(), quiz.getEvent().getId(), score);
+        // 🔥 Upsert into leaderboard
+        leaderboardService.upsertQuizScore(sessionUser.getId(), quiz.getEventId(), score);
 
-        // 3. AUTO-TRIGGER CERTIFICATE IF PASSED
+        // AUTO-TRIGGER CERTIFICATE IF PASSED
         if (isPassed) {
             try {
-                certificateService.generate(session.getUser(), quiz.getEvent());
+                Event event = eventRepository.findById(quiz.getEventId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                certificateService.generate(sessionUser, event);
             } catch (Exception e) {
-                // Catching exception prevents the quiz submission from failing if PDF generation fails
                 log.error("Failed to generate certificate after passing quiz for session ID: {}", sessionId, e);
             }
         }
@@ -256,13 +280,12 @@ public class QuizServiceImpl implements QuizService {
         notificationMediator.notify(
             this,
             isPassed ? "QUIZ_PASSED" : "QUIZ_FAILED",
-            session.getUser().getId(),
+            sessionUser.getId(),
             isPassed
                 ? "You scored " + String.format("%.1f", score) + "% — you passed! 🎉"
                 : "You scored " + String.format("%.1f", score) + "%. The pass mark was "
                     + quiz.getPassScore().doubleValue() + "%."
         );
-        // ─────────────────────────────────────────────────────────────────────
 
         return QuizResultResponse.builder()
                 .score(score)
@@ -276,37 +299,93 @@ public class QuizServiceImpl implements QuizService {
     // ── HISTORICAL LOG LOOKUPS (User Profiles) ────────────────────────────────
 
     @Override
-    @Transactional(readOnly = true)
+    public List<UserQuizResponse> getMyQuizzes(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Events the user is registered for
+        List<String> eventIds = registrationRepository.findByUserId(user.getId()).stream()
+                .filter(r -> r.getStatus() == RegistrationStatus.REGISTERED)
+                .map(Registration::getEventId)
+                .distinct()
+                .collect(Collectors.toList());
+        if (eventIds.isEmpty()) return List.of();
+
+        // This user's sessions grouped by quiz
+        Map<String, List<QuizSession>> sessionsByQuiz = quizSessionRepository.findByUserId(user.getId())
+                .stream().collect(Collectors.groupingBy(QuizSession::getQuizId));
+
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("MMM d");
+
+        return quizRepository.findByEventIdIn(eventIds).stream().map(q -> {
+            Event ev = eventRepository.findById(q.getEventId()).orElse(null);
+            String title = ev != null ? ev.getTitle() : "Quiz";
+            String evStatus = (ev != null && ev.getStatus() != null) ? ev.getStatus().toUpperCase() : "UPCOMING";
+            String status = switch (evStatus) {
+                case "LIVE", "ACTIVE" -> "active";
+                case "UPCOMING"       -> "upcoming";
+                default                -> "completed";
+            };
+            double pass = q.getPassScore() != null ? q.getPassScore().doubleValue() : 50.0;
+            int qCount = questionRepository.findByQuizId(q.getId()).size();
+
+            List<QuizSession> sess = sessionsByQuiz.getOrDefault(q.getId(), List.of());
+            QuizSession best = sess.stream().filter(s -> s.getScore() != null)
+                    .max(java.util.Comparator.comparingDouble(QuizSession::getScore)).orElse(null);
+            boolean attempted = best != null || sess.stream()
+                    .anyMatch(s -> "COMPLETED".equals(s.getStatus()) || "TIMED_OUT".equals(s.getStatus()));
+            Integer score = best != null && best.getScore() != null ? (int) Math.round(best.getScore()) : null;
+            boolean passed = score != null && score >= pass;
+            String attemptDate = (best != null && best.getEndTime() != null) ? best.getEndTime().format(fmt) : null;
+
+            return UserQuizResponse.builder()
+                    .id(q.getId()).title(title).eventName(title)
+                    .durationMinutes(q.getDurationMinutes()).questionCount(qCount)
+                    .passMark((int) Math.round(pass)).status(status)
+                    .attempted(attempted).score(score).passed(passed).attemptDate(attemptDate)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Override
     public List<QuizResultResponse> getMyQuizHistory(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         return quizSessionRepository.findByUserId(user.getId()).stream()
-                .map(s -> QuizResultResponse.builder()
-                        .score(s.getScore())
-                        .passScore(s.getQuiz().getPassScore().doubleValue())
-                        .isPassed(s.getScore() != null && s.getScore() >= s.getQuiz().getPassScore().doubleValue())
-                        .correctCount(0) // Aggregated historic summaries simplify item matching tracking counts
-                        .totalCount(0)
-                        .build())
+                .map(s -> {
+                    double pass = quizRepository.findById(s.getQuizId())
+                            .map(q -> q.getPassScore().doubleValue()).orElse(50.0);
+                    return QuizResultResponse.builder()
+                            .score(s.getScore())
+                            .passScore(pass)
+                            .isPassed(s.getScore() != null && s.getScore() >= pass)
+                            .correctCount(0)
+                            .totalCount(0)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public QuizResultResponse getSessionResult(Long sessionId, String userEmail) {
+    public QuizResultResponse getSessionResult(String sessionId, String userEmail) {
         QuizSession session = quizSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
 
-        if (!session.getUser().getEmail().equals(userEmail)) {
+        User sessionUser = userRepository.findById(session.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session user not found"));
+
+        if (!sessionUser.getEmail().equals(userEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied: Resource isolation breach.");
         }
 
-        boolean isPassed = session.getScore() != null && session.getScore() >= session.getQuiz().getPassScore().doubleValue();
+        double pass = quizRepository.findById(session.getQuizId())
+                .map(q -> q.getPassScore().doubleValue()).orElse(50.0);
+        boolean isPassed = session.getScore() != null && session.getScore() >= pass;
 
         return QuizResultResponse.builder()
                 .score(session.getScore())
-                .passScore(session.getQuiz().getPassScore().doubleValue())
+                .passScore(pass)
                 .isPassed(isPassed)
                 .build();
     }
@@ -314,8 +393,7 @@ public class QuizServiceImpl implements QuizService {
     // ── VIOLATION PROCTORING CONTROL ──────────────────────────────────────────
 
     @Override
-    @Transactional
-    public ViolationResponse recordViolation(Long sessionId, ViolationRequest request) {
+    public ViolationResponse recordViolation(String sessionId, ViolationRequest request) {
         QuizSession session = quizSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
 
@@ -325,14 +403,14 @@ public class QuizServiceImpl implements QuizService {
         }
 
         Violation violation = Violation.builder()
-                .session(session)
+                .sessionId(session.getId())
                 .type(request.getType())
                 .build();
         Violation saved = violationRepository.save(violation);
 
         int totalCount = violationRepository.countBySessionId(sessionId);
 
-        if (totalCount >= MAX_VIOLATIONS) {  // FIX 3: >= 3 (was > 3, caused off-by-one)
+        if (totalCount >= MAX_VIOLATIONS) {
             session.setStatus("INVALIDATED");
             quizSessionRepository.save(session);
         }
@@ -347,12 +425,11 @@ public class QuizServiceImpl implements QuizService {
     // ── ADMIN RESULTS OVERVIEW ────────────────────────────────────────────────
 
     @Override
-    @Transactional(readOnly = true)
-    public List<AdminQuizResultResponse> getQuizResults(Long quizId) {
+    public List<AdminQuizResultResponse> getQuizResults(String quizId) {
         return quizSessionRepository.findByQuizId(quizId).stream()
                 .map(s -> AdminQuizResultResponse.builder()
                         .sessionId(s.getId())
-                        .userName(s.getUser().getName())
+                        .userName(userRepository.findById(s.getUserId()).map(User::getName).orElse("Unknown"))
                         .score(s.getScore())
                         .status(s.getStatus())
                         .violationCount(violationRepository.countBySessionId(s.getId()))
@@ -363,13 +440,35 @@ public class QuizServiceImpl implements QuizService {
     // ── COMPONENT HELPER MAPPERS ──────────────────────────────────────────────
 
     private QuizResponse mapToQuizResponse(Quiz quiz) {
+        Event event = eventRepository.findById(quiz.getEventId()).orElse(null);
         return QuizResponse.builder()
                 .id(quiz.getId())
-                .eventId(quiz.getEvent().getId())
+                .eventId(quiz.getEventId())
                 .durationMinutes(quiz.getDurationMinutes())
                 .passScore(quiz.getPassScore().doubleValue())
                 .randomize(quiz.getRandomize())
+                .eventTitle(event != null ? event.getTitle() : "—")
+                .eventStatus(event != null ? event.getStatus() : "—")
+                .questionCount(questionRepository.findByQuizId(quiz.getId()).size())
+                .participants(0).passRate(0.0).avgScore(0.0)
                 .build();
+    }
+
+    // Same as above but also computes participation stats from completed sessions
+    private QuizResponse mapToQuizResponseWithStats(Quiz quiz) {
+        QuizResponse base = mapToQuizResponse(quiz);
+        double pass = quiz.getPassScore().doubleValue();
+        List<QuizSession> sessions = quizSessionRepository.findByQuizId(quiz.getId()).stream()
+                .filter(s -> "COMPLETED".equals(s.getStatus()) && s.getScore() != null)
+                .toList();
+        base.setParticipants(sessions.size());
+        if (!sessions.isEmpty()) {
+            double avg = sessions.stream().mapToDouble(QuizSession::getScore).average().orElse(0);
+            long passed = sessions.stream().filter(s -> s.getScore() >= pass).count();
+            base.setAvgScore(Math.round(avg * 10.0) / 10.0);
+            base.setPassRate(Math.round(((double) passed / sessions.size()) * 1000.0) / 10.0);
+        }
+        return base;
     }
 
     private QuestionResponse mapToQuestionResponse(Question q) {

@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Builder
 public class WinnerAnnouncementResponse {
-    private Long hackathonId;
+    private String hackathonId;
     private String hackathonTitle;
     private int totalTeamsRanked;
     private List<RankedTeam> rankings;
@@ -18,7 +18,7 @@ public class WinnerAnnouncementResponse {
     @Builder
     public static class RankedTeam {
         private int rank;
-        private Long teamId;
+        private String teamId;
         private String teamName;
         private String leaderName;
         private List<String> memberNames;

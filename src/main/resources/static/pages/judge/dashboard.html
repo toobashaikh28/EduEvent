@@ -18,43 +18,67 @@ if(!Auth.guardPage('JUDGE'))throw new Error();
 document.getElementById('app').innerHTML=`<div class="page-shell">
 ${buildTopnav('JUDGE','dashboard.html')}
 <div class="page-content">
-  <div style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(56,189,248,0.08));border:0.5px solid rgba(167,139,250,0.22);border-radius:var(--radius-xl);padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+  <div style="background:linear-gradient(135deg,rgba(46,107,255,0.16),rgba(56,189,248,0.07));border:1px solid rgba(59,130,246,0.26);border-radius:var(--radius-xl);padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
     <div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.5px;" id="wh">Welcome, Judge ⚖️</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">You have pending submissions to review. Stay focused.</div></div>
     <button class="btn btn-primary" onclick="window.location.href='submissions.html'"><i class="ti ti-files"></i> Review Submissions</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;" id="s-row"><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div></div>
   <div class="d2" style="margin-bottom:20px;">
-    <div class="card"><div class="card-header"><div><div class="card-title">My Assigned Hackathons</div><div class="card-subtitle">Events you are judging</div></div><a href="hackathons.html" class="btn btn-secondary btn-sm">View all</a></div><div id="ah-list"></div></div>
+    <div class="card"><div class="card-header"><div><div class="card-title">My Assigned Events</div><div class="card-subtitle">Events you are judging</div></div><a href="hackathons.html" class="btn btn-secondary btn-sm">View all</a></div><div id="ah-list"></div></div>
     <div class="card"><div class="card-header"><div><div class="card-title">Pending Reviews</div><div class="card-subtitle">Submissions awaiting score</div></div><a href="submissions.html" class="btn btn-secondary btn-sm">View all</a></div><div id="pr-list"></div></div>
   </div>
   <div class="card">
     <div class="card-header"><div><div class="card-title">Recent Scoring Activity</div><div class="card-subtitle">Your last scored submissions</div></div></div>
-    <div class="table-wrapper"><table><thead><tr><th>Team</th><th>Hackathon</th><th>Score Given</th><th>Avg / Criterion</th><th>Scored At</th><th></th></tr></thead><tbody id="sa-body"></tbody></table></div>
+    <div class="table-wrapper"><table><thead><tr><th>Team</th><th>Event</th><th>Score Given</th><th>Scored At</th><th></th></tr></thead><tbody id="sa-body"></tbody></table></div>
   </div>
 </div></div>${buildNotifPanel()}${buildUserDropdown()}`;
-const NOTIFS=[{id:1,icon:'ti-files',color:'#C5A9E8',bg:'rgba(217,70,239,0.12)',title:'New submission',body:'ByteBusters submitted for ML Bootcamp 2025.',time:'10m ago',unread:true},{id:2,icon:'ti-clock',color:'#E0A93B',bg:'rgba(245,158,11,0.12)',title:'Scoring deadline in 24h',body:'Complete scoring for ML Bootcamp 2025.',time:'2h ago',unread:true}];
-initNotifToggle(NOTIFS);initAvatarDropdown();populateProfile();
-function load(){
+initNotifToggle([]);initAvatarDropdown();populateProfile();
+
+async function load(){
   const u=Auth.getUser();if(u)document.getElementById('wh').textContent=`Welcome, ${u.name?.split(' ')[0]||'Judge'} ⚖️`;
+
+  const events=(await api.get('/judge/my-hackathons'))||[];
+  const perEvent=[]; const allPending=[]; const allScores=[];
+
+  for(const e of events){
+    const [subs,scores]=await Promise.all([
+      api.get(`/judge/hackathon/${e.id}/submissions`),
+      api.get(`/judge/hackathon/${e.id}/my-scores`)
+    ]);
+    const s=Array.isArray(subs)?subs:[], sc=Array.isArray(scores)?scores:[];
+    const scoredIds=new Set(sc.map(x=>x.submissionId));
+    s.filter(x=>!scoredIds.has(x.id)).forEach(x=>allPending.push({team:x.teamName||'Team',event:e.title}));
+    sc.forEach(x=>allScores.push({team:x.teamName||'Team',event:e.title,score:x.scoreValue||0,at:x.scoredAt}));
+    perEvent.push({title:e.title,status:(e.status||'').toLowerCase(),pending:s.filter(x=>!scoredIds.has(x.id)).length});
+  }
+
+  const totalScored=allScores.length, totalPending=allPending.length;
   document.getElementById('s-row').innerHTML=`
-    <div class="stat-card c-brand"><div class="stat-label">Assigned Hackathons</div><div class="stat-value">2</div><div class="stat-delta up"><i class="ti ti-calendar-check"></i> Active judge</div></div>
-    <div class="stat-card c-hack"><div class="stat-label">Submissions to Review</div><div class="stat-value" style="color:#C5A9E8;">4</div><div class="stat-delta" style="color:#C5A9E8;"><i class="ti ti-clock"></i> Awaiting score</div></div>
-    <div class="stat-card c-green"><div class="stat-label">Scored So Far</div><div class="stat-value">3</div><div class="stat-delta up"><i class="ti ti-check"></i> Completed</div></div>
-    <div class="stat-card c-amber"><div class="stat-label">Scoring Deadline</div><div class="stat-value" style="font-size:18px;">24h</div><div class="stat-delta" style="color:var(--accent-warn);"><i class="ti ti-alert-triangle"></i> Urgent</div></div>`;
-  document.getElementById('ah-list').innerHTML=[{name:'ML Bootcamp 2025',pending:4,deadline:'2025-07-15',status:'active'},{name:'DSA Sprint',pending:0,deadline:'2025-07-08',status:'active'}]
-    .map(h=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border);">
-      <div style="width:36px;height:36px;background:rgba(217,70,239,0.1);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-tournament" style="color:#C5A9E8;font-size:16px;"></i></div>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${h.name}</div><div style="font-size:11px;color:var(--text-muted);">Deadline: ${fmt.date(h.deadline)}</div></div>
-      ${h.pending>0?`<span style="font-size:11px;font-weight:600;color:#C5A9E8;background:rgba(217,70,239,0.1);padding:2px 8px;border-radius:99px;">${h.pending} pending</span>`:'<span class="badge badge-active">All scored</span>'}
-    </div>`).join('');
-  document.getElementById('pr-list').innerHTML=[{team:'ByteBusters',hack:'ML Bootcamp 2025',date:'2025-07-12'},{team:'DataDrifters',hack:'ML Bootcamp 2025',date:'2025-07-12'},{team:'PixelPirates',hack:'ML Bootcamp 2025',date:'2025-07-13'},{team:'CodeCraft',hack:'ML Bootcamp 2025',date:'2025-07-13'}]
-    .map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:0.5px solid var(--border);">
-      <div style="width:32px;height:32px;border-radius:50%;background:rgba(79,70,229,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--brand-muted);flex-shrink:0;">${fmt.initials(s.team)}</div>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${s.team}</div><div style="font-size:11px;color:var(--text-muted);">${s.hack}</div></div>
-      <a href="scoring.html" class="btn btn-primary btn-sm"><i class="ti ti-pencil-star"></i> Score</a>
-    </div>`).join('');
-  document.getElementById('sa-body').innerHTML=[{team:'Neural Ninjas',hack:'ML Bootcamp 2025',total:87.3,avg:8.7,at:'Jul 13, 14:22'},{team:'AlgoAces',hack:'DSA Sprint',total:91.0,avg:9.1,at:'Jul 8, 11:05'},{team:'HackHeroes',hack:'DSA Sprint',total:76.5,avg:7.7,at:'Jul 8, 10:30'}]
-    .map(s=>`<tr><td>${s.team}</td><td style="color:var(--text-muted);">${s.hack}</td><td><span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent-success);">${s.total}</span></td><td><span style="font-family:var(--font-mono);">${s.avg}/10</span></td><td style="color:var(--text-muted);font-size:12px;">${s.at}</td><td><a href="scoring.html" class="btn btn-secondary btn-sm"><i class="ti ti-edit"></i> Edit</a></td></tr>`).join('');
+    <div class="stat-card c-brand"><div class="stat-label">Assigned Events</div><div class="stat-value">${events.length}</div><div class="stat-delta up"><i class="ti ti-calendar-check"></i> Active judge</div></div>
+    <div class="stat-card c-amber"><div class="stat-label">Submissions to Review</div><div class="stat-value">${totalPending}</div><div class="stat-delta"><i class="ti ti-clock"></i> Awaiting score</div></div>
+    <div class="stat-card c-green"><div class="stat-label">Scored So Far</div><div class="stat-value">${totalScored}</div><div class="stat-delta up"><i class="ti ti-check"></i> Completed</div></div>
+    <div class="stat-card c-teal"><div class="stat-label">Events Judging</div><div class="stat-value">${events.length}</div><div class="stat-delta"><i class="ti ti-gavel"></i> Assigned</div></div>`;
+
+  document.getElementById('ah-list').innerHTML=perEvent.length
+    ? perEvent.map(h=>`<div class="list-row lr-cyan">
+        <div class="lr-icon"><i class="ti ti-calendar-event"></i></div>
+        <div class="lr-main"><div class="lr-label">${h.title}</div><div class="lr-sub" style="text-transform:capitalize;">${h.status||'—'}</div></div>
+        ${h.pending>0?`<span class="pill pill-warn">${h.pending} pending</span>`:'<span class="pill pill-secure"><i class="ti ti-check"></i> All scored</span>'}
+      </div>`).join('')
+    : '<div style="padding:18px 0;text-align:center;color:var(--text-muted);font-size:13px;">No events assigned yet.</div>';
+
+  document.getElementById('pr-list').innerHTML=allPending.length
+    ? allPending.slice(0,6).map(s=>`<div class="list-row lr-blue">
+        <div class="lr-icon" style="border-radius:50%;">${fmt.initials(s.team)}</div>
+        <div class="lr-main"><div class="lr-label">${s.team}</div><div class="lr-sub">${s.event}</div></div>
+        <a href="scoring.html" class="btn btn-primary btn-sm"><i class="ti ti-pencil-star"></i> Score</a>
+      </div>`).join('')
+    : '<div style="padding:18px 0;text-align:center;color:var(--text-muted);font-size:13px;">Nothing pending — you\'re all caught up.</div>';
+
+  allScores.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  document.getElementById('sa-body').innerHTML=allScores.length
+    ? allScores.slice(0,10).map(s=>`<tr><td>${s.team}</td><td style="color:var(--text-muted);">${s.event}</td><td><span style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent-success);">${fmt.score(s.score)}</span></td><td style="color:var(--text-muted);font-size:12px;">${s.at?fmt.datetime(s.at):'—'}</td><td><a href="scoring.html" class="btn btn-secondary btn-sm"><i class="ti ti-edit"></i> View</a></td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">No scoring activity yet.</td></tr>';
 }
 document.addEventListener('DOMContentLoaded',load);
 </script>

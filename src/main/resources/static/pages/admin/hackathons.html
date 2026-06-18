@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EduEvent Admin — Hackathons</title>
+    <title>EduEvent Admin — Event Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
@@ -60,7 +60,7 @@
         <ul class="sidebar-nav">
           <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
           <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
-          <li class="nav-item active"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+          <li class="nav-item active"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Event Management</span></a></li>
           <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
         </ul>
       </div>
@@ -92,7 +92,7 @@
     </aside>
 
     <header class="topbar">
-      <div class="topbar-title">Hackathons</div>
+      <div class="topbar-title">Event Management</div>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="window.location.href='notifications.html'">
           <i class="ti ti-bell"></i><span class="notif-dot"></span>
@@ -104,8 +104,8 @@
     <main class="main-content">
       <div class="page-header">
         <div>
-          <div class="page-title">Hackathon Management</div>
-          <div class="page-desc">Select a hackathon to manage teams and announce winners</div>
+          <div class="page-title">Event Management</div>
+          <div class="page-desc">Select an event to edit it, manage teams, assign judges, and announce winners</div>
         </div>
       </div>
 
@@ -121,6 +121,12 @@
               <div class="card-subtitle" id="detail-meta">—</div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditEvent()">
+                <i class="ti ti-edit"></i> Edit Event
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="openAssignJudges()">
+                <i class="ti ti-gavel"></i> Assign Judges
+              </button>
               <button class="btn btn-secondary btn-sm" onclick="loadTeams()">
                 <i class="ti ti-refresh"></i> Refresh
               </button>
@@ -182,6 +188,41 @@
     </main>
   </div>
 
+  <!-- Edit Event modal -->
+  <div class="modal-overlay" id="emod">
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header"><div class="modal-title">Edit Event</div><button class="icon-btn" onclick="document.getElementById('emod').classList.remove('open')"><i class="ti ti-x"></i></button></div>
+      <div class="form-grid">
+        <div class="form-group full"><label class="form-label">Event Title</label><input type="text" id="ft-title" placeholder="e.g. ML Bootcamp 2025"></div>
+        <div class="form-group"><label class="form-label">Type</label><select id="ft-type" onchange="toggleCustomType()"><option value="hackathon">Hackathon</option><option value="webinar">Webinar</option><option value="conference">Conference</option><option value="quiz">Quiz</option><option value="other">Other (type your own)</option></select><input type="text" id="ft-type-custom" placeholder="e.g. Workshop, Seminar" style="display:none;margin-top:8px;" maxlength="40"></div>
+        <div class="form-group"><label class="form-label">Status</label><select id="ft-status"><option value="upcoming">Upcoming</option><option value="active">Active</option><option value="live">Live</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+        <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="ft-start"></div>
+        <div class="form-group"><label class="form-label">End Date</label><input type="date" id="ft-end"></div>
+        <div class="form-group"><label class="form-label">Max Capacity</label><input type="number" id="ft-max" value="200"></div>
+        <div class="form-group"><label class="form-label">Join Link (Optional)</label><input type="url" id="ft-link" placeholder="https://zoom.us/j/..."></div>
+        <div class="form-group full"><label class="form-label">Description</label><textarea id="ft-desc" rows="3"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('emod').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" id="esave" onclick="saveEvent()"><i class="ti ti-check"></i> Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Judges modal -->
+  <div class="modal-overlay" id="jmod">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header"><div class="modal-title">Assign Judges</div><button class="icon-btn" onclick="document.getElementById('jmod').classList.remove('open')"><i class="ti ti-x"></i></button></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;" id="jmod-sub">Assign judges to this event</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:18px;">
+        <div class="form-group" style="flex:1;margin:0;"><label class="form-label">Judge</label><select id="j-select"><option value="">— Select a judge —</option></select></div>
+        <button class="btn btn-primary" onclick="assignJudgeSelected()"><i class="ti ti-plus"></i> Assign</button>
+      </div>
+      <div class="form-label" style="margin-bottom:8px;">Currently assigned</div>
+      <div id="j-assigned"></div>
+    </div>
+  </div>
+
   <!-- ✅ Page logic — no guard, no script reloads -->
   <script>
     let HACK_DATA = [];
@@ -193,18 +234,20 @@
       const data = await api.get("/events");
       if (!data) return;
 
-      HACK_DATA = data
-        .filter((e) => e.type?.toLowerCase() === "hackathon")
-        .map((e) => ({
-          id: e.id,
-          name: e.title,
-          status: e.status?.toLowerCase() || "upcoming",
-          startDate: e.startTime,
-          endDate: e.endTime,
-          teams: e.registeredCount || 0,
-          maxTeams: e.capacity || 50,
-          winnersAnnounced: false,
-        }));
+      // Every event is manageable here (edit, teams, judges, winners)
+      HACK_DATA = data.map((e) => ({
+        id: e.id,
+        name: e.title,
+        type: e.type?.toLowerCase() || "event",
+        status: e.status?.toLowerCase() || "upcoming",
+        startDate: e.startTime,
+        endDate: e.endTime,
+        teams: e.registeredCount || 0,
+        maxTeams: e.capacity || 50,
+        desc: e.description || "",
+        link: e.joinLink || "",
+        winnersAnnounced: false,
+      }));
 
       renderHackGrid();
     }
@@ -227,13 +270,13 @@
     function renderHackGrid() {
       document.getElementById("hack-grid").innerHTML = HACK_DATA.length
         ? HACK_DATA.map((h) => `
-          <div class="hack-card ${selectedHackId === h.id ? "selected" : ""}" onclick="selectHack(${h.id})">
+          <div class="hack-card ${selectedHackId === h.id ? "selected" : ""}" onclick="selectHack('${h.id}')">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
               <div>
                 <div style="font-family:var(--font-display);font-size:15px;font-weight:700;">${h.name}</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${h.startDate ? fmt.date(h.startDate) : "TBD"}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;"><span class="badge badge-${h.type}" style="margin-right:6px;">${h.type}</span>${h.startDate ? fmt.date(h.startDate) : "TBD"}</div>
               </div>
-              <span class="badge ${h.status === "active" ? "badge-active" : h.status === "upcoming" ? "badge-upcoming" : "badge-completed"}">${h.status}</span>
+              <span class="badge ${h.status === "active" || h.status === "live" ? "badge-active" : h.status === "upcoming" ? "badge-upcoming" : "badge-completed"}">${h.status}</span>
             </div>
             <div style="display:flex;gap:20px;">
               <div>
@@ -251,7 +294,7 @@
               <div class="progress-fill" style="width:${Math.min(100, Math.round((h.teams / h.maxTeams) * 100) || 0)}%;background:var(--accent-hack);"></div>
             </div>
           </div>`).join("")
-        : `<div class="empty-state"><div class="empty-icon"><i class="ti ti-tournament"></i></div><div class="empty-title">No hackathons found</div><div class="empty-desc">Hackathon-type events will appear here</div></div>`;
+        : `<div class="empty-state"><div class="empty-icon"><i class="ti ti-calendar-off"></i></div><div class="empty-title">No events found</div><div class="empty-desc">Create events on the Events page; they appear here to manage</div></div>`;
     }
 
     async function selectHack(id) {
@@ -313,7 +356,7 @@
           <td><span class="badge ${t.submitted ? "badge-active" : "badge-pending"}">${t.submitted ? "Submitted" : "Pending"}</span></td>
           <td><span class="score-badge">${t.avgScore > 0 ? fmt.score(t.avgScore) : "—"}</span></td>
           <td><span class="badge badge-active">Registered</span></td>
-          <td><button class="btn btn-danger btn-sm" onclick="removeTeam(${t.id})"><i class="ti ti-trash"></i></button></td>
+          <td><button class="btn btn-danger btn-sm" onclick="removeTeam('${t.id}')"><i class="ti ti-trash"></i></button></td>
         </tr>`).join("");
     }
 
@@ -335,25 +378,28 @@
         : `<div class="empty-state"><div class="empty-icon"><i class="ti ti-file-off"></i></div><div class="empty-title">No submissions yet</div></div>`;
     }
 
-    function loadLeaderboard() {
-      const teams = (TEAMS_DATA[selectedHackId] || [])
-        .filter((t) => t.submitted && t.avgScore > 0)
-        .sort((a, b) => b.avgScore - a.avgScore);
+    async function loadLeaderboard() {
+      const tbody = document.getElementById("lb-tbody");
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">Loading…</td></tr>`;
+
+      // Real ranked results (populated once winners are announced)
+      const results = await api.get(`/hackathon/${selectedHackId}/results`);
+      const teams = Array.isArray(results) ? results : [];
 
       const medals = ["🥇", "🥈", "🥉"];
       const rankClasses = ["rank-1", "rank-2", "rank-3"];
       const winClasses = ["winner-1st", "winner-2nd", "winner-3rd"];
       const prizeLabels = ["1st Place", "2nd Place", "3rd Place"];
 
-      document.getElementById("lb-tbody").innerHTML = teams.length
+      tbody.innerHTML = teams.length
         ? teams.map((t, i) => `
           <tr class="${i < 3 ? "podium-row " + rankClasses[i] : ""}">
-            <td style="font-family:var(--font-display);font-weight:700;font-size:16px;">${medals[i] || i + 1}</td>
-            <td style="font-weight:600;">${t.name}</td>
-            <td><span class="score-badge">${fmt.score(t.avgScore)}</span></td>
+            <td style="font-family:var(--font-display);font-weight:700;font-size:16px;">${medals[i] || (t.rank || i + 1)}</td>
+            <td style="font-weight:600;">${t.teamName || "—"}</td>
+            <td><span class="score-badge">${fmt.score(t.totalScore || 0)}</span></td>
             <td>${i < 3 ? `<span class="winner-badge ${winClasses[i]}">${prizeLabels[i]}</span>` : "—"}</td>
           </tr>`).join("")
-        : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">No ranked teams yet.</td></tr>`;
+        : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">No results yet — announce winners to publish the leaderboard.</td></tr>`;
     }
 
     async function announceWinners() {
@@ -377,12 +423,112 @@
       });
     }
 
-    async function assignJudge() {
+    // ── Edit event (reuses the Events page PUT /events/{id} flow) ──────────
+    function toggleCustomType() {
+      const isOther = document.getElementById("ft-type").value === "other";
+      document.getElementById("ft-type-custom").style.display = isOther ? "block" : "none";
+    }
+
+    function openEditEvent() {
+      const h = HACK_DATA.find((x) => x.id === selectedHackId);
+      if (!h) return;
+      document.getElementById("ft-title").value = h.name || "";
+      const known = ["hackathon", "webinar", "conference", "quiz"];
+      if (known.includes(h.type)) {
+        document.getElementById("ft-type").value = h.type;
+        document.getElementById("ft-type-custom").value = "";
+      } else {
+        document.getElementById("ft-type").value = "other";
+        document.getElementById("ft-type-custom").value = h.type || "";
+      }
+      toggleCustomType();
+      document.getElementById("ft-status").value = (h.status || "upcoming");
+      document.getElementById("ft-start").value = h.startDate ? h.startDate.split("T")[0] : "";
+      document.getElementById("ft-end").value = h.endDate ? h.endDate.split("T")[0] : "";
+      document.getElementById("ft-max").value = h.maxTeams || 200;
+      document.getElementById("ft-link").value = h.link || "";
+      document.getElementById("ft-desc").value = h.desc || "";
+      document.getElementById("emod").classList.add("open");
+    }
+
+    async function saveEvent() {
+      const title = document.getElementById("ft-title").value.trim();
+      if (!title) { Toast.show("Title required", "warning"); return; }
+      const btn = document.getElementById("esave");
+      setLoading(btn, true);
+
+      const fd = new FormData();
+      fd.append("title", title);
+      let typeVal = document.getElementById("ft-type").value;
+      if (typeVal === "other") {
+        typeVal = document.getElementById("ft-type-custom").value.trim();
+        if (!typeVal) { Toast.show("Please type a custom event type", "warning"); setLoading(btn, false); return; }
+      }
+      fd.append("type", typeVal.toUpperCase());
+      fd.append("status", document.getElementById("ft-status").value.toUpperCase());
+      const sd = document.getElementById("ft-start").value;
+      if (sd) fd.append("startTime", sd + "T00:00:00");
+      const ed = document.getElementById("ft-end").value;
+      if (ed) fd.append("endTime", ed + "T23:59:59");
+      fd.append("capacity", document.getElementById("ft-max").value);
+      fd.append("description", document.getElementById("ft-desc").value);
+      const link = document.getElementById("ft-link").value;
+      if (link) fd.append("joinLink", link);
+
+      const res = await api.upload(`/events/${selectedHackId}`, fd, "PUT");
+      setLoading(btn, false);
+      if (!res) return;
+      document.getElementById("emod").classList.remove("open");
+      Toast.show("Event updated.", "success");
+      await loadHackathons();
+      selectHack(selectedHackId);
+    }
+
+    // ── Assign judges (dropdown of JUDGE users + currently-assigned list) ──
+    async function openAssignJudges() {
       if (!selectedHackId) return;
-      const judgeId = prompt("Enter the User ID of the Judge to assign:");
-      if (!judgeId) return;
-      const data = await api.post(`/hackathon/${selectedHackId}/assign-judge?judgeUserId=${judgeId}`, {});
-      if (data) Toast.show("Judge assigned successfully!", "success");
+      const h = HACK_DATA.find((x) => x.id === selectedHackId);
+      document.getElementById("jmod-sub").textContent = `Assign judges to “${h ? h.name : "this event"}”`;
+
+      // Populate the judge dropdown from real users (role = JUDGE)
+      const users = await api.get("/users");
+      const judges = (Array.isArray(users) ? users : []).filter((u) => (u.role || "").toUpperCase() === "JUDGE");
+      const sel = document.getElementById("j-select");
+      sel.innerHTML = '<option value="">— Select a judge —</option>' +
+        judges.map((j) => `<option value="${j.id}">${j.name} (${j.email})</option>`).join("");
+      if (!judges.length) sel.innerHTML = '<option value="">No judges exist yet</option>';
+
+      await loadAssignedJudges();
+      document.getElementById("jmod").classList.add("open");
+    }
+
+    async function loadAssignedJudges() {
+      const data = await api.get(`/hackathon/${selectedHackId}/judges`);
+      const list = Array.isArray(data) ? data : [];
+      const box = document.getElementById("j-assigned");
+      box.innerHTML = list.length
+        ? list.map((j) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);">
+            <div><div style="font-size:13px;font-weight:500;">${j.name}</div><div style="font-size:11px;color:var(--text-muted);">${j.email}</div></div>
+            <button class="btn btn-danger btn-sm" onclick="removeAssignedJudge('${j.id}')"><i class="ti ti-trash"></i></button>
+          </div>`).join("")
+        : `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">No judges assigned yet.</div>`;
+    }
+
+    async function assignJudgeSelected() {
+      const judgeId = document.getElementById("j-select").value;
+      if (!judgeId) { Toast.show("Pick a judge first.", "warning"); return; }
+      const res = await api.post(`/hackathon/${selectedHackId}/assign-judge?judgeUserId=${judgeId}`, {});
+      if (res === null) return;
+      Toast.show("Judge assigned.", "success");
+      loadAssignedJudges();
+    }
+
+    async function removeAssignedJudge(judgeId) {
+      const res = await api.delete(`/hackathon/${selectedHackId}/judges/${judgeId}`);
+      if (res === null) return;
+      Toast.show("Judge removed.", "success");
+      loadAssignedJudges();
     }
 
     function removeTeam(id) {

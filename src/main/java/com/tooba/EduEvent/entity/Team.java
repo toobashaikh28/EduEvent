@@ -1,30 +1,27 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "teams")
+@Document(collection = "teams")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Team {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hackathon_id", nullable = false)
-    private Event hackathon;
+    private String hackathonId;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(name = "join_code", unique = true, length = 10)
+    @Indexed(unique = true, sparse = true)
     private String joinCode;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "leader_id", nullable = false)
-    private User leader;
+    private String leaderId;
 
     @Builder.Default
     private Boolean isLocked = false;
@@ -32,6 +29,6 @@ public class Team {
     @Builder.Default
     private Integer maxSize = 4;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime createdAt;
 }

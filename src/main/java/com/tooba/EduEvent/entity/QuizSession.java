@@ -1,12 +1,12 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "quiz_sessions")
+@Document(collection = "quiz_sessions")
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,32 +14,22 @@ import java.time.LocalDateTime;
 public class QuizSession {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id", nullable = false)
-    private Quiz quiz;
+    private String quizId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
-    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(name = "score")
     private Double score;
 
     // ONGOING, COMPLETED, INVALIDATED
     @Builder.Default
-    @Column(name = "status", nullable = false)
     private String status = "ONGOING";
 
-    @Column(name = "violation_count")
     @Builder.Default
     private Integer violationCount = 0;
 }

@@ -1,33 +1,29 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "scores",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"judge_id", "submission_id"}))
+@Document(collection = "scores")
+@CompoundIndex(name = "uq_judge_submission", def = "{'judgeId': 1, 'submissionId': 1}", unique = true)
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Score {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "judge_id", nullable = false)
-    private User judge;
+    private String judgeId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "submission_id", nullable = false)
-    private Submission submission;
+    private String submissionId;
 
-    @Column(nullable = false)
     private Integer scoreValue;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String feedback;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime scoredAt;
 }

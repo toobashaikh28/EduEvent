@@ -24,20 +24,20 @@ public class NotificationController {
     // GET /api/notifications — returns user's notifications, unread first
     @GetMapping
     public ResponseEntity<List<NotificationResponse>> getMyNotifications(Authentication authentication) {
-        Long userId = resolveUserId(authentication);
+        String userId = resolveUserId(authentication);
         return ResponseEntity.ok(notificationService.getNotificationsForUser(userId));
     }
 
     // PUT /api/notifications/{id}/read — mark a notification as read
     @PutMapping("/{id}/read")
     public ResponseEntity<NotificationResponse> markAsRead(
-            @PathVariable Long id,
+            @PathVariable String id,
             Authentication authentication) {
-        Long userId = resolveUserId(authentication);
+        String userId = resolveUserId(authentication);
         return ResponseEntity.ok(notificationService.markAsRead(id, userId));
     }
 
-    private Long resolveUserId(Authentication authentication) {
+    private String resolveUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,

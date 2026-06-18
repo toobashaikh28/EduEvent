@@ -9,7 +9,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class CertificateResponse {
-    private Long id;
+    private String id;
     private String participantName;
     private String eventTitle;
     private UUID certUuid;

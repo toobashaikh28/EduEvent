@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class QuizStatsResponse {
-    private Long quizId;
+    private String quizId;
     private Double averageScore;
     private Double passRatePercentage;
 }

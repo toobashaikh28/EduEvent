@@ -41,7 +41,7 @@ ${buildNotifPanel()}${buildUserDropdown()}
     <div class="modal-header"><div class="modal-title" id="emod-t">Create Event</div><button class="icon-btn" onclick="document.getElementById('emod').classList.remove('open')"><i class="ti ti-x"></i></button></div>
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Event Title</label><input type="text" id="ft-title" placeholder="e.g. ML Bootcamp 2025"></div>
-      <div class="form-group"><label class="form-label">Type</label><select id="ft-type"><option value="hackathon">Hackathon</option><option value="webinar">Webinar</option><option value="conference">Conference</option><option value="quiz">Quiz</option></select></div>
+      <div class="form-group"><label class="form-label">Type</label><select id="ft-type" onchange="toggleCustomType()"><option value="hackathon">Hackathon</option><option value="webinar">Webinar</option><option value="conference">Conference</option><option value="quiz">Quiz</option><option value="other">Other (type your own)</option></select><input type="text" id="ft-type-custom" placeholder="e.g. Workshop, Seminar" style="display:none;margin-top:8px;" maxlength="40"></div>
       <div class="form-group"><label class="form-label">Status</label><select id="ft-status"><option value="upcoming">Upcoming</option><option value="active">Active</option><option value="completed">Completed</option></select></div>
       <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="ft-start"></div>
       <div class="form-group"><label class="form-label">End Date</label><input type="date" id="ft-end"></div>
@@ -108,8 +108,8 @@ function rEv(list) {
     <td>${e.organizer}</td>
     <td>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-secondary btn-sm" onclick="oEdit(${e.id})"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="dEv(${e.id})"><i class="ti ti-trash"></i></button>
+        <button class="btn btn-secondary btn-sm" onclick="oEdit('${e.id}')"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="dEv('${e.id}')"><i class="ti ti-trash"></i></button>
       </div>
     </td>
   </tr>`).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon"><i class="ti ti-calendar-off"></i></div><div class="empty-title">No events found</div></div></td></tr>';
@@ -128,11 +128,19 @@ function applyF() {
   rEv(filtered);
 }
 
+function toggleCustomType() {
+  const isOther = document.getElementById('ft-type').value === 'other';
+  document.getElementById('ft-type-custom').style.display = isOther ? 'block' : 'none';
+}
+
 function openCreate() {
   eid = null;
   document.getElementById('emod-t').textContent = 'Create Event';
   ['ft-title', 'ft-start', 'ft-end', 'ft-link', 'ft-desc'].forEach(i => document.getElementById(i).value = '');
   document.getElementById('ft-max').value = 200;
+  document.getElementById('ft-type').value = 'hackathon';
+  document.getElementById('ft-type-custom').value = '';
+  toggleCustomType();
   document.getElementById('emod').classList.add('open');
 }
 
@@ -142,7 +150,16 @@ function oEdit(id) {
   if(!e) return;
   document.getElementById('emod-t').textContent = 'Edit Event';
   document.getElementById('ft-title').value = e.name;
-  document.getElementById('ft-type').value = e.type.toUpperCase(); // Backend expects uppercase ENUM usually
+  const t = (e.type || '').toLowerCase();
+  const known = ['hackathon','webinar','conference','quiz'];
+  if (known.includes(t)) {
+    document.getElementById('ft-type').value = t;
+    document.getElementById('ft-type-custom').value = '';
+  } else {
+    document.getElementById('ft-type').value = 'other';
+    document.getElementById('ft-type-custom').value = e.type || '';
+  }
+  toggleCustomType();
   document.getElementById('ft-status').value = e.status.toUpperCase();
   document.getElementById('ft-start').value = e.startDate;
   document.getElementById('ft-end').value = e.endDate;
@@ -162,7 +179,12 @@ async function saveEv() {
   // Construct FormData exactly as the backend expects
   const formData = new FormData();
   formData.append('title', title);
-  formData.append('type', document.getElementById('ft-type').value.toUpperCase());
+  let typeVal = document.getElementById('ft-type').value;
+  if (typeVal === 'other') {
+    typeVal = document.getElementById('ft-type-custom').value.trim();
+    if (!typeVal) { Toast.show('Please type a custom event type', 'warning'); setLoading(btn, false); return; }
+  }
+  formData.append('type', typeVal.toUpperCase());
   formData.append('status', document.getElementById('ft-status').value.toUpperCase());
   
   // Spring Boot LocalDateTime expects 'YYYY-MM-DDT00:00:00' format

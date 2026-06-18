@@ -1,59 +1,48 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "events")
+@Document(collection = "events")
 @Data                // Generates getters, setters, toString, equals, and hashCode
 @Builder             // Enables the Builder pattern for object creation
-@NoArgsConstructor   // Required by JPA for entity instantiation
-@AllArgsConstructor  // Required by Lombok's @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Event {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
     private String type; // Maps to 'Webinar', 'Conference', 'Hackathon', 'Quiz'
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
     @Builder.Default
     private Integer capacity = 100;
 
-    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
     @Builder.Default
     private String status = "UPCOMING"; // 'UPCOMING', 'LIVE', 'COMPLETED', 'CANCELLED'
 
-    @Column(name = "banner_url", length = 500)
     private String bannerUrl;
 
-    @Column(name = "join_link", length = 500)
     private String joinLink;
 
     /**
      * Relationship: Many Events are managed by One User (Admin).
-     * Maps to 'admin_id' in your SQL table.
+     * Stored as the admin's user id (manual reference).
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_id", nullable = false)
-    private User admin;
+    private String adminId;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 }

@@ -1,6 +1,8 @@
 package com.tooba.EduEvent.controller;
 
 import com.tooba.EduEvent.dto.request.ScoreRequest;
+import com.tooba.EduEvent.dto.response.AssignedJudgeResponse;
+import com.tooba.EduEvent.dto.response.JudgeHackathonResponse;
 import com.tooba.EduEvent.dto.response.ScoreResponse;
 import com.tooba.EduEvent.dto.response.SubmissionResponse;
 import com.tooba.EduEvent.service.JudgeService;
@@ -22,8 +24,8 @@ public class JudgeController {
     // POST /api/hackathon/{id}/assign-judge?judgeUserId=X
     @PostMapping("/api/hackathon/{id}/assign-judge")
     public ResponseEntity<String> assignJudge(
-            @PathVariable("id") Long hackathonId,
-            @RequestParam("judgeUserId") Long judgeUserId,
+            @PathVariable("id") String hackathonId,
+            @RequestParam("judgeUserId") String judgeUserId,
             Authentication authentication) {
 
         judgeService.assignJudge(hackathonId, judgeUserId, authentication.getName());
@@ -32,10 +34,34 @@ public class JudgeController {
                 .body("Judge assigned successfully.");
     }
 
+    // GET /api/hackathon/{id}/judges — judges currently assigned to this event
+    @GetMapping("/api/hackathon/{id}/judges")
+    public ResponseEntity<List<AssignedJudgeResponse>> assignedJudges(
+            @PathVariable("id") String hackathonId,
+            Authentication authentication) {
+        return ResponseEntity.ok(judgeService.getAssignedJudges(hackathonId, authentication.getName()));
+    }
+
+    // DELETE /api/hackathon/{id}/judges/{judgeUserId} — unassign a judge
+    @DeleteMapping("/api/hackathon/{id}/judges/{judgeUserId}")
+    public ResponseEntity<Void> removeJudge(
+            @PathVariable("id") String hackathonId,
+            @PathVariable("judgeUserId") String judgeUserId,
+            Authentication authentication) {
+        judgeService.removeJudge(hackathonId, judgeUserId, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    // GET /api/judge/my-hackathons — hackathons this judge is assigned to
+    @GetMapping("/api/judge/my-hackathons")
+    public ResponseEntity<List<JudgeHackathonResponse>> getMyHackathons(Authentication authentication) {
+        return ResponseEntity.ok(judgeService.getMyHackathons(authentication.getName()));
+    }
+
     // GET /api/judge/hackathon/{id}/submissions
     @GetMapping("/api/judge/hackathon/{id}/submissions")
     public ResponseEntity<List<SubmissionResponse>> getSubmissions(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             Authentication authentication) {
 
         return ResponseEntity.ok(
@@ -56,7 +82,7 @@ public class JudgeController {
     // GET /api/judge/hackathon/{id}/my-scores
     @GetMapping("/api/judge/hackathon/{id}/my-scores")
     public ResponseEntity<List<ScoreResponse>> getMyScores(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             Authentication authentication) {
 
         return ResponseEntity.ok(

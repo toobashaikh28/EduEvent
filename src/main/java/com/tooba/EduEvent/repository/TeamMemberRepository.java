@@ -1,29 +1,25 @@
 package com.tooba.EduEvent.repository;
 
-import com.tooba.EduEvent.entity.Team;      
-import com.tooba.EduEvent.entity.TeamMember; 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import com.tooba.EduEvent.entity.TeamMember;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
+public interface TeamMemberRepository extends MongoRepository<TeamMember, String> {
 
-    @Query("SELECT COUNT(tm) > 0 FROM TeamMember tm WHERE tm.user.id = :userId AND tm.team.hackathon.id = :hackathonId")
-    boolean existsByUserIdAndHackathonId(@Param("userId") Long userId, @Param("hackathonId") Long hackathonId);
+    long countByTeamIdAndStatus(String teamId, String status);
 
-    long countByTeamIdAndStatus(Long teamId, String status);
+    List<TeamMember> findAllByTeamIdAndStatus(String teamId, String status);
 
-    List<TeamMember> findAllByTeamIdAndStatus(Long teamId, String status);
+    List<TeamMember> findByTeamId(String teamId);
 
-    // Checks if a user is the APPROVED/ACCEPTED leader of a specific team (Matches your entity property names beautifully!)
-    boolean existsByTeamIdAndUserIdAndRoleAndStatus(Long teamId, Long userId, String role, String status);
+    // Checks if a user is the ACCEPTED leader of a specific team
+    boolean existsByTeamIdAndUserIdAndRoleAndStatus(String teamId, String userId, String role, String status);
 
-    // Mapped perfectly to your nested entities: user.id -> team.hackathon.id -> status
-    @Query("SELECT tm.team FROM TeamMember tm WHERE tm.user.id = :userId AND tm.team.hackathon.id = :hackathonId AND tm.status = 'ACCEPTED'")
-    Optional<Team> findTeamByUserIdAndHackathonId(@Param("userId") Long userId, @Param("hackathonId") Long hackathonId);
+    Optional<TeamMember> findByTeamIdAndUserId(String teamId, String userId);
 
-    // Add this to find the user's team
-    List<TeamMember> findByUserId(Long userId);
+    // The user's memberships — the service filters these to a hackathon via the team's hackathonId
+    List<TeamMember> findByUserId(String userId);
+
+    List<TeamMember> findByUserIdAndStatus(String userId, String status);
 }

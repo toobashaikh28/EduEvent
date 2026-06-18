@@ -1,13 +1,13 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "violations")
+@Document(collection = "violations")
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,18 +15,13 @@ import java.time.LocalDateTime;
 public class Violation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private QuizSession session;
+    private String sessionId;
 
     // face_missing, gaze_away, tab_switch
-    @Column(name = "type", nullable = false, length = 50)
     private String type;
 
-    @CreationTimestamp
-    @Column(name = "recorded_at", nullable = false, updatable = false)
+    @CreatedDate
     private LocalDateTime recordedAt;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class AnnouncementResponse {
-    private Long id;
+    private String id;
     private String authorName;
     private String content;
     private LocalDateTime createdAt;
@@ -17,7 +17,7 @@ public class AnnouncementResponse {
     @Data
     @Builder
     public static class CommentResponse {
-        private Long id;
+        private String id;
         private String authorName;
         private String content;
         private LocalDateTime createdAt;

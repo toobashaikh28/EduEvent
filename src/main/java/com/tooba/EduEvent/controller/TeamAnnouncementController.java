@@ -19,7 +19,7 @@ public class TeamAnnouncementController {
 
     @PostMapping("/{id}/announcement")
     public ResponseEntity<String> createAnnouncement(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody ContentRequest request,
             Authentication authentication) {
         
@@ -29,7 +29,7 @@ public class TeamAnnouncementController {
 
     @GetMapping("/{id}/announcements")
     public ResponseEntity<List<AnnouncementResponse>> getAnnouncements(
-            @PathVariable Long id,
+            @PathVariable String id,
             Authentication authentication) {
         
         return ResponseEntity.ok(announcementService.getTeamAnnouncements(id, authentication.getName()));
@@ -37,7 +37,7 @@ public class TeamAnnouncementController {
 
     @PostMapping("/announcement/{announcementId}/comment")
     public ResponseEntity<String> addComment(
-            @PathVariable Long announcementId,
+            @PathVariable String announcementId,
             @RequestBody ContentRequest request,
             Authentication authentication) {
         

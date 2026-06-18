@@ -143,7 +143,7 @@ function renderGrid() {
           ${q.attempted ? 'Attempted · ' + (q.attemptDate || '') : q.status === 'upcoming' ? 'Not open yet' : 'Ready to attempt'}
         </div>
         <button class="attempt-btn" ${q.status === 'active' && !q.attempted ? '' : 'disabled'}
-          onclick="startQuiz(${q.id}, ${q.passMark || 60}, ${q.durationMinutes || 30})">
+          onclick="startQuiz('${q.id}', ${q.passMark || 60}, ${q.durationMinutes || 30})">
           <i class="ti ti-player-play"></i>
           ${q.attempted ? 'Attempted' : 'Attempt'}
         </button>
@@ -164,19 +164,9 @@ function updateStats(quizzes) {
 }
 
 async function load() {
+  // Real data only — quizzes for the events this user is registered for.
   const data = await api.get('/quiz/my-quizzes');
-  if (data && Array.isArray(data)) {
-    allQuizzes = data;
-  } else {
-    // Fallback mock so the page works during development
-    allQuizzes = [
-      { id:1, title:'Data Science Fundamentals', eventName:'Data Science Summit', durationMinutes:60, questionCount:20, passMark:60, status:'active',    attempted:false, score:null,  passed:false },
-      { id:2, title:'ML Concepts Assessment',    eventName:'ML Bootcamp 2025',    durationMinutes:45, questionCount:15, passMark:55, status:'completed', attempted:true,  score:72,    passed:true,  attemptDate:'Jun 3' },
-      { id:3, title:'Web Dev Basics',            eventName:'Web Dev Webinar',     durationMinutes:30, questionCount:10, passMark:50, status:'completed', attempted:true,  score:45,    passed:false, attemptDate:'May 28' },
-      { id:4, title:'DSA Timed Quiz',            eventName:'DSA Sprint',          durationMinutes:90, questionCount:30, passMark:60, status:'active',    attempted:false, score:null,  passed:false },
-      { id:5, title:'Cloud Fundamentals',        eventName:'Cloud Summit',        durationMinutes:60, questionCount:25, passMark:65, status:'upcoming',  attempted:false, score:null,  passed:false },
-    ];
-  }
+  allQuizzes = Array.isArray(data) ? data : [];
   updateStats(allQuizzes);
   renderGrid();
 }

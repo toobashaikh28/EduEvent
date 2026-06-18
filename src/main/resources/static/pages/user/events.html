@@ -151,10 +151,10 @@ function footerHTML(e) {
   if(e.registered) {
     return `<div class="reg-confirmed-row">
       <span class="badge badge-active"><i class="ti ti-check"></i> Registered</span>
-      <button class="btn-cancel-reg" onclick="openCancel(${e.id})"><i class="ti ti-x"></i> Cancel</button>
+      <button class="btn-cancel-reg" onclick="openCancel('${e.id}')"><i class="ti ti-x"></i> Cancel</button>
     </div>`;
   }
-  return `<button class="btn btn-primary btn-sm" onclick="openReg(${e.id})"><i class="ti ti-plus"></i> Register</button>`;
+  return `<button class="btn btn-primary btn-sm" onclick="openReg('${e.id}')"><i class="ti ti-plus"></i> Register</button>`;
 }
 
 function applyF() {
@@ -254,6 +254,7 @@ async function confirmReg() {
   const foot = document.getElementById(`efoot-${selId}`);
   if(foot) foot.innerHTML = footerHTML(e);
   Toast.show(`Registered for ${e.name}!`, 'success');
+  refreshNotifs();   // pull the new "You are registered…" notification into the bell panel
 }
 
 async function confirmCancel() {
@@ -262,15 +263,12 @@ async function confirmCancel() {
   const btn = document.getElementById('cancel-confirm-btn');
   setLoading(btn, true);
 
-  // Call cancel endpoint — adjust path to match your backend
-  const data = await api.post(`/events/${cancelId}/cancel`, {});
+  // Backend: DELETE /api/events/{id}/register  (returns a plain-text 200)
+  const data = await api.delete(`/events/${cancelId}/register`);
   setLoading(btn, false);
 
   if(data === null) {
-    // api.post returns null on error (toast already shown)
-    // But if your backend returns 204 No Content, treat missing body as success too
-    // Uncomment the next line if 204 should still clear local state:
-    // /* fall through */
+    // api.delete returns null only on a real error (toast already shown)
     return;
   }
 
@@ -282,6 +280,7 @@ async function confirmCancel() {
   const foot = document.getElementById(`efoot-${cancelId}`);
   if(foot) foot.innerHTML = footerHTML(e);
   Toast.show(`Registration cancelled for ${e.name}.`, 'info');
+  refreshNotifs();
 }
 
 document.addEventListener('DOMContentLoaded', loadEvents);

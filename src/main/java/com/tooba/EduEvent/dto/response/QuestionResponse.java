@@ -7,7 +7,7 @@ import java.util.List;
 @Data
 @Builder
 public class QuestionResponse {
-    private Long id;
+    private String id;
     private String text;
     private List<OptionResponse> options;
 }

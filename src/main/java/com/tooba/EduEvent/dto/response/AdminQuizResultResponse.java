@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class AdminQuizResultResponse {
-    private Long sessionId;
+    private String sessionId;
     private String userName;
     private Double score;
     private String status;

@@ -1,31 +1,22 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "announcement_comments")
+/**
+ * Embedded document — comments live inside a {@link TeamAnnouncement} document
+ * (not a separate collection). The {@code id} and {@code createdAt} are assigned
+ * in the service.
+ */
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class AnnouncementComment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "announcement_id", nullable = false)
-    private TeamAnnouncement announcement;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    private User author;
+    private String authorId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }

@@ -2,16 +2,22 @@ package com.tooba.EduEvent.service.impl;
 
 import com.tooba.EduEvent.dto.response.LeaderboardResponse;
 import com.tooba.EduEvent.entity.Leaderboard;
+import com.tooba.EduEvent.entity.Team;
+import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.repository.LeaderboardRepository;
+import com.tooba.EduEvent.repository.TeamRepository;
+import com.tooba.EduEvent.repository.UserRepository;
 import com.tooba.EduEvent.service.LeaderboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,65 +25,88 @@ import java.util.List;
 public class LeaderboardServiceImpl implements LeaderboardService {
 
     private final LeaderboardRepository leaderboardRepository;
+    private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
 
     @Override
-    @Transactional
-    public void upsertQuizScore(Long userId, Long eventId, Double score) {
-        leaderboardRepository.upsertQuizScore(userId, eventId, score);
-        log.info("Merged leaderboard score {} for user {} in event {}", score, userId, eventId);
+    public void upsertQuizScore(String userId, String eventId, Double score) {
+        // Keep the highest score if the user takes the quiz multiple times (Mongo upsert)
+        Leaderboard row = leaderboardRepository.findByEventIdAndUserId(eventId, userId)
+                .orElse(null);
+        if (row == null) {
+            row = Leaderboard.builder()
+                    .eventId(eventId)
+                    .userId(userId)
+                    .score(score)
+                    .rank(0)
+                    .build();
+        } else if (row.getScore() == null || score > row.getScore()) {
+            row.setScore(score);
+        }
+        leaderboardRepository.save(row);
+        log.info("Upserted leaderboard score {} for user {} in event {}", score, userId, eventId);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<LeaderboardResponse> getEventLeaderboard(Long eventId) {
-        List<Leaderboard> results = leaderboardRepository.findEventLeaderboard(eventId);
+    public List<LeaderboardResponse> getEventLeaderboard(String eventId) {
+        List<Leaderboard> results = leaderboardRepository.findByEventIdAndUserIdNotNullOrderByScoreDesc(eventId);
         return mapToResponse(results, true);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<LeaderboardResponse> getHackathonLeaderboard(Long hackathonId) {
+    public List<LeaderboardResponse> getHackathonLeaderboard(String hackathonId) {
         List<Leaderboard> results = leaderboardRepository.findAllByHackathonIdOrderByRankAsc(hackathonId);
-        return mapToResponse(results, false); 
+        return mapToResponse(results, false);
     }
 
-    // 🔥 CACHED METHOD: Prevents slamming the database with heavy SUM() aggregations
+    // 🔥 CACHED: sum of all quiz scores per user, grouped in Java
     @Override
     @Cacheable("global-leaderboard")
-    @Transactional(readOnly = true)
     public List<LeaderboardResponse> getGlobalLeaderboard() {
         log.info("Fetching Global Leaderboard from Database (Cache Miss)");
-        List<Object[]> rawResults = leaderboardRepository.findGlobalLeaderboard();
-        
+
+        Map<String, Double> totals = new LinkedHashMap<>();
+        for (Leaderboard b : leaderboardRepository.findByUserIdNotNull()) {
+            double s = b.getScore() != null ? b.getScore() : 0;
+            totals.merge(b.getUserId(), s, Double::sum);
+        }
+
+        List<Map.Entry<String, Double>> sorted = new ArrayList<>(totals.entrySet());
+        sorted.sort(Comparator.comparingDouble((Map.Entry<String, Double> e) -> e.getValue()).reversed());
+
         List<LeaderboardResponse> response = new ArrayList<>();
         int rank = 1;
-        for (Object[] row : rawResults) {
+        for (Map.Entry<String, Double> e : sorted) {
             LeaderboardResponse dto = new LeaderboardResponse();
             dto.setRank(rank++);
-            dto.setTeamOrUserName((String) row[0]);
-            dto.setTotalPoints(((Number) row[1]).intValue()); 
+            dto.setTeamOrUserName(userRepository.findById(e.getKey()).map(User::getName).orElse("Unknown User"));
+            dto.setTotalPoints(e.getValue().intValue());
             response.add(dto);
         }
         return response;
     }
 
-    // Helper Mapper
     private List<LeaderboardResponse> mapToResponse(List<Leaderboard> boards, boolean isUser) {
         List<LeaderboardResponse> response = new ArrayList<>();
         int rank = 1;
         for (Leaderboard b : boards) {
             LeaderboardResponse dto = new LeaderboardResponse();
             dto.setRank(rank++);
-            
-            // Handle Name & Score (User vs Team)
+
             if (isUser) {
-                dto.setTeamOrUserName(b.getUser() != null ? b.getUser().getName() : "Unknown User");
+                String name = b.getUserId() != null
+                        ? userRepository.findById(b.getUserId()).map(User::getName).orElse("Unknown User")
+                        : "Unknown User";
+                dto.setTeamOrUserName(name);
                 dto.setTotalPoints(b.getScore() != null ? b.getScore().intValue() : 0);
             } else {
-                dto.setTeamOrUserName(b.getTeam() != null ? b.getTeam().getName() : "Unknown Team");
+                String name = b.getTeamId() != null
+                        ? teamRepository.findById(b.getTeamId()).map(Team::getName).orElse("Unknown Team")
+                        : "Unknown Team";
+                dto.setTeamOrUserName(name);
                 dto.setTotalPoints(b.getTotalScore() != null ? b.getTotalScore().intValue() : 0);
             }
-            
+
             response.add(dto);
         }
         return response;

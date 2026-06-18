@@ -29,23 +29,50 @@ public class QuizController {
         return ResponseEntity.ok(quizService.createQuiz(request));
     }
 
+    // Admin: list all quizzes (with participation stats)
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<QuizResponse>> getAllQuizzes() {
+        return ResponseEntity.ok(quizService.getAllQuizzes());
+    }
+
+    // Participant: quizzes for the events I'm registered for, with my attempt status
+    @GetMapping("/my-quizzes")
+    public ResponseEntity<List<UserQuizResponse>> getMyQuizzes(@AuthenticationPrincipal UserDetails user) {
+        return ResponseEntity.ok(quizService.getMyQuizzes(user.getUsername()));
+    }
+
+    // Admin: edit quiz settings (duration / pass score / randomize)
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<QuizResponse> updateQuiz(@PathVariable String id, @RequestBody QuizRequest request) {
+        return ResponseEntity.ok(quizService.updateQuiz(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteQuiz(@PathVariable String id) {
+        quizService.deleteQuiz(id);
+        return ResponseEntity.ok("Quiz deleted successfully.");
+    }
+
     @PostMapping("/{id}/questions")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuestionResponse> addQuestion(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody QuestionRequest request) {
         return ResponseEntity.ok(quizService.addQuestionToQuiz(id, request));
     }
 
     @GetMapping("/{id}/questions")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<QuestionResponse>> getQuestions(@PathVariable Long id) {
+    public ResponseEntity<List<QuestionResponse>> getQuestions(@PathVariable String id) {
         return ResponseEntity.ok(quizService.getQuestionsByQuiz(id));
     }
 
     @DeleteMapping("/question/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteQuestion(@PathVariable String id) {
         quizService.deleteQuestion(id);
         return ResponseEntity.noContent().build();
     }
@@ -53,7 +80,7 @@ public class QuizController {
     // Start quiz — any authenticated user
     @PostMapping("/{id}/start")
     public ResponseEntity<QuizSessionResponse> startQuiz(
-            @PathVariable Long id,
+            @PathVariable String id,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(quizService.startQuiz(id, userDetails.getUsername()));
     }
@@ -61,7 +88,7 @@ public class QuizController {
     // Submit quiz
     @PostMapping("/session/{id}/submit")
     public ResponseEntity<QuizResultResponse> submitQuiz(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody SubmitQuizRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         // Bug 3 fix: pass the caller's email so the service can verify session ownership
@@ -71,7 +98,7 @@ public class QuizController {
     // Record violation
     @PostMapping("/session/{id}/violation")
     public ResponseEntity<ViolationResponse> recordViolation(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody ViolationRequest request) {
         return ResponseEntity.ok(quizService.recordViolation(id, request));
     }
@@ -79,7 +106,7 @@ public class QuizController {
     // Admin: view all results
     @GetMapping("/{id}/results")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AdminQuizResultResponse>> getResults(@PathVariable Long id) {
+    public ResponseEntity<List<AdminQuizResultResponse>> getResults(@PathVariable String id) {
         return ResponseEntity.ok(quizService.getQuizResults(id));
     }
 }

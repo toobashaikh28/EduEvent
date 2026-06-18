@@ -1,36 +1,31 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "submissions")
+@Document(collection = "submissions")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Submission {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne @JoinColumn(name = "team_id", nullable = false)
-    private Team team;
+    private String teamId;
 
-    @ManyToOne @JoinColumn(name = "hackathon_id", nullable = false)
-    private Event hackathon;
+    private String hackathonId;
 
     private String title;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
     private String githubUrl;
 
-    // FIX 4: Renamed from file_path (snake_case field) to filePath (camelCase),
-    // explicit @Column keeps the DB column name unchanged.
-    @Column(name = "file_path")
     private String filePath;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime submittedAt;
 }

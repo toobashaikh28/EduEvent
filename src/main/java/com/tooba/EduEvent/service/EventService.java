@@ -9,9 +9,9 @@ import java.util.List;
 
 public interface EventService {
     EventResponse createEvent(EventRequest request, MultipartFile banner, String adminEmail);
-    EventResponse updateEvent(Long id, EventRequest request, MultipartFile banner);
-    void deleteEvent(Long id);
+    EventResponse updateEvent(String id, EventRequest request, MultipartFile banner);
+    void deleteEvent(String id);
 
     List<EventResponse> getAllEvents(String type, String status, LocalDateTime date);
-    EventResponse getEventById(Long id);
+    EventResponse getEventById(String id);
 }

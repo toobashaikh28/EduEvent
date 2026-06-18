@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public class QuizRequest {
 
     @NotNull(message = "Event ID is required")
-    private Long eventId;
+    private String eventId;
 
     @Min(value = 1, message = "Duration must be at least 1 minute")
     private Integer durationMinutes = 30;

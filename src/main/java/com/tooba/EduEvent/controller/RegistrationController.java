@@ -27,10 +27,10 @@ public class RegistrationController {
     // POST /api/events/{id}/register — Register the logged-in user for an event
     @PostMapping("/events/{id}/register")
     public ResponseEntity<RegistrationResponse> registerToEvent(
-            @PathVariable("id") Long eventId,
+            @PathVariable("id") String eventId,
             Authentication authentication) {
 
-        Long userId = resolveUserId(authentication);
+        String userId = resolveUserId(authentication);
         RegistrationResponse response = registrationService.registerUserToEvent(userId, eventId);
 
         // 201 CREATED for confirmed seat, 202 ACCEPTED for waitlist
@@ -44,10 +44,10 @@ public class RegistrationController {
     // DELETE /api/events/{id}/register — Cancel the logged-in user's registration
     @DeleteMapping("/events/{id}/register")
     public ResponseEntity<String> cancelRegistration(
-            @PathVariable("id") Long eventId,
+            @PathVariable("id") String eventId,
             Authentication authentication) {
 
-        Long userId = resolveUserId(authentication);
+        String userId = resolveUserId(authentication);
         registrationService.cancelRegistration(userId, eventId);
         return ResponseEntity.ok("Registration cancelled successfully.");
     }
@@ -56,7 +56,7 @@ public class RegistrationController {
     @GetMapping("/events/{id}/registrations")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<RegistrationResponse>> getEventRegistrations(
-            @PathVariable("id") Long eventId) {
+            @PathVariable("id") String eventId) {
 
         return ResponseEntity.ok(registrationService.getRegistrationsByEvent(eventId));
     }
@@ -65,7 +65,7 @@ public class RegistrationController {
     @GetMapping("/events/{id}/waitlist")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<RegistrationResponse>> getEventWaitlist(
-            @PathVariable("id") Long eventId) {
+            @PathVariable("id") String eventId) {
 
         return ResponseEntity.ok(waitlistService.getWaitlistByEvent(eventId));
     }
@@ -75,13 +75,13 @@ public class RegistrationController {
     public ResponseEntity<List<RegistrationResponse>> getMyRegistrations(
             Authentication authentication) {
 
-        Long userId = resolveUserId(authentication);
+        String userId = resolveUserId(authentication);
         return ResponseEntity.ok(registrationService.getRegistrationsByUser(userId));
     }
 
     // ── helper ────────────────────────────────────────────────────────────────
 
-    private Long resolveUserId(Authentication authentication) {
+    private String resolveUserId(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,

@@ -22,7 +22,7 @@ public class NotificationMediatorImpl implements NotificationMediator {
         Set.of("QUIZ_PASSED", "WINNER", "CERTIFICATE_READY");
 
     @Override
-    public void notify(Object sender, String eventType, Long targetUserId, String message) {
+    public void notify(Object sender, String eventType, String targetUserId, String message) {
         System.out.println("[MEDIATOR] Received event: " + eventType
             + " from " + sender.getClass().getSimpleName());
 
@@ -31,7 +31,7 @@ public class NotificationMediatorImpl implements NotificationMediator {
 
         // Always save to DB
         Notification notification = Notification.builder()
-            .user(user)
+            .userId(user.getId())
             .title(resolveTitleFor(eventType))
             .message(message)
             .isRead(false)

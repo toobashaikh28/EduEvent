@@ -3,8 +3,8 @@ package com.tooba.EduEvent.pattern;
 public class NullUser implements UserInterface {
 
     @Override
-    public Long getId() {
-        return -1L; // Safe default ID
+    public String getId() {
+        return null; // Safe default — no real id for a Null user
     }
 
     @Override

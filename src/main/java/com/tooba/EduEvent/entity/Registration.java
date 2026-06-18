@@ -1,16 +1,16 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(
-    name = "registrations",
-    uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "event_id"})} 
-    // Prevents the same user from registering for the same event twice!
-)
+@Document(collection = "registrations")
+// Prevents the same user from registering for the same event twice
+@CompoundIndex(name = "uq_user_event", def = "{'userId': 1, 'eventId': 1}", unique = true)
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,22 +18,14 @@ import java.time.LocalDateTime;
 public class Registration {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    private String eventId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private RegistrationStatus status; // REGISTERED or WAITLISTED
 
-    @CreationTimestamp
-    @Column(name = "registered_at", updatable = false)
+    @CreatedDate
     private LocalDateTime registeredAt;
 }

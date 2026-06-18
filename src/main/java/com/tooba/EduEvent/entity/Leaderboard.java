@@ -1,48 +1,38 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "leaderboard") 
+@Document(collection = "leaderboard")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Leaderboard {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
     // --- SHARED FIELDS ---
     @Builder.Default
-    @Column(name = "rank")
     private Integer rank = 0;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime announcedAt;
 
     // --- HACKATHON TEAM FIELDS ---
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hackathon_id")
-    private Event hackathon;
+    private String hackathonId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id")
-    private Team team;
+    private String teamId;
 
-    @Column(precision = 10, scale = 2)
     private BigDecimal totalScore;
 
-    // --- QUIZ USER FIELDS (NEW) ---
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
-    private Event event;
+    // --- QUIZ USER FIELDS ---
+    private String eventId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    private String userId;
 
-    @Column(name = "score")
     private Double score;
 }

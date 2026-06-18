@@ -16,12 +16,12 @@ public class LeaderboardController {
     private final LeaderboardService leaderboardService;
 
     @GetMapping("/event/{id}")
-    public ResponseEntity<List<LeaderboardResponse>> getEventLeaderboard(@PathVariable Long id) {
+    public ResponseEntity<List<LeaderboardResponse>> getEventLeaderboard(@PathVariable String id) {
         return ResponseEntity.ok(leaderboardService.getEventLeaderboard(id));
     }
 
     @GetMapping("/hackathon/{id}")
-    public ResponseEntity<List<LeaderboardResponse>> getHackathonLeaderboard(@PathVariable Long id) {
+    public ResponseEntity<List<LeaderboardResponse>> getHackathonLeaderboard(@PathVariable String id) {
         return ResponseEntity.ok(leaderboardService.getHackathonLeaderboard(id));
     }
 

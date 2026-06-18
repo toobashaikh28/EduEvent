@@ -25,7 +25,7 @@ public class HackathonResultsController {
     @PostMapping("/{id}/announce-winners")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<WinnerAnnouncementResponse> announceWinners(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             Authentication authentication) {
 
         WinnerAnnouncementResponse response =
@@ -39,7 +39,7 @@ public class HackathonResultsController {
      */
     @GetMapping("/{id}/results")
     public ResponseEntity<List<WinnerAnnouncementResponse.RankedTeam>> getResults(
-            @PathVariable("id") Long hackathonId) {
+            @PathVariable("id") String hackathonId) {
 
         return ResponseEntity.ok(hackathonResultsService.getResults(hackathonId));
     }

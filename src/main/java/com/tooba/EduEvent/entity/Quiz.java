@@ -1,29 +1,26 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "quizzes")
+@Document(collection = "quizzes")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Quiz {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @OneToOne
-    @JoinColumn(name = "event_id", nullable = false, unique = true)
-    private Event event;
+    @Indexed(unique = true)
+    private String eventId;
 
     @Builder.Default
-    @Column(name = "duration_minutes")
     private Integer durationMinutes = 30;
 
     @Builder.Default
-    @Column(name = "pass_score", precision = 5, scale = 2)
     private java.math.BigDecimal passScore = new java.math.BigDecimal("50.00");
 
     @Builder.Default

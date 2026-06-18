@@ -80,7 +80,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventResponse getEventById(Long id) {
+    public EventResponse getEventById(String id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
@@ -112,21 +112,22 @@ public class EventServiceImpl implements EventService {
                 .status(request.getStatus() != null ? request.getStatus().toUpperCase() : "UPCOMING")
                 .bannerUrl(bannerPath)
                 .joinLink(joinLink)
-                .admin(admin)
+                .adminId(admin.getId())
                 .build();
 
         return toResponse(eventRepository.save(event));
     }
 
     @Override
-    public EventResponse updateEvent(Long id, EventRequest request, MultipartFile banner) {
+    public EventResponse updateEvent(String id, EventRequest request, MultipartFile banner) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
         // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
         // Reuse Auth + Validation for UPDATE (skip duplicate check — title can stay same)
-        User admin = event.getAdmin();
+        User admin = userRepository.findById(event.getAdminId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
         authorizationHandler.setNext(validationHandler);
         authorizationHandler.handle(request, admin, "UPDATE");
         // ─────────────────────────────────────────────────────────────────────
@@ -147,15 +148,17 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public void deleteEvent(Long id) {
+    public void deleteEvent(String id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
         // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
         // Auth check only for DELETE
+        User admin = userRepository.findById(event.getAdminId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
         authorizationHandler.setNext(null);
-        authorizationHandler.handle(new EventRequest(), event.getAdmin(), "DELETE");
+        authorizationHandler.handle(new EventRequest(), admin, "DELETE");
         // ─────────────────────────────────────────────────────────────────────
 
         eventRepository.deleteById(id);
@@ -206,7 +209,9 @@ public class EventServiceImpl implements EventService {
                 .status(event.getStatus())
                 .bannerUrl(event.getBannerUrl())
                 .joinLink(event.getJoinLink())
-                .adminName(event.getAdmin() != null ? event.getAdmin().getName() : null)
+                .adminName(event.getAdminId() != null
+                        ? userRepository.findById(event.getAdminId()).map(User::getName).orElse(null)
+                        : null)
                 .createdAt(event.getCreatedAt())
                 .build();
     }

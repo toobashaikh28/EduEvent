@@ -7,8 +7,8 @@ import java.util.List;
 public interface HackathonResultsService {
 
     /** Admin: aggregate scores, save leaderboard, issue certs, notify all participants */
-    WinnerAnnouncementResponse announceWinners(Long hackathonId, String adminEmail);
+    WinnerAnnouncementResponse announceWinners(String hackathonId, String adminEmail);
 
     /** Public: return ranked results for a hackathon */
-    List<WinnerAnnouncementResponse.RankedTeam> getResults(Long hackathonId);
+    List<WinnerAnnouncementResponse.RankedTeam> getResults(String hackathonId);
 }

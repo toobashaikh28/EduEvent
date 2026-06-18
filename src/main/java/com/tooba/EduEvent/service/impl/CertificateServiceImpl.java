@@ -120,8 +120,8 @@ public class CertificateServiceImpl implements CertificateService {
 
             // 5. Save to Database
             Certificate certificate = Certificate.builder()
-                    .user(user)
-                    .event(event)
+                    .userId(user.getId())
+                    .eventId(event.getId())
                     .certUuid(certId)
                     .pdfUrl(filePath) // Storing local path
                     .verifyUrl(verificationUrl) // 2. Added verifyUrl to the builder
@@ -130,8 +130,15 @@ public class CertificateServiceImpl implements CertificateService {
 
             certificate = certificateRepository.save(certificate);
 
-            // 6. Send the Email with PDF Attachment
-            emailService.sendCertificateEmail(user.getEmail(), user.getName(), event.getTitle(), filePath);
+            // 6. Send the Email with PDF Attachment.
+            //    Email delivery is best-effort: a failed SMTP send (offline / blocked
+            //    Gmail) must NOT roll back or hide the already-saved certificate.
+            try {
+                emailService.sendCertificateEmail(user.getEmail(), user.getName(), event.getTitle(), filePath);
+            } catch (Exception mailEx) {
+                log.warn("Certificate {} saved, but email delivery to {} failed: {}",
+                        certId, user.getEmail(), mailEx.getMessage());
+            }
 
             return certificate;
 

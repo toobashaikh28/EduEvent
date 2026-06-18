@@ -6,5 +6,5 @@ import java.util.Map;
 @Data
 public class SubmitQuizRequest {
     // key = questionId, value = selectedOptionId
-    private Map<Long, Long> answers;
+    private Map<String, String> answers;
 }

@@ -5,7 +5,7 @@ import com.tooba.EduEvent.dto.response.AnnouncementResponse;
 import java.util.List;
 
 public interface TeamAnnouncementService {
-    void createAnnouncement(Long teamId, String email, ContentRequest request);
-    List<AnnouncementResponse> getTeamAnnouncements(Long teamId, String email);
-    void addComment(Long announcementId, String email, ContentRequest request);
+    void createAnnouncement(String teamId, String email, ContentRequest request);
+    List<AnnouncementResponse> getTeamAnnouncements(String teamId, String email);
+    void addComment(String announcementId, String email, ContentRequest request);
 }

@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 
 @Data @Builder @AllArgsConstructor @NoArgsConstructor
 public class SubmissionResponse {
-    private Long id;
-    private Long teamId;
+    private String id;
+    private String teamId;
     private String teamName;
-    private Long hackathonId;
+    private String hackathonId;
     private String hackathonTitle;
     private String title;
     private String description;

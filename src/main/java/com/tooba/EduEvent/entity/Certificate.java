@@ -1,39 +1,32 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "certificates")
+@Document(collection = "certificates")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Certificate {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    private String eventId;
 
-    @Column(name = "cert_uuid", unique = true, nullable = false)
+    @Indexed(unique = true)
     private UUID certUuid;
 
-    @Column(name = "pdf_url")
     private String pdfUrl;
 
-    @Column(name = "verify_url")
     private String verifyUrl;
 
-    @CreationTimestamp
-    @Column(name = "issued_at", updatable = false)
+    @CreatedDate
     private LocalDateTime issuedAt;
 }

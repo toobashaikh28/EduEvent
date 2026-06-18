@@ -83,16 +83,14 @@ ${buildTopnav('JUDGE','scoring.html')}
   <div class="page-header"><div><div class="page-title">Scoring</div><div class="page-desc">Evaluate and score team submissions</div></div></div>
   <div style="background:var(--bg-surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <select id="hs" onchange="loadTeams(this.value)" style="min-width:180px;">
-      <option value="">— Select Hackathon —</option>
-      <option value="1">ML Bootcamp 2025</option>
-      <option value="2">DSA Sprint</option>
+      <option value="">— Select Event —</option>
     </select>
     <select id="ts" onchange="loadTeam(this.value)" style="min-width:180px;"><option value="">— Select team —</option></select>
     <div id="status-wrap" style="display:none;margin-left:auto;display:flex;gap:8px;align-items:center;">
       <span id="save-tag" style="font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:#E0A93B;border:0.5px solid rgba(245,158,11,0.25);padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:0.5px;">Draft</span>
     </div>
   </div>
-  <div id="empty-sc"><div class="empty-state" style="padding:80px;"><div class="empty-icon"><i class="ti ti-pencil-star"></i></div><div class="empty-title">Select a team to score</div><div class="empty-desc">Choose a hackathon and team above.</div></div></div>
+  <div id="empty-sc"><div class="empty-state" style="padding:80px;"><div class="empty-icon"><i class="ti ti-pencil-star"></i></div><div class="empty-title">Select a team to score</div><div class="empty-desc">Choose an event and team above.</div></div></div>
   <div id="sc-form" style="display:none;">
     <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
       <div>
@@ -174,7 +172,7 @@ async function loadTeams(hid) {
 function loadTeam(subId){
   if(!subId){document.getElementById('sc-form').style.display='none';document.getElementById('empty-sc').style.display='';return;}
   
-  curT = SUBSMISSIONS.find(t => t.id === parseInt(subId));
+  curT = SUBSMISSIONS.find(t => String(t.id) === String(subId));
   if(!curT) return;
   
   SC = {}; 
@@ -277,7 +275,21 @@ document.getElementById('feedback').addEventListener('input',function(){
   if(l > 1000) this.value = this.value.slice(0, 1000);
 });
 
-// Load teams will only trigger when the judge selects a hackathon from the dropdown manually.
+// Populate the hackathon dropdown with ONLY the hackathons this judge is assigned to.
+async function loadHackathons() {
+  const data = await api.get('/judge/my-hackathons');
+  const hs = document.getElementById('hs');
+  const list = Array.isArray(data) ? data : [];
+  if (!list.length) {
+    hs.innerHTML = '<option value="">— No assigned events —</option>';
+    Toast.show('You are not assigned to any event yet. Ask an admin to assign you.', 'info');
+    return;
+  }
+  hs.innerHTML = '<option value="">— Select Event —</option>' +
+    list.map(h => `<option value="${h.id}">${h.title}</option>`).join('');
+}
+
+loadHackathons();
 </script>
   </body>
 </html>

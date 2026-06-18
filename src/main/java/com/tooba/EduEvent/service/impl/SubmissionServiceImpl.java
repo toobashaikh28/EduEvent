@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -17,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -28,30 +26,24 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionRepository  submissionRepository;
     private final EventRepository       eventRepository;
     private final UserRepository        userRepository;
+    private final TeamRepository        teamRepository;
     private final TeamMemberRepository  teamMemberRepository;
 
-    // ── POST /api/hackathon/{id}/submit ──────────────────────────────────────
     @Override
-    @Transactional
-    public SubmissionResponse submit(Long hackathonId, String userEmail,
+    public SubmissionResponse submit(String hackathonId, String userEmail,
                                      SubmissionRequest request, MultipartFile file) {
         Event hackathon = resolveHackathon(hackathonId);
         User  user      = resolveUser(userEmail);
         Team  team      = resolveTeam(user, hackathonId);
 
-        // Validation: team must be locked
         if (!Boolean.TRUE.equals(team.getIsLocked())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Your team must be locked before submitting.");
         }
-
-        // Validation: submission deadline (hackathon endTime) must not have passed
-        if (LocalDateTime.now().isAfter(hackathon.getEndTime())) {
+        if (java.time.LocalDateTime.now().isAfter(hackathon.getEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Submission deadline has passed (ended: " + hackathon.getEndTime() + ").");
         }
-
-        // Validation: no duplicate — one submission per team per hackathon
         if (submissionRepository.findByTeamIdAndHackathonId(team.getId(), hackathonId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Your team already has a submission. Use PUT to edit it.");
@@ -60,8 +52,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         String filePath = saveFile(file, team.getId());
 
         Submission submission = Submission.builder()
-                .team(team)
-                .hackathon(hackathon)
+                .teamId(team.getId())
+                .hackathonId(hackathon.getId())
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .githubUrl(request.getGithubUrl())
@@ -73,16 +65,14 @@ public class SubmissionServiceImpl implements SubmissionService {
         return toResponse(saved);
     }
 
-    // ── PUT /api/hackathon/{id}/submit ───────────────────────────────────────
     @Override
-    @Transactional
-    public SubmissionResponse editSubmission(Long hackathonId, String userEmail,
+    public SubmissionResponse editSubmission(String hackathonId, String userEmail,
                                              SubmissionRequest request, MultipartFile file) {
         Event hackathon = resolveHackathon(hackathonId);
         User  user      = resolveUser(userEmail);
         Team  team      = resolveTeam(user, hackathonId);
 
-        if (LocalDateTime.now().isAfter(hackathon.getEndTime())) {
+        if (java.time.LocalDateTime.now().isAfter(hackathon.getEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Submission deadline has passed. Edits are no longer accepted.");
         }
@@ -96,7 +86,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setDescription(request.getDescription());
         submission.setGithubUrl(request.getGithubUrl());
 
-        // Replace file only when a new one is provided
         if (file != null && !file.isEmpty()) {
             submission.setFilePath(saveFile(file, team.getId()));
         }
@@ -106,10 +95,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         return toResponse(saved);
     }
 
-    // ── GET /api/hackathon/{id}/my-submission ────────────────────────────────
     @Override
-    @Transactional(readOnly = true)
-    public SubmissionResponse getMySubmission(Long hackathonId, String userEmail) {
+    public SubmissionResponse getMySubmission(String hackathonId, String userEmail) {
         User user = resolveUser(userEmail);
         Team team = resolveTeam(user, hackathonId);
 
@@ -122,7 +109,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     // ── private helpers ──────────────────────────────────────────────────────
 
-    private Event resolveHackathon(Long id) {
+    private Event resolveHackathon(String id) {
         return eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Hackathon not found: " + id));
@@ -134,22 +121,20 @@ public class SubmissionServiceImpl implements SubmissionService {
                         "Authenticated user not found."));
     }
 
-    private Team resolveTeam(User user, Long hackathonId) {
-        return teamMemberRepository
-                .findTeamByUserIdAndHackathonId(user.getId(), hackathonId)
+    // The user's ACCEPTED team in this hackathon
+    private Team resolveTeam(User user, String hackathonId) {
+        return teamMemberRepository.findByUserIdAndStatus(user.getId(), "ACCEPTED").stream()
+                .map(m -> teamRepository.findById(m.getTeamId()).orElse(null))
+                .filter(t -> t != null && hackathonId.equals(t.getHackathonId()))
+                .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "You must be an accepted team member to submit."));
     }
 
-    /**
-     * Saves the uploaded file to uploads/submissions/{teamId}/.
-     * Returns the relative path stored in DB, or null if no file was given.
-     */
-    private String saveFile(MultipartFile file, Long teamId) {
+    private String saveFile(MultipartFile file, String teamId) {
         if (file == null || file.isEmpty()) return null;
         try {
-            Path dir = Paths.get(System.getProperty("user.dir"),
-                                  "uploads", "submissions", teamId.toString());
+            Path dir = Paths.get(System.getProperty("user.dir"), "uploads", "submissions", teamId);
             Files.createDirectories(dir);
 
             String original  = file.getOriginalFilename();
@@ -169,12 +154,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     private SubmissionResponse toResponse(Submission s) {
+        String teamName = teamRepository.findById(s.getTeamId()).map(Team::getName).orElse("Unknown Team");
+        String hackTitle = eventRepository.findById(s.getHackathonId()).map(Event::getTitle).orElse("Unknown Event");
         return SubmissionResponse.builder()
                 .id(s.getId())
-                .teamId(s.getTeam().getId())
-                .teamName(s.getTeam().getName())
-                .hackathonId(s.getHackathon().getId())
-                .hackathonTitle(s.getHackathon().getTitle())
+                .teamId(s.getTeamId())
+                .teamName(teamName)
+                .hackathonId(s.getHackathonId())
+                .hackathonTitle(hackTitle)
                 .title(s.getTitle())
                 .description(s.getDescription())
                 .githubUrl(s.getGithubUrl())

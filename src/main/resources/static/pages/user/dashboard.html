@@ -29,7 +29,7 @@ if(!Auth.guardPage('USER'))throw new Error();
 document.getElementById('app').innerHTML=`<div class="page-shell">
 ${buildTopnav('USER','dashboard.html')}
 <div class="page-content">
-  <div style="background:linear-gradient(135deg,rgba(56,189,248,0.14),rgba(167,139,250,0.08));border:0.5px solid rgba(56,189,248,0.22);border-radius:var(--radius-xl);padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+  <div style="background:linear-gradient(135deg,rgba(46,107,255,0.16),rgba(56,189,248,0.07));border:1px solid rgba(59,130,246,0.26);border-radius:var(--radius-xl);padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
     <div><div style="font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.5px;" id="wh">Welcome back 👋</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Here's your EduEvent activity at a glance.</div></div>
     <button class="btn btn-primary" onclick="window.location.href='events.html'"><i class="ti ti-calendar-plus"></i> Browse Events</button>
   </div>
@@ -46,8 +46,7 @@ ${buildTopnav('USER','dashboard.html')}
 </div>${buildNotifPanel()}${buildUserDropdown()}`;
 
 // Notifications and UI initialization
-const NOTIFS=[{id:1,icon:'ti-trophy',color:'#E0A93B',bg:'rgba(245,158,11,0.12)',title:'Winners announced!',body:'You placed 2nd in ML Bootcamp 2025.',time:'2m ago',unread:true},{id:2,icon:'ti-certificate',color:'#6DD5A0',bg:'rgba(34,197,94,0.12)',title:'Certificate ready',body:'Data Science Quiz certificate ready.',time:'1h ago',unread:true},{id:3,icon:'ti-clock',color:'#7C6FCD',bg:'rgba(79,70,229,0.12)',title:'Deadline',body:'DSA Sprint closes in 3 hours!',time:'3h ago',unread:false}];
-initNotifToggle(NOTIFS);
+initNotifToggle([]);
 initAvatarDropdown();
 populateProfile();
 
@@ -62,7 +61,7 @@ async function load(){
 
   // 1. Stats Row
   document.getElementById('s-row').innerHTML=`
-    <div style="background:linear-gradient(135deg,rgba(56,189,248,0.12),rgba(167,139,250,0.08));border:0.5px solid rgba(56,189,248,0.25);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;">
+    <div style="background:linear-gradient(135deg,rgba(46,107,255,0.14),rgba(56,189,248,0.07));border:1px solid rgba(59,130,246,0.28);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;">
       <div>
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Global Rank</div>
         <div style="font-family:var(--font-display);font-size:32px;font-weight:800;background:linear-gradient(135deg,#38BDF8,#22D3EE);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">#${data.myRank || '—'}</div>
@@ -99,12 +98,9 @@ async function load(){
       document.getElementById('act').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0;">No recent activity.</div>';
   } else {
       document.getElementById('act').innerHTML = acts.map(a=>`
-        <div class="act-row">
-          <div style="width:30px;height:30px;border-radius:var(--radius-md);background:rgba(79,70,229,0.1);color:#7C6FCD;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;"><i class="ti ti-bell"></i></div>
-          <div>
-            <div style="font-size:13px;">${a.message}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${a.timeAgo || 'Recently'}</div>
-          </div>
+        <div class="list-row lr-blue">
+          <div class="lr-icon"><i class="ti ti-bell"></i></div>
+          <div class="lr-main"><div class="lr-label" style="white-space:normal;">${a.message}</div><div class="lr-sub">${a.timeAgo || 'Recently'}</div></div>
         </div>`).join('');
   }
 

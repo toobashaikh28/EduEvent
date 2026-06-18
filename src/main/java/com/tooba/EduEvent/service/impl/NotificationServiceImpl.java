@@ -24,12 +24,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void send(Long userId, String title, String message) {
+    public void send(String userId, String title, String message) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         Notification notification = Notification.builder()
-                .user(user)
+                .userId(user.getId())
                 .title(title)
                 .message(message)
                 .isRead(false)
@@ -40,7 +40,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getNotificationsForUser(Long userId) {
+    public List<NotificationResponse> getNotificationsForUser(String userId) {
         return notificationRepository
                 .findByUserIdOrderByIsReadAscCreatedAtDesc(userId)
                 .stream()
@@ -50,12 +50,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public NotificationResponse markAsRead(Long notificationId, Long userId) {
+    public NotificationResponse markAsRead(String notificationId, String userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
 
         // Prevent one user from marking another user's notification
-        if (!notification.getUser().getId().equals(userId)) {
+        if (!notification.getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 

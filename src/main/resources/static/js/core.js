@@ -15,7 +15,7 @@ const Auth = {
   clear()     { localStorage.removeItem('jwt'); localStorage.removeItem('edu_user'); },
   isLoggedIn(){ return !!this.getToken(); },
   getRole()   { return this.getUser()?.role || null; },
-  logout()    { this.clear(); window.location.href = '/index.html'; },
+  logout()    { this.clear(); window.location.href = '/login.html'; },
   redirectByRole() {
     const role = this.getRole();
     if (role === 'ADMIN')  window.location.href = '/pages/admin/dashboard.html';
@@ -23,7 +23,7 @@ const Auth = {
     else window.location.href = '/pages/user/dashboard.html';
   },
   guardPage(expectedRole) {
-    if (!this.isLoggedIn()) { window.location.href = '/index.html'; return false; }
+    if (!this.isLoggedIn()) { window.location.href = '/login.html'; return false; }
     if (expectedRole && this.getRole() !== expectedRole) { this.redirectByRole(); return false; }
     return true;
   }
@@ -47,7 +47,7 @@ async function apiFetch(endpoint, options = {}) {
     // FIX: 401 means invalid/expired token -> Clear auth and redirect
     if (res.status === 401) {
       Auth.clear();
-      window.location.href = '/index.html';
+      window.location.href = '/login.html';
       return null;
     }
 
@@ -73,7 +73,9 @@ async function apiFetch(endpoint, options = {}) {
     }
 
     if (res.status === 204) return { success: true };
-    return data;
+    // OK response with a non-JSON body (e.g. a plain-text message like
+    // "Registration cancelled successfully.") — treat as success, not failure.
+    return isJson ? data : { success: true };
   } catch (err) {
     Toast.show('Cannot reach the server. Check your connection.', 'error', 'Network Error');
     return null;
@@ -89,6 +91,27 @@ const api = {
   upload:   (url, fd)    => apiFetch(url, { method: 'POST', body: fd }),
   download: (url)        => apiFetch(url, { _blobResponse: true }),
 };
+
+/* ── Chart theming (cyber dashboard) ─────────── */
+/* Call once after Chart.js loads to apply the dark/blue defaults app-wide. */
+function applyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.color = '#7C82A6';
+  Chart.defaults.borderColor = 'rgba(0,229,255,0.08)';
+  Chart.defaults.font.family = "'DM Sans', sans-serif";
+  const tt = Chart.defaults.plugins.tooltip;
+  tt.backgroundColor = 'rgba(8,8,16,0.96)';
+  tt.borderColor = 'rgba(0,229,255,0.40)';
+  tt.borderWidth = 1; tt.cornerRadius = 8; tt.padding = 10;
+  tt.displayColors = false; tt.titleColor = '#EAF0FF'; tt.bodyColor = '#AEB4D0';
+}
+/* Vertical gradient fill for area/bar charts. top/bottom are rgba strings. */
+function gradientFill(ctx, top, bottom, h) {
+  const g = ctx.createLinearGradient(0, 0, 0, h || 220);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom || 'rgba(0,0,0,0)');
+  return g;
+}
 
 /* ── Cache ─────────────────────────────────── */
 const _cache = {};
@@ -196,16 +219,252 @@ function skeletonCards(n) {
 }
 
 /* ── Populate profile in UI ─────────────────── */
-function populateProfile() {
-  const user = Auth.getUser();
-  if (!user) return;
+// Render the name/email/role/avatar chrome from a user object (avatar shows photo if present)
+function renderProfileEls(user) {
   document.querySelectorAll('[data-profile-name]').forEach(el  => el.textContent = user.name || 'User');
   document.querySelectorAll('[data-profile-email]').forEach(el => el.textContent = user.email || '');
   document.querySelectorAll('[data-profile-role]').forEach(el  => el.textContent = user.role || '');
   document.querySelectorAll('[data-profile-avatar]').forEach(el => {
-    el.textContent = fmt.initials(user.name);
-    el.style.background = fmt.avatarColor(user.name);
+    if (user.photo) {
+      el.textContent = '';
+      el.style.backgroundImage = `url('${user.photo}')`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.style.color = 'transparent';
+      el.style.overflow = 'hidden';
+    } else {
+      el.style.backgroundImage = '';
+      el.style.color = '';
+      el.textContent = fmt.initials(user.name);
+      el.style.background = fmt.avatarColor(user.name);
+    }
   });
+}
+
+function populateProfile() {
+  const user = Auth.getUser();
+  if (!user) return;
+  renderProfileEls(user);                       // instant from cached login data
+  // Refresh from the server so the latest name + photo always show
+  if (typeof api !== 'undefined') {
+    api.get('/users/me').then(me => {
+      if (!me) return;
+      const merged = {
+        ...user,
+        name:  me.name  ?? user.name,
+        email: me.email ?? user.email,
+        role:  me.role  ?? user.role,
+        photo: me.photoUrl ?? me.photo ?? user.photo
+      };
+      Auth.setUser(merged);
+      renderProfileEls(merged);
+    });
+  }
+}
+
+/* ── Edit-Profile modal (name + photo, with image adjust) — shared across all portals ── */
+let _pendingProfilePhoto = null;
+let _photoDirty = false;
+let _photoState = null;          // { img, baseScale, zoom, offX, offY }
+const _PHOTO_VIEW = 168;         // editor circle size (px) — what the user sees
+const _PHOTO_OUT  = 256;         // exported square size (px) — what gets stored
+
+function ensureProfileModal() {
+  if (document.getElementById('profile-modal')) return;
+  const div = document.createElement('div');
+  div.className = 'modal-overlay';
+  div.id = 'profile-modal';
+  div.innerHTML = `
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title">Edit Profile</div>
+        <button class="icon-btn" type="button" onclick="document.getElementById('profile-modal').classList.remove('open')"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0 14px;">
+        <div style="position:relative;width:${_PHOTO_VIEW}px;height:${_PHOTO_VIEW}px;">
+          <div id="profile-avatar-fallback" style="position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:54px;font-weight:700;color:#fff;"></div>
+          <canvas id="profile-photo-canvas" width="${_PHOTO_VIEW}" height="${_PHOTO_VIEW}" style="position:absolute;inset:0;width:${_PHOTO_VIEW}px;height:${_PHOTO_VIEW}px;border-radius:50%;display:none;cursor:grab;touch-action:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.12);"></canvas>
+        </div>
+        <input type="range" id="profile-zoom" min="1" max="3" step="0.01" value="1" style="width:${_PHOTO_VIEW}px;display:none;accent-color:var(--brand);">
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+          <i class="ti ti-camera"></i> Choose Photo
+          <input type="file" id="profile-photo-input" accept="image/*" style="display:none;">
+        </label>
+        <div id="profile-photo-hint" style="font-size:11px;color:var(--text-muted);">PNG / JPG · a square image looks best</div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Display Name</label>
+        <input type="text" id="profile-name-input" placeholder="Your name">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-secondary" type="button" onclick="document.getElementById('profile-modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" type="button" id="profile-save-btn" onclick="saveProfile()"><i class="ti ti-check"></i> Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  div.querySelector('#profile-photo-input').addEventListener('change', handleProfilePhoto);
+  div.addEventListener('click', e => { if (e.target === div) div.classList.remove('open'); });
+  _wirePhotoEditor();
+}
+
+// Geometry helpers — "baseScale" makes the image cover the circle; "zoom" is the user multiplier on top.
+function _photoDims() {
+  const s = _photoState.baseScale * _photoState.zoom;
+  return { dw: _photoState.img.width * s, dh: _photoState.img.height * s };
+}
+function _clampPhoto() {
+  const { dw, dh } = _photoDims();
+  _photoState.offX = Math.min(0, Math.max(_PHOTO_VIEW - dw, _photoState.offX));
+  _photoState.offY = Math.min(0, Math.max(_PHOTO_VIEW - dh, _photoState.offY));
+}
+function _drawPhotoEditor() {
+  if (!_photoState) return;
+  const ctx = document.getElementById('profile-photo-canvas').getContext('2d');
+  const { dw, dh } = _photoDims();
+  ctx.clearRect(0, 0, _PHOTO_VIEW, _PHOTO_VIEW);
+  ctx.drawImage(_photoState.img, _photoState.offX, _photoState.offY, dw, dh);
+}
+
+function _showFallbackAvatar(user) {
+  const fb = document.getElementById('profile-avatar-fallback');
+  fb.style.display = 'flex';
+  fb.textContent = fmt.initials(user.name);
+  fb.style.background = fmt.avatarColor(user.name);
+  document.getElementById('profile-photo-canvas').style.display = 'none';
+  document.getElementById('profile-zoom').style.display = 'none';
+  _photoState = null;
+}
+
+function loadPhotoIntoEditor(src) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const base = Math.max(_PHOTO_VIEW / img.width, _PHOTO_VIEW / img.height);
+    _photoState = { img, baseScale: base, zoom: 1, offX: 0, offY: 0 };
+    const { dw, dh } = _photoDims();
+    _photoState.offX = (_PHOTO_VIEW - dw) / 2;   // center by default
+    _photoState.offY = (_PHOTO_VIEW - dh) / 2;
+    document.getElementById('profile-avatar-fallback').style.display = 'none';
+    document.getElementById('profile-photo-canvas').style.display = 'block';
+    const zoom = document.getElementById('profile-zoom');
+    zoom.value = 1; zoom.style.display = 'block';
+    document.getElementById('profile-photo-hint').textContent = 'Drag to reposition · slider to zoom';
+    _drawPhotoEditor();
+  };
+  img.onerror = () => Toast.show('Could not load that image.', 'error');
+  img.src = src;
+}
+
+function _wirePhotoEditor() {
+  const cv = document.getElementById('profile-photo-canvas');
+  const zoom = document.getElementById('profile-zoom');
+  let dragging = false, lastX = 0, lastY = 0;
+  const start = (x, y) => { if (!_photoState) return; dragging = true; lastX = x; lastY = y; cv.style.cursor = 'grabbing'; };
+  const move = (x, y) => {
+    if (!dragging || !_photoState) return;
+    _photoState.offX += (x - lastX); _photoState.offY += (y - lastY);
+    lastX = x; lastY = y; _clampPhoto(); _drawPhotoEditor(); _photoDirty = true;
+  };
+  const end = () => { dragging = false; cv.style.cursor = 'grab'; };
+  cv.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+  window.addEventListener('mouseup', end);
+  cv.addEventListener('touchstart', e => { const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
+  cv.addEventListener('touchmove', e => { const t = e.touches[0]; move(t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+  cv.addEventListener('touchend', end);
+  zoom.addEventListener('input', () => {
+    if (!_photoState) return;
+    // zoom toward the centre of the circle so the framing stays put
+    const c = _PHOTO_VIEW / 2;
+    const prev = _photoState.baseScale * _photoState.zoom;
+    const fx = (c - _photoState.offX) / prev, fy = (c - _photoState.offY) / prev;
+    _photoState.zoom = parseFloat(zoom.value);
+    const next = _photoState.baseScale * _photoState.zoom;
+    _photoState.offX = c - fx * next; _photoState.offY = c - fy * next;
+    _clampPhoto(); _drawPhotoEditor(); _photoDirty = true;
+  });
+}
+
+function openProfileModal() {
+  ensureProfileModal();
+  const user = Auth.getUser() || {};
+  _pendingProfilePhoto = null;
+  _photoDirty = false;
+  document.getElementById('profile-name-input').value = user.name || '';
+  document.getElementById('profile-photo-hint').textContent = 'PNG / JPG · a square image looks best';
+  if (user.photo) loadPhotoIntoEditor(user.photo);
+  else _showFallbackAvatar(user);
+  document.getElementById('profile-modal').classList.add('open');
+}
+
+function handleProfilePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { Toast.show('Image too large (max 5MB).', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => { loadPhotoIntoEditor(ev.target.result); _photoDirty = true; };
+  reader.readAsDataURL(file);
+}
+
+// Render the user's chosen framing onto a 256×256 square (cover) for storage.
+function _exportAdjustedPhoto() {
+  const k = _PHOTO_OUT / _PHOTO_VIEW;
+  const canvas = document.createElement('canvas');
+  canvas.width = _PHOTO_OUT; canvas.height = _PHOTO_OUT;
+  const ctx = canvas.getContext('2d');
+  const { dw, dh } = _photoDims();
+  ctx.drawImage(_photoState.img, _photoState.offX * k, _photoState.offY * k, dw * k, dh * k);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profile-name-input').value.trim();
+  if (!name) { Toast.show('Name cannot be empty.', 'warning'); return; }
+  const btn = document.getElementById('profile-save-btn');
+  setLoading(btn, true);
+  const payload = { name };
+  if (_photoDirty && _photoState) {
+    try { _pendingProfilePhoto = _exportAdjustedPhoto(); }
+    catch (err) { setLoading(btn, false); Toast.show('Could not process that image — try choosing the file again.', 'error'); return; }
+    payload.photoUrl = _pendingProfilePhoto;
+  }
+  const res = await api.put('/users/me', payload);
+  setLoading(btn, false);
+  if (!res) return;
+  const user = Auth.getUser() || {};
+  const merged = { ...user, name: res.name ?? name, photo: res.photoUrl ?? _pendingProfilePhoto ?? user.photo };
+  Auth.setUser(merged);
+  renderProfileEls(merged);
+  if (typeof populateAdminProfile === 'function') populateAdminProfile(); // refresh admin sidebar avatar/name
+  document.getElementById('profile-modal').classList.remove('open');
+  Toast.show('Profile updated!', 'success');
+}
+
+// Delegated trigger — any element with data-action="profile" opens the editor
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-action="profile"]');
+  if (t) { e.preventDefault(); e.stopPropagation(); openProfileModal(); }
+});
+
+/* ── Notification tune (short pleasant chime via Web Audio) ── */
+function playNotifSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    // two quick notes — a soft "ding-dong"
+    [[880, 0], [1175, 0.12]].forEach(([freq, t]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, now + t);
+      g.gain.exponentialRampToValueAtTime(0.22, now + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.30);
+      o.start(now + t); o.stop(now + t + 0.32);
+    });
+    setTimeout(() => ctx.close(), 800);
+  } catch (e) { /* audio not allowed yet — ignore */ }
 }
 
 /* ── Active nav link ────────────────────────── */
@@ -223,6 +482,29 @@ async function downloadCertificate(certId, filename = 'certificate.pdf') {
   Toast.show('Preparing download…', 'info');
   const blob = await api.download(`/certificates/${certId}/download`);
   if (!blob) return;
+  await saveBlobAs(blob, filename);
+}
+
+/* Save a blob to disk. In Chromium browsers this opens the native OS
+   "Save As" file-explorer dialog so the user picks the location; elsewhere
+   it falls back to a normal download into the browser's download folder. */
+async function saveBlobAs(blob, filename = 'download.pdf') {
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'PDF Document', accept: { 'application/pdf': ['.pdf'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      Toast.show('Certificate saved.', 'success');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the dialog
+      // any other error → fall through to the classic download
+    }
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
@@ -250,26 +532,10 @@ function playLoginSplash() {
 
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Sparkles streaming from the unicorn's horn (upper-left of the figure)
-  const glyphs = ['✨','⭐','🌟','✦','💫'];
-  let sparks = '';
-  for (let i = 0; i < 14; i++) {
-    const g = glyphs[i % glyphs.length];
-    const top  = (8 + Math.random() * 40).toFixed(0);
-    const left = (-2 + Math.random() * 22).toFixed(0);
-    const delay = (Math.random() * 2.2).toFixed(2);
-    const dur   = (0.7 + Math.random() * 0.7).toFixed(2);
-    const size  = (1.2 + Math.random() * 1.8).toFixed(1);
-    sparks += `<span class="spark" style="top:${top}%;left:${left}%;font-size:${size}vh;animation-delay:${delay}s;animation-duration:${dur}s;">${g}</span>`;
-  }
-
-  const horseImg = `<img class="u" src="/images/horse-gallop.gif" alt="" draggable="false">`;
-
   const splash = document.createElement('div');
   splash.className = 'edu-splash';
   splash.innerHTML = `
     <div class="edu-splash__fill"></div>
-    <div class="edu-unicorn">${horseImg}${sparks}</div>
     <div class="edu-splash__word">
       <span class="edu-splash__logo">E</span>
       <span class="edu-splash__name">EduEvent</span>
@@ -280,8 +546,8 @@ function playLoginSplash() {
     splash.classList.add('reduced');
     setTimeout(() => splash.remove(), 800);
   } else {
-    // horse gallops across (~3s) painting colour in → name reveals → fades → remove
-    setTimeout(() => splash.remove(), 5300);
+    // colour paints in → name reveals → fades → remove
+    setTimeout(() => splash.remove(), 3200);
   }
 }
 

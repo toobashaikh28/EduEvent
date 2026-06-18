@@ -1,15 +1,15 @@
 package com.tooba.EduEvent.repository;
 
 import com.tooba.EduEvent.entity.Notification;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 
-public interface NotificationRepository extends JpaRepository<Notification, Long> {
+public interface NotificationRepository extends MongoRepository<Notification, String> {
 
     // Unread first, then by newest — used for GET /api/notifications
-    List<Notification> findByUserIdOrderByIsReadAscCreatedAtDesc(Long userId);
+    List<Notification> findByUserIdOrderByIsReadAscCreatedAtDesc(String userId);
 
-    // Add this to get just the 5 most recent notifications
-    List<Notification> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+    // The 5 most recent notifications
+    List<Notification> findTop5ByUserIdOrderByCreatedAtDesc(String userId);
 }

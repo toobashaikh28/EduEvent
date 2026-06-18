@@ -1,19 +1,19 @@
 package com.tooba.EduEvent.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "notifications")
+@Document(collection = "notifications")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Notification {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
     private String title;
     private String message;
@@ -21,6 +21,6 @@ public class Notification {
     @Builder.Default
     private Boolean isRead = false;
 
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime createdAt;
 }

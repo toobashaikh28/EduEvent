@@ -29,7 +29,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional
-    public RegistrationResponse registerUserToEvent(Long userId, Long eventId) {
+    public RegistrationResponse registerUserToEvent(String userId, String eventId) {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
@@ -46,7 +46,6 @@ public class RegistrationServiceImpl implements RegistrationService {
             // Without flush(), Hibernate may batch the delete and insert in the wrong order,
             // hitting the UNIQUE constraint on (user_id, event_id) in the registrations table.
             registrationRepository.deleteById(existing.getId());
-            registrationRepository.flush();
         });
 
         long currentRegistrations = registrationRepository
@@ -57,8 +56,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 : RegistrationStatus.WAITLISTED;
 
         Registration registration = Registration.builder()
-                .user(user)
-                .event(event)
+                .userId(user.getId())
+                .eventId(event.getId())
                 .status(targetStatus)
                 .build();
 
@@ -100,7 +99,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional
-    public void cancelRegistration(Long userId, Long eventId) {
+    public void cancelRegistration(String userId, String eventId) {
         Registration registration = registrationRepository
                 .findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -124,7 +123,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RegistrationResponse> getRegistrationsByEvent(Long eventId) {
+    public List<RegistrationResponse> getRegistrationsByEvent(String eventId) {
         if (!eventRepository.existsById(eventId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
@@ -134,18 +133,22 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RegistrationResponse> getRegistrationsByUser(Long userId) {
+    public List<RegistrationResponse> getRegistrationsByUser(String userId) {
         return registrationRepository.findByUserId(userId)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     private RegistrationResponse toResponse(Registration reg) {
+        String eventTitle = eventRepository.findById(reg.getEventId())
+                .map(Event::getTitle).orElse(null);
+        String userName = userRepository.findById(reg.getUserId())
+                .map(User::getName).orElse(null);
         return RegistrationResponse.builder()
                 .id(reg.getId())
-                .eventId(reg.getEvent().getId())
-                .eventTitle(reg.getEvent().getTitle())
-                .userId(reg.getUser().getId())
-                .userName(reg.getUser().getName())
+                .eventId(reg.getEventId())
+                .eventTitle(eventTitle)
+                .userId(reg.getUserId())
+                .userName(userName)
                 .status(reg.getStatus().name())
                 .registeredAt(reg.getRegisteredAt())
                 .build();

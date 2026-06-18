@@ -8,7 +8,6 @@ import com.tooba.EduEvent.service.LeaderboardService;
 import com.tooba.EduEvent.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +19,8 @@ import java.util.stream.Collectors;
 public class DashboardServiceImpl implements DashboardService {
 
     private final UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final TeamRepository teamRepository;
     private final RegistrationRepository registrationRepository;
     private final QuizRepository quizRepository;
     private final QuizService quizService;
@@ -29,45 +30,47 @@ public class DashboardServiceImpl implements DashboardService {
     private final LeaderboardService leaderboardService;
 
     @Override
-    @Transactional(readOnly = true)
     public DashboardResponse getDashboard(String email) {
         User user = userRepository.findByEmail(email).orElseThrow();
-        Long userId = user.getId();
+        String userId = user.getId();
 
         // 1. Registered Events
         List<Registration> registrations = registrationRepository.findByUserId(userId);
         List<DashboardResponse.EventSummary> events = registrations.stream()
-                .map(r -> DashboardResponse.EventSummary.builder()
-                        .eventId(r.getEvent().getId())
-                        .title(r.getEvent().getTitle())
-                        .type(r.getEvent().getType())
-                        .status(r.getStatus().name())
-                        .build())
+                .map(r -> {
+                    Event ev = eventRepository.findById(r.getEventId()).orElse(null);
+                    return DashboardResponse.EventSummary.builder()
+                            .eventId(r.getEventId())
+                            .title(ev != null ? ev.getTitle() : "Unknown")
+                            .type(ev != null ? ev.getType() : null)
+                            .status(r.getStatus().name())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         // 2. Upcoming Quizzes
-        List<Long> registeredEventIds = registrations.stream().map(r -> r.getEvent().getId()).toList();
+        List<String> registeredEventIds = registrations.stream().map(Registration::getEventId).toList();
         List<DashboardResponse.QuizSummary> upcomingQuizzes = new ArrayList<>();
         if (!registeredEventIds.isEmpty()) {
             upcomingQuizzes = quizRepository.findByEventIdIn(registeredEventIds).stream()
                     .map(q -> DashboardResponse.QuizSummary.builder()
                             .quizId(q.getId())
-                            .eventTitle(q.getEvent().getTitle())
+                            .eventTitle(eventRepository.findById(q.getEventId()).map(Event::getTitle).orElse("Quiz"))
                             .durationMinutes(q.getDurationMinutes())
                             .passScore(q.getPassScore().doubleValue())
                             .build())
                     .collect(Collectors.toList());
         }
 
-        // 3. Quiz Scores (Reusing QuizService)
+        // 3. Quiz Scores
         List<QuizResultResponse> quizScores = quizService.getMyQuizHistory(email);
 
         // 4. Certificates
         List<CertificateResponse> certificates = certificateRepository.findAllByUserId(userId).stream()
                 .map(cert -> CertificateResponse.builder()
                         .id(cert.getId())
-                        .participantName(cert.getUser().getName())
-                        .eventTitle(cert.getEvent().getTitle())
+                        .participantName(user.getName())
+                        .eventTitle(eventRepository.findById(cert.getEventId()).map(Event::getTitle).orElse("Unknown Event"))
                         .certUuid(cert.getCertUuid())
                         .verifyUrl(cert.getVerifyUrl())
                         .issuedAt(cert.getIssuedAt())
@@ -78,12 +81,14 @@ public class DashboardServiceImpl implements DashboardService {
         DashboardResponse.TeamSummary myTeam = null;
         Optional<TeamMember> teamMemberOpt = teamMemberRepository.findByUserId(userId).stream().findFirst();
         if (teamMemberOpt.isPresent()) {
-            Team team = teamMemberOpt.get().getTeam();
-            myTeam = DashboardResponse.TeamSummary.builder()
-                    .teamId(team.getId())
-                    .teamName(team.getName())
-                    .hackathonTitle(team.getHackathon().getTitle())
-                    .build();
+            Team team = teamRepository.findById(teamMemberOpt.get().getTeamId()).orElse(null);
+            if (team != null) {
+                myTeam = DashboardResponse.TeamSummary.builder()
+                        .teamId(team.getId())
+                        .teamName(team.getName())
+                        .hackathonTitle(eventRepository.findById(team.getHackathonId()).map(Event::getTitle).orElse("Hackathon"))
+                        .build();
+            }
         }
 
         // 6. Notifications
@@ -92,7 +97,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(n -> DashboardResponse.NotificationSummary.builder()
                         .id(n.getId())
                         .message(n.getMessage())
-                        .timeAgo(n.getCreatedAt().toLocalDate().toString())
+                        .timeAgo(n.getCreatedAt() != null ? n.getCreatedAt().toLocalDate().toString() : "")
                         .build())
                 .collect(Collectors.toList());
 

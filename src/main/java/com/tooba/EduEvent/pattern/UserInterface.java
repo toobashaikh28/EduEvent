@@ -1,7 +1,7 @@
 package com.tooba.EduEvent.pattern;
 
 public interface UserInterface {
-    Long getId();
+    String getId();
     String getName();
     String getEmail();
     String getRole();

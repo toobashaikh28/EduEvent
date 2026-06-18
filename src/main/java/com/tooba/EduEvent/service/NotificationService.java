@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface NotificationService {
 
-    void send(Long userId, String title, String message);
+    void send(String userId, String title, String message);
 
-    List<NotificationResponse> getNotificationsForUser(Long userId);
+    List<NotificationResponse> getNotificationsForUser(String userId);
 
-    NotificationResponse markAsRead(Long notificationId, Long userId);
+    NotificationResponse markAsRead(String notificationId, String userId);
 }

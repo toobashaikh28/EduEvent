@@ -32,7 +32,7 @@
       <ul class="sidebar-nav">
         <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
         <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
-        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Event Management</span></a></li>
         <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
       </ul>
     </div>
@@ -88,7 +88,7 @@
         <div class="filter-row" style="flex:1;display:flex;gap:10px;flex-wrap:wrap;">
           <div class="search-wrap" style="min-width:200px;max-width:280px;">
             <i class="ti ti-search"></i>
-            <input type="text" placeholder="Search name or email…" oninput="filterTable('users-table', this.value)">
+            <input type="text" placeholder="Search name or email…" oninput="searchUsers(this.value)">
           </div>
           <select onchange="filterRole(this.value)">
             <option value="">All Roles</option>
@@ -147,7 +147,7 @@
       <div class="form-group"><label class="form-label">Role</label>
         <select id="uf-role"><option value="PARTICIPANT">Participant</option><option value="JUDGE">Judge</option><option value="ADMIN">Admin</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Department</label><input type="text" id="uf-dept" placeholder="CS / SWE / EE…"></div>
+      <div class="form-group" id="uf-pass-group"><label class="form-label">Temp Password</label><input type="text" id="uf-pass" placeholder="default: password123"></div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
       <button class="btn btn-secondary" onclick="document.getElementById('user-modal').classList.remove('open')">Cancel</button>
@@ -158,103 +158,159 @@
 
 <script>
 const avatarColors = ['#7C6FCD','#80CDB8','#C5A9E8','#E0A93B','#89C4E1','#6DD5A0','#F28B8B'];
+let USERS = [];
+let displayUsers = [];
+let roleFilter = '', statusFilter = '', searchQ = '';
 
-const USERS = [
-  { id:1, name:'Ali Khan', email:'ali.khan@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-01', events:6, status:'active' },
-  { id:2, name:'Sara Baig', email:'sara.baig@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-01', events:4, status:'active' },
-  { id:3, name:'Dr. Tariq Mehmood', email:'tariq.mehmood@ssuet.edu.pk', role:'JUDGE', joined:'2024-08-15', events:3, status:'active' },
-  { id:4, name:'Umar Shah', email:'umar.shah@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-10-01', events:2, status:'active' },
-  { id:5, name:'Fatima Noor', email:'fatima.noor@ssuet.edu.pk', role:'PARTICIPANT', joined:'2024-09-15', events:5, status:'active' },
-  { id:6, name:'Prof. Aisha Siddiqui', email:'aisha.siddiqui@ssuet.edu.pk', role:'JUDGE', joined:'2024-08-01', events:4, status:'active' },
-  { id:7, name:'Super Admin', email:'admin@eduevent.io', role:'ADMIN', joined:'2024-07-01', events:0, status:'active' },
-  { id:8, name:'Hassan Ali', email:'hassan.ali@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-01-10', events:3, status:'active' },
-  { id:9, name:'Ayesha Malik', email:'ayesha.malik@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-02-01', events:1, status:'suspended' },
-  { id:10, name:'Zaid Raza', email:'zaid.raza@ssuet.edu.pk', role:'PARTICIPANT', joined:'2025-01-20', events:2, status:'active' },
-];
+function initials(name){ return (name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); }
+function avatarColor(name){ return avatarColors[(name||'U').charCodeAt(0) % avatarColors.length]; }
+function roleLabel(role){ return role==='USER' ? 'PARTICIPANT' : role; }
+function roleClass(role){ return role==='USER' ? 'role-participant' : 'role-'+(role||'').toLowerCase(); }
 
-let displayUsers = [...USERS];
+async function loadUsers(){
+  const data = await api.get('/users');
+  if(!Array.isArray(data)) return;
+  USERS = data.map(u => ({
+    id:u.id, name:u.name, email:u.email, role:u.role,
+    status: u.active===false ? 'suspended' : 'active',
+    joined: u.createdAt, events: u.eventsCount || 0
+  }));
+  applyFilters();
+  updateStats();
+}
 
-function initials(name) { return name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); }
-function avatarColor(name) { return avatarColors[name.charCodeAt(0) % avatarColors.length]; }
+function updateStats(){
+  const cards = document.querySelectorAll('.stat-card .stat-value');
+  if(cards.length >= 4){
+    cards[0].textContent = USERS.length;
+    cards[1].textContent = USERS.filter(u=>u.role==='USER').length;
+    cards[2].textContent = USERS.filter(u=>u.role==='JUDGE').length;
+    cards[3].textContent = USERS.filter(u=>u.role==='ADMIN').length;
+  }
+}
 
-function renderUsers(users) {
-  document.getElementById('users-tbody').innerHTML = users.map(u => `
+function applyFilters(){
+  displayUsers = USERS.filter(u =>
+    (!roleFilter || u.role===roleFilter) &&
+    (!statusFilter || u.status===statusFilter) &&
+    (!searchQ || (u.name+' '+u.email).toLowerCase().includes(searchQ))
+  );
+  renderUsers(displayUsers);
+}
+
+function renderUsers(users){
+  const tb = document.getElementById('users-tbody');
+  if(!users.length){ tb.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No users found.</td></tr>`; return; }
+  tb.innerHTML = users.map(u => `
     <tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="user-avatar" style="background:${avatarColor(u.name)};">${initials(u.name)}</div>
-          <span>${u.name}</span>
-        </div>
-      </td>
+      <td><div style="display:flex;align-items:center;gap:10px;"><div class="user-avatar" style="background:${avatarColor(u.name)};">${initials(u.name)}</div><span>${u.name}</span></div></td>
       <td style="font-family:var(--font-mono);font-size:12px;">${u.email}</td>
-      <td><span class="badge role-${u.role.toLowerCase()}">${u.role}</span></td>
-      <td>${fmt.date(u.joined)}</td>
+      <td><span class="badge ${roleClass(u.role)}">${roleLabel(u.role)}</span></td>
+      <td>${u.joined?fmt.date(u.joined):'—'}</td>
       <td>${u.events}</td>
       <td><span class="badge status-${u.status}">${u.status}</span></td>
       <td>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary btn-sm" title="Edit" onclick="editUser(${u.id})"><i class="ti ti-edit"></i></button>
-          ${u.status === 'active'
-            ? `<button class="btn btn-secondary btn-sm" title="Suspend" onclick="toggleSuspend(${u.id})"><i class="ti ti-user-off"></i></button>`
-            : `<button class="btn btn-success btn-sm" title="Restore" onclick="toggleSuspend(${u.id})"><i class="ti ti-user-check"></i></button>`}
-          <button class="btn btn-danger btn-sm" title="Delete" onclick="deleteUser(${u.id})"><i class="ti ti-trash"></i></button>
+          <button class="btn btn-secondary btn-sm" title="Edit" onclick="editUser('${u.id}')"><i class="ti ti-edit"></i></button>
+          ${u.role==='ADMIN'
+            ? `<button class="btn btn-secondary btn-sm" title="Remove admin (make Participant)" onclick="setRole('${u.id}','USER')"><i class="ti ti-shield-off"></i></button>`
+            : `<button class="btn btn-secondary btn-sm" title="Make Admin" onclick="setRole('${u.id}','ADMIN')"><i class="ti ti-shield-check"></i></button>`}
+          ${u.status==='active'
+            ? `<button class="btn btn-secondary btn-sm" title="Suspend" onclick="toggleSuspend('${u.id}',false)"><i class="ti ti-user-off"></i></button>`
+            : `<button class="btn btn-success btn-sm" title="Restore" onclick="toggleSuspend('${u.id}',true)"><i class="ti ti-user-check"></i></button>`}
+          <button class="btn btn-danger btn-sm" title="Delete" onclick="deleteUser('${u.id}')"><i class="ti ti-trash"></i></button>
         </div>
       </td>
     </tr>`).join('');
 }
 
-function filterRole(role) {
-  displayUsers = role ? USERS.filter(u => u.role === role) : [...USERS];
-  renderUsers(displayUsers);
-}
+function filterRole(role){ roleFilter = role; applyFilters(); }
+function filterUserStatus(status){ statusFilter = status; applyFilters(); }
+function searchUsers(q){ searchQ = (q||'').toLowerCase(); applyFilters(); }
 
-function filterUserStatus(status) {
-  displayUsers = status ? USERS.filter(u => u.status === status) : [...USERS];
-  renderUsers(displayUsers);
-}
-
-function openAddUser() { document.getElementById('user-modal').classList.add('open'); }
-
-function editUser(id) { Toast.show('Edit functionality coming soon.', 'info'); }
-
-function toggleSuspend(id) {
-  const u = USERS.find(u => u.id === id);
-  if (!u) return;
-  const action = u.status === 'active' ? 'suspend' : 'restore';
-  confirmAction(`${action.charAt(0).toUpperCase()+action.slice(1)} user <strong>${u.name}</strong>?`, () => {
-    u.status = u.status === 'active' ? 'suspended' : 'active';
-    renderUsers(displayUsers);
-    Toast.show(`User ${action}d.`, 'success');
+async function setRole(id, role){
+  const u = USERS.find(x=>x.id===id); if(!u) return;
+  const verb = role==='ADMIN' ? `make <strong>${u.name}</strong> an Admin` : `change <strong>${u.name}</strong> to Participant`;
+  confirmAction(`Are you sure you want to ${verb}?`, async ()=>{
+    const res = await api.put(`/users/${id}/role`, { role });
+    if(!res) return;
+    u.role = res.role; applyFilters(); updateStats();
+    Toast.show(`Role updated to ${roleLabel(res.role)}.`, 'success');
   });
 }
 
-function deleteUser(id) {
-  const u = USERS.find(u => u.id === id);
-  confirmAction(`Permanently delete <strong>${u?.name}</strong>?`, () => {
-    const idx = USERS.findIndex(u => u.id === id);
-    if (idx !== -1) USERS.splice(idx, 1);
-    displayUsers = displayUsers.filter(u => u.id !== id);
-    renderUsers(displayUsers);
+async function toggleSuspend(id, activate){
+  const u = USERS.find(x=>x.id===id); if(!u) return;
+  const word = activate ? 'restore' : 'suspend';
+  confirmAction(`${word.charAt(0).toUpperCase()+word.slice(1)} <strong>${u.name}</strong>?`, async ()=>{
+    const res = await api.put(`/users/${id}/status`, { active: activate });
+    if(!res) return;
+    u.status = activate ? 'active' : 'suspended'; applyFilters();
+    Toast.show(`User ${word}d.`, 'success');
+  });
+}
+
+async function deleteUser(id){
+  const u = USERS.find(x=>x.id===id);
+  confirmAction(`Permanently delete <strong>${u?.name||'this user'}</strong>?`, async ()=>{
+    const res = await api.delete(`/users/${id}`);
+    if(!res) return;
+    USERS = USERS.filter(x=>x.id!==id); applyFilters(); updateStats();
     Toast.show('User deleted.', 'success');
   });
 }
 
-function saveUser() {
-  const fname = document.getElementById('uf-fname').value.trim();
-  const lname = document.getElementById('uf-lname').value.trim();
-  const email = document.getElementById('uf-email').value.trim();
-  if (!fname || !email) { Toast.show('Name and email are required.', 'warning'); return; }
-  const newUser = { id: Date.now(), name: `${fname} ${lname}`, email, role: document.getElementById('uf-role').value, joined: new Date().toISOString().split('T')[0], events: 0, status: 'active' };
-  USERS.unshift(newUser);
-  displayUsers.unshift(newUser);
-  document.getElementById('user-modal').classList.remove('open');
-  renderUsers(displayUsers);
-  Toast.show('User added successfully.', 'success');
+// ── Add / Edit modal ──────────────────────────────
+let editingId = null;
+function openAddUser(){
+  editingId = null;
+  document.querySelector('#user-modal .modal-title').textContent = 'Add User';
+  document.getElementById('uf-fname').value='';
+  document.getElementById('uf-lname').value='';
+  document.getElementById('uf-email').value=''; document.getElementById('uf-email').disabled=false;
+  document.getElementById('uf-role').value='PARTICIPANT';
+  document.getElementById('uf-pass').value='';
+  document.getElementById('uf-pass-group').style.display='';
+  document.getElementById('user-modal').classList.add('open');
+}
+function editUser(id){
+  const u = USERS.find(x=>x.id===id); if(!u) return;
+  editingId = id;
+  document.querySelector('#user-modal .modal-title').textContent = 'Edit User';
+  const parts = (u.name||'').split(' ');
+  document.getElementById('uf-fname').value = parts[0]||'';
+  document.getElementById('uf-lname').value = parts.slice(1).join(' ');
+  document.getElementById('uf-email').value = u.email; document.getElementById('uf-email').disabled=true;
+  document.getElementById('uf-role').value = roleLabel(u.role);
+  document.getElementById('uf-pass-group').style.display='none';
+  document.getElementById('user-modal').classList.add('open');
+}
+
+async function saveUser(){
+  const fname=document.getElementById('uf-fname').value.trim();
+  const lname=document.getElementById('uf-lname').value.trim();
+  const email=document.getElementById('uf-email').value.trim();
+  const role=document.getElementById('uf-role').value;     // PARTICIPANT/JUDGE/ADMIN
+  const name=(fname+' '+lname).trim();
+  if(!name){ Toast.show('Name is required.','warning'); return; }
+  if(editingId){
+    const res = await api.put(`/users/${editingId}`, { name, role });
+    if(!res) return;
+    document.getElementById('user-modal').classList.remove('open');
+    Toast.show('User updated.','success'); loadUsers();
+  } else {
+    if(!email){ Toast.show('Email is required.','warning'); return; }
+    const password=document.getElementById('uf-pass').value.trim();
+    const res = await api.post('/users', { name, email, role, password });
+    if(!res) return;
+    document.getElementById('user-modal').classList.remove('open');
+    Toast.show('User added.','success'); loadUsers();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   populateAdminProfile();
-  renderUsers(USERS);
+  loadUsers();
   document.querySelectorAll('[data-action="logout"]').forEach(btn =>
     btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
   document.getElementById('user-modal').addEventListener('click', e => {

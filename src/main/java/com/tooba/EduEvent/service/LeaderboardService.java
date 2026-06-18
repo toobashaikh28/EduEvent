@@ -4,8 +4,8 @@ import com.tooba.EduEvent.dto.response.LeaderboardResponse;
 import java.util.List;
 
 public interface LeaderboardService {
-    void upsertQuizScore(Long userId, Long eventId, Double score);
-    List<LeaderboardResponse> getEventLeaderboard(Long eventId);
-    List<LeaderboardResponse> getHackathonLeaderboard(Long hackathonId);
+    void upsertQuizScore(String userId, String eventId, Double score);
+    List<LeaderboardResponse> getEventLeaderboard(String eventId);
+    List<LeaderboardResponse> getHackathonLeaderboard(String hackathonId);
     List<LeaderboardResponse> getGlobalLeaderboard();
 }

@@ -1,14 +1,15 @@
 package com.tooba.EduEvent.entity;
 
 import com.tooba.EduEvent.pattern.UserInterface;
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
+@Document(collection = "users")
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,40 +17,32 @@ import java.time.LocalDateTime;
 public class User implements UserInterface {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false, length = 50)
     private String role; // 'USER', 'ADMIN', 'JUDGE'
 
-    @Column(name = "reset_token")
     private String resetToken;
 
     // Fix: expiry timestamp so reset links expire after 1 hour
-    @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
 
-    @Column(length = 500)
     private String photo;
 
-    @Column(length = 1000)
     private String bio;
 
+    private String city;
+
     @Builder.Default
-    @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @Override

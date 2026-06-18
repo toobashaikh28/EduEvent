@@ -22,7 +22,7 @@ public class SubmissionController {
     // POST /api/hackathon/{id}/submit
     @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SubmissionResponse> submit(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             @Valid @ModelAttribute SubmissionRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file,
             Authentication authentication) {
@@ -35,7 +35,7 @@ public class SubmissionController {
     // PUT /api/hackathon/{id}/submit
     @PutMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SubmissionResponse> editSubmission(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             @Valid @ModelAttribute SubmissionRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file,
             Authentication authentication) {
@@ -47,7 +47,7 @@ public class SubmissionController {
     // GET /api/hackathon/{id}/my-submission
     @GetMapping("/my-submission")
     public ResponseEntity<SubmissionResponse> getMySubmission(
-            @PathVariable("id") Long hackathonId,
+            @PathVariable("id") String hackathonId,
             Authentication authentication) {
 
         return ResponseEntity.ok(

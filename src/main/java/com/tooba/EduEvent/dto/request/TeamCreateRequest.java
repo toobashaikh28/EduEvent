@@ -10,5 +10,5 @@ public class TeamCreateRequest {
     @Size(min = 3, max = 50, message = "Team name must be between 3 and 50 characters")
     private String teamName;
 
-    private Long eventId;
+    private String eventId;
 }

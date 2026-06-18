@@ -16,6 +16,7 @@ public class UserFactory {
                 .name(req.getName())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword())) // ENCODE HERE
+                .city(req.getCity())
                 .isActive(true);
     }
 

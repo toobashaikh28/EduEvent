@@ -966,11 +966,10 @@
         if (!Auth.guardPage("USER")) throw new Error("no access");
 
         const params = new URLSearchParams(location.search);
-        const SESSION_ID =
-          params.get("sessionId") || `EDU_${Math.floor(Math.random() * 10000)}`;
-        const DURATION = parseInt(params.get("duration") || "540"); // 9 minutes default
-        const PASS_SCORE = parseInt(params.get("passScore") || "60");
-        const API_BASE = params.get("apiBase") || "";
+        const QUIZ_ID = params.get("id") || params.get("quizId") || "";
+        let SESSION_ID = params.get("sessionId") || "";
+        let DURATION = parseInt(params.get("duration") || "30") * 60; // minutes → seconds
+        let PASS_SCORE = parseInt(params.get("pass") || params.get("passScore") || "60");
         const MAX_VIOLATIONS = 3;
 
         // ----- robust question bank -----
@@ -1048,10 +1047,8 @@
           return copy;
         }
 
-        let questions = shuffleArray(FULL_QUESTIONS).map((q) => ({
-          ...q,
-          options: shuffleArray(q.options),
-        }));
+        // Real questions are loaded from the server in setup() via /quiz/{id}/start
+        let questions = [];
 
         let answers = {};
         let currentIndex = 0;
@@ -1157,27 +1154,11 @@
                   "/3";
           showToast(message);
 
-          // Try to report to backend if available
+          // Report to the real session (server tracks + may invalidate)
           try {
-            if (API_BASE) {
-              await fetch(
-                `${API_BASE}/api/quiz/session/${SESSION_ID}/violation`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${getToken()}`,
-                  },
-                  body: JSON.stringify({
-                    type,
-                    timestamp: Date.now(),
-                    count: violationCount,
-                  }),
-                },
-              );
-            }
+            if (SESSION_ID) await api.post("/quiz/session/" + SESSION_ID + "/violation", { type });
           } catch (err) {
-            // Silent fail - we already have local count
+            // Silent — we already have the local count
           }
 
           // CRITICAL FIX: Check if violation limit reached
@@ -1327,36 +1308,14 @@
           if (submissionPrevented) return;
 
           clearTimerAndIntervals();
-          let resultData;
-          try {
-            const payload = {
-              sessionId: SESSION_ID,
-              answers,
-              submittedAt: new Date().toISOString(),
-            };
-            if (API_BASE) {
-              const response = await fetch(
-                `${API_BASE}/api/quiz/session/${SESSION_ID}/submit`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${getToken()}`,
-                  },
-                  body: JSON.stringify(payload),
-                },
-              );
-              if (response.ok) resultData = await response.json();
-              else throw new Error("fallback");
-            } else {
-              throw new Error("fallback");
-            }
-          } catch (e) {
-            resultData = computeLocalScore();
+          // Submit to the real session — the server scores it
+          const resultData = await api.post("/quiz/session/" + SESSION_ID + "/submit", { answers });
+          if (!resultData || resultData.score === undefined || resultData.score === null) {
+            showToast("Could not submit your quiz. Please try again.");
+            return;
           }
-          const final =
-            resultData.score !== undefined ? resultData : computeLocalScore();
-          showResultScreen(final);
+          if (resultData.passScore != null) PASS_SCORE = Math.round(resultData.passScore);
+          showResultScreen(resultData);
         }
 
         function showResultScreen(result) {
@@ -1605,8 +1564,25 @@
           window.location.href = 'certificates.html';
         };
 
-        // initialize everything
+        // initialize everything — load the REAL quiz session from the backend first
         (async function setup() {
+          if (!QUIZ_ID) { alert("No quiz specified."); window.location.href = "quizzes.html"; return; }
+
+          const res = await api.post("/quiz/" + QUIZ_ID + "/start", {});
+          if (!res || !res.sessionId) {
+            // api helper already showed the server's reason (not open / not registered / already passed)
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+            setTimeout(() => { window.location.href = "quizzes.html"; }, 1600);
+            return;
+          }
+          SESSION_ID = res.sessionId;
+          if (res.durationMinutes) { DURATION = res.durationMinutes * 60; timeLeft = DURATION; }
+          questions = (res.questions || []).map((q) => ({
+            id: q.id, text: q.text,
+            options: (q.options || []).map((o) => ({ id: o.id, text: o.optionText })),
+          }));
+          if (!questions.length) { alert("This quiz has no questions yet."); window.location.href = "quizzes.html"; return; }
+
           document.getElementById("q-total").textContent = questions.length;
           renderQuestion();
           await initCamera();

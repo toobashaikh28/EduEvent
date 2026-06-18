@@ -26,6 +26,8 @@
     .chip { padding:5px 13px; border-radius:99px; border:0.5px solid var(--border-hover); font-size:12px; cursor:pointer; transition:var(--transition); }
     .chip:hover { border-color:var(--brand); color:var(--brand-muted); }
     .chip.selected { background:rgba(79,70,229,0.15); border-color:var(--brand); color:var(--brand-muted); }
+    .sent-pill { display:inline-block; padding:1px 8px; border-radius:99px; background:rgba(56,189,248,0.12);
+                 color:var(--brand); font-size:10px; font-weight:500; }
   </style>
 </head>
 <body>
@@ -41,7 +43,7 @@
       <ul class="sidebar-nav">
         <li class="nav-item"><a href="dashboard.html"><span class="nav-icon"><i class="ti ti-layout-dashboard"></i></span><span>Dashboard</span></a></li>
         <li class="nav-item"><a href="events.html"><span class="nav-icon"><i class="ti ti-calendar-event"></i></span><span>Events</span></a></li>
-        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Hackathons</span></a></li>
+        <li class="nav-item"><a href="hackathons.html"><span class="nav-icon"><i class="ti ti-tournament"></i></span><span>Event Management</span></a></li>
         <li class="nav-item"><a href="quizzes.html"><span class="nav-icon"><i class="ti ti-clipboard-check"></i></span><span>Quizzes</span></a></li>
       </ul>
     </div>
@@ -78,24 +80,19 @@
     <div class="page-header">
       <div>
         <div class="page-title">Notifications</div>
-        <div class="page-desc">System alerts and broadcast messaging</div>
+        <div class="page-desc">Broadcast messaging &amp; sent history</div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="markAllRead()"><i class="ti ti-checks"></i> Mark all read</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadSent()"><i class="ti ti-refresh"></i> Refresh</button>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
 
-      <!-- Notification feed -->
+      <!-- Sent notifications history -->
       <div class="card">
         <div class="card-header">
-          <div><div class="card-title">Recent Notifications</div><div class="card-subtitle" id="unread-label">3 unread</div></div>
-          <div class="tabs">
-            <div class="tab-btn active" onclick="switchFeedTab('all',this)">All</div>
-            <div class="tab-btn" onclick="switchFeedTab('unread',this)">Unread</div>
-            <div class="tab-btn" onclick="switchFeedTab('system',this)">System</div>
-          </div>
+          <div><div class="card-title">Sent Notifications</div><div class="card-subtitle" id="sent-count">No notifications sent yet</div></div>
         </div>
-        <div id="notif-feed"></div>
+        <div id="sent-feed"></div>
       </div>
 
       <!-- Compose panel -->
@@ -121,7 +118,7 @@
               <div class="chip" onclick="toggleChip(this)" data-val="admins">Admins</div>
             </div>
           </div>
-          <div class="form-group" style="margin-bottom:16px;">
+          <div class="form-group" style="margin-bottom:14px;">
             <label class="form-label">Type</label>
             <select id="n-type">
               <option value="info">Info</option>
@@ -130,6 +127,13 @@
               <option value="danger">Urgent</option>
             </select>
           </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Send to specific email (optional)</label>
+            <input type="email" id="n-email-to" placeholder="person@example.com — overrides the audience above">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:16px;cursor:pointer;">
+            <input type="checkbox" id="n-send-email" style="width:auto;"> Also send as email
+          </label>
           <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="sendNotif()">
             <i class="ti ti-send"></i> Send Notification
           </button>
@@ -161,91 +165,76 @@
 </div>
 
 <script>
-let NOTIFS = [
-  { id:1, icon:'ti-trophy', color:'#E0A93B', bg:'rgba(245,158,11,0.12)', title:'Winners announced', body:'ML Bootcamp 2025 winners have been announced. Certificates are being generated.', time:'2 mins ago', unread:true, type:'system' },
-  { id:2, icon:'ti-certificate', color:'#6DD5A0', bg:'rgba(34,197,94,0.12)', title:'Certificates issued', body:'12 certificates issued for Data Science Quiz participants.', time:'18 mins ago', unread:true, type:'system' },
-  { id:3, icon:'ti-user-plus', color:'#7C6FCD', bg:'rgba(79,70,229,0.12)', title:'New registration', body:'Zaid Khan registered for the upcoming Web Dev Webinar.', time:'34 mins ago', unread:true, type:'system' },
-  { id:4, icon:'ti-calendar-plus', color:'#80CDB8', bg:'rgba(20,184,166,0.12)', title:'Event created', body:'IEEE Tech Conference has been created and is now visible to participants.', time:'1 hr ago', unread:false, type:'system' },
-  { id:5, icon:'ti-bell', color:'#C5A9E8', bg:'rgba(217,70,239,0.12)', title:'Broadcast sent', body:'Reminder sent to all participants: DSA Sprint ends in 24 hours.', time:'3 hrs ago', unread:false, type:'broadcast' },
-  { id:6, icon:'ti-alert-triangle', color:'#F28B8B', bg:'rgba(239,68,68,0.12)', title:'Quiz violation detected', body:'Ayesha Raza triggered a tab-switch alert during Data Science Quiz.', time:'5 hrs ago', unread:false, type:'system' },
-];
 
-let feedFilter = 'all';
+const TARGET_LABELS = { all:'All Users', participants:'Participants', judges:'Judges', admins:'Admins' };
 
-function renderFeed() {
-  let list = NOTIFS;
-  if (feedFilter === 'unread') list = NOTIFS.filter(n => n.unread);
-  if (feedFilter === 'system') list = NOTIFS.filter(n => n.type === 'system');
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
 
-  const unreadCount = NOTIFS.filter(n => n.unread).length;
-  document.getElementById('unread-label').textContent = unreadCount > 0 ? `${unreadCount} unread` : 'All caught up';
+async function loadSent() {
+  const data = await api.get('/admin/sent');
+  const list = Array.isArray(data) ? data : [];
+  document.getElementById('sent-count').textContent =
+    list.length ? `${list.length} sent` : 'No notifications sent yet';
 
+  const el = document.getElementById('sent-feed');
   if (!list.length) {
-    document.getElementById('notif-feed').innerHTML = `
+    el.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon"><i class="ti ti-bell-off"></i></div>
-        <div class="empty-title">No notifications</div>
-        <div class="empty-desc">Nothing to show for this filter.</div>
+        <div class="empty-icon"><i class="ti ti-send"></i></div>
+        <div class="empty-title">No notifications sent yet</div>
+        <div class="empty-desc">Broadcasts you send will appear here.</div>
       </div>`;
     return;
   }
 
-  document.getElementById('notif-feed').innerHTML = list.map(n => `
-    <div class="notif-item ${n.unread ? 'unread' : ''}" onclick="markRead(${n.id})">
-      <div class="notif-icon-wrap" style="background:${n.bg};color:${n.color};"><i class="ti ${n.icon}"></i></div>
+  el.innerHTML = list.map(s => {
+    const time    = (typeof _notifTimeAgo === 'function') ? _notifTimeAgo(s.createdAt) : '';
+    const reach   = s.recipientCount === 1 ? '1 recipient' : `${s.recipientCount} recipients`;
+    const emailed = s.emailedCount > 0 ? ` · ${s.emailedCount} emailed` : '';
+    const label   = TARGET_LABELS[s.target] || s.target;
+    return `<div class="notif-item">
+      <div class="notif-icon-wrap" style="background:rgba(56,189,248,0.14);color:var(--brand);"><i class="ti ti-send"></i></div>
       <div style="flex:1;min-width:0;">
-        <div class="notif-title">${n.title}</div>
-        <div class="notif-body">${n.body}</div>
-        <div class="notif-time">${n.time}</div>
+        <div class="notif-title">${escapeHtml(s.title)}</div>
+        <div class="notif-body">${escapeHtml(s.message)}</div>
+        <div class="notif-time"><span class="sent-pill">${escapeHtml(label)}</span> · ${reach}${emailed} · ${time}</div>
       </div>
-      ${n.unread ? '<div class="unread-dot"></div>' : ''}
-    </div>`).join('');
-}
-
-function markRead(id) {
-  const n = NOTIFS.find(n => n.id === id);
-  if (n) { n.unread = false; renderFeed(); }
-}
-
-function markAllRead() {
-  NOTIFS.forEach(n => n.unread = false);
-  renderFeed();
-  Toast.show('All notifications marked as read.', 'success');
-}
-
-function switchFeedTab(filter, el) {
-  feedFilter = filter;
-  document.querySelectorAll('.tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-  el.classList.add('active');
-  renderFeed();
+    </div>`;
+  }).join('');
 }
 
 function toggleChip(el) {
-  const allChip = document.querySelector('.chip[data-val="all"]');
-  if (el.dataset.val === 'all') {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-  } else {
-    allChip.classList.remove('selected');
-    el.classList.toggle('selected');
-  }
+  // Single-select audience
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
-function sendNotif() {
+async function sendNotif() {
   const title = document.getElementById('n-title').value.trim();
-  const body = document.getElementById('n-body').value.trim();
+  const body  = document.getElementById('n-body').value.trim();
   if (!title || !body) { Toast.show('Title and message are required.', 'warning'); return; }
 
-  const type = document.getElementById('n-type').value;
-  const iconMap = { info:'ti-info-circle', warning:'ti-alert-triangle', success:'ti-circle-check', danger:'ti-alert-octagon' };
-  const colorMap = { info:'#7C6FCD', warning:'#E0A93B', success:'#6DD5A0', danger:'#F28B8B' };
-  const bgMap = { info:'rgba(79,70,229,0.12)', warning:'rgba(245,158,11,0.12)', success:'rgba(34,197,94,0.12)', danger:'rgba(239,68,68,0.12)' };
+  const specificEmail = document.getElementById('n-email-to').value.trim();
+  const alsoEmail = document.getElementById('n-send-email').checked;
+  const target = document.querySelector('.chip.selected')?.dataset.val || 'all';
 
-  NOTIFS.unshift({ id: Date.now(), icon: iconMap[type], color: colorMap[type], bg: bgMap[type], title, body, time: 'just now', unread: true, type: 'broadcast' });
+  let res;
+  if (specificEmail) {
+    res = await api.post('/admin/message-by-email', { email: specificEmail, title, message: body, sendEmail: true });
+    if (res) Toast.show(`Sent to ${specificEmail}` + (res.emailed ? ' (email delivered)' : ' (in-app; email failed)'), 'success');
+  } else {
+    res = await api.post('/admin/broadcast', { title, message: body, target, email: alsoEmail });
+    if (res) Toast.show(`Sent to ${res.notified} user(s)` + (alsoEmail ? `, ${res.emailed} emailed` : ''), 'success');
+  }
+  if (!res) return;
+  if (typeof playNotifSound === 'function') playNotifSound();
   document.getElementById('n-title').value = '';
   document.getElementById('n-body').value = '';
-  renderFeed();
-  Toast.show('Notification sent to all selected recipients.', 'success');
+  document.getElementById('n-email-to').value = '';
+  loadSent();
 }
 
 const TEMPLATES = {
@@ -263,7 +252,7 @@ function useTemplate(key) {
 
 document.addEventListener('DOMContentLoaded', () => {
   populateAdminProfile();
-  renderFeed();
+  loadSent();
   document.querySelectorAll('[data-action="logout"]').forEach(btn =>
     btn.addEventListener('click', () => confirmAction('Log out?', () => Auth.logout())));
 });

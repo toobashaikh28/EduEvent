@@ -35,7 +35,7 @@ public class EventController {
 
     // GET /api/events/{id} — Public, returns a single event or clean 404
     @GetMapping("/{id}")
-    public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
+    public ResponseEntity<EventResponse> getEventById(@PathVariable String id) {
         return ResponseEntity.ok(eventService.getEventById(id));
     }
 
@@ -54,7 +54,7 @@ public class EventController {
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> updateEvent(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @ModelAttribute EventRequest request,
             @RequestPart(value = "banner", required = false) MultipartFile banner) {
 
@@ -64,7 +64,7 @@ public class EventController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteEvent(@PathVariable Long id) {
+    public ResponseEntity<String> deleteEvent(@PathVariable String id) {
         eventService.deleteEvent(id);
         return ResponseEntity.ok("Event deleted successfully.");
     }

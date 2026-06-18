@@ -9,7 +9,7 @@ import lombok.Data;
 public class ScoreRequest {
 
     @NotNull(message = "Submission ID is required")
-    private Long submissionId;
+    private String submissionId;
 
     @NotNull(message = "Score value is required")
     @Min(value = 0, message = "Score cannot be negative")

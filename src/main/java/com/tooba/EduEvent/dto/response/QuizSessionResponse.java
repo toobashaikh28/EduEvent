@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class QuizSessionResponse {
-    private Long sessionId;
+    private String sessionId;
     private Integer durationMinutes;
     private LocalDateTime startTime;
     private List<QuestionResponse> questions; // shuffled

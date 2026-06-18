@@ -1,9 +1,9 @@
 package com.tooba.EduEvent.repository;
 
 import com.tooba.EduEvent.entity.Question;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
-public interface QuestionRepository extends JpaRepository<Question, Long> {
-    List<Question> findByQuizId(Long quizId);
+public interface QuestionRepository extends MongoRepository<Question, String> {
+    List<Question> findByQuizId(String quizId);
 }
