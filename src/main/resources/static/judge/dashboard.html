@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduEvent — Judge Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/core.js"></script>
+<style>
+  .shell{display:flex;min-height:100vh;max-height:100vh;overflow:hidden}
+  aside{width:264px;flex-shrink:0;background:#fff;border-right:1px solid #ececf3;display:flex;flex-direction:column;padding:22px 16px;overflow-y:auto}
+  .snav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;border:none;width:100%;text-align:left;transition:.15s;background:transparent;color:#56526a}
+  .snav:hover{background:#fbf6ec}
+  .snav.active{background:#fdf0d6;color:#d97706;font-weight:700}
+  .main-col{flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+  .main-head{display:flex;align-items:center;gap:18px;padding:18px 30px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border-bottom:1px solid #ececf3;flex-shrink:0}
+  .scroll-body{flex:1;overflow-y:auto;padding:28px 30px 48px}
+  .dot-pick{display:flex;gap:7px;flex-wrap:wrap}
+  .sdot{width:38px;height:38px;border-radius:11px;border:1.5px solid #e4e2ef;background:#fff;font-weight:800;font-size:14px;color:#75718a;cursor:pointer;transition:.13s;font-family:var(--mono)}
+  .sdot:hover{border-color:#d97706;color:#d97706;transform:translateY(-2px)}
+  .sdot.on{background:linear-gradient(135deg,#f59e0b,#d97706);border-color:#d97706;color:#fff;box-shadow:0 6px 14px rgba(217,119,6,.3)}
+  .sub-tab{border:1.5px solid #ececf3;background:#fff;border-radius:999px;padding:8px 15px;font-weight:700;font-size:12.5px;color:#56526a;cursor:pointer;transition:.15s;white-space:nowrap}
+  .sub-tab.active{background:#fdf0d6;border-color:#f0ddb0;color:#d97706}
+  .nbadge{background:#ef4444;color:#fff;font-size:10.5px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:auto}
+  @media (max-width:1080px){.g2{grid-template-columns:1fr!important}}
+  @media (max-width:920px){
+    aside{position:fixed;z-index:80;height:100vh;transform:translateX(-100%);transition:.25s}
+    aside.open{transform:none;box-shadow:0 0 60px rgba(20,16,40,.25)}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none}
+</style>
+</head>
+<body>
+<script>if(!Auth.guardPage("JUDGE")) throw new Error("no access");</script>
+
+<div class="shell">
+  <aside id="sidebar">
+    <div style="display:flex;align-items:center;gap:11px;padding:6px 8px 22px">
+      <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 14px rgba(217,119,6,.32)">E</div>
+      <div><div style="font-weight:800;font-size:16px;letter-spacing:-.3px">EduEvent</div>
+      <div style="font-size:11px;color:#9b97ac;font-weight:600;letter-spacing:.4px">JUDGE PANEL</div></div>
+    </div>
+    <div style="font-size:10.5px;font-weight:700;color:#b3afc2;letter-spacing:.8px;padding:6px 10px 8px">JUDGING</div>
+    <nav id="snav" style="display:flex;flex-direction:column;gap:3px"></nav>
+    <div style="margin-top:auto;padding-top:18px">
+      <button class="btn btn-danger-soft" style="width:100%" onclick="Auth.logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="main-head">
+      <button class="icon-btn menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div style="flex:1;min-width:0">
+        <h1 id="page-title" style="margin:0;font-size:21px;font-weight:800;letter-spacing:-.5px">My hackathons</h1>
+        <div id="page-sub" style="font-size:13px;color:#8b879c;margin-top:1px">Hackathons you've been assigned to judge</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px">
+        <div id="jd-av" class="av" style="width:42px;height:42px;border-radius:12px;font-size:15px;background:linear-gradient(135deg,#f59e0b,#d97706)">J</div>
+        <div style="line-height:1.25" class="hide-sm">
+          <div id="jd-name" style="font-weight:700;font-size:13.5px">Judge</div>
+          <div style="font-size:11.5px;color:#9b97ac">Judge</div>
+        </div>
+      </div>
+    </header>
+    <div class="scroll-body" id="body"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   JUDGE PANEL — wired to the real EduEvent backend DTOs
+   - GET  /judge/my-hackathons            → {id,title,status,startTime,endTime}
+   - GET  /judge/hackathon/{id}/submissions → SubmissionResponse[]
+   - GET  /judge/hackathon/{id}/my-scores → ScoreResponse[] {submissionId,scoreValue,feedback,…}
+   - POST /judge/score                    → {submissionId, scoreValue, feedback}
+   - GET  /hackathon/{id}/results         → RankedTeam[] (public)
+   - GET  /notifications
+   ===================================================================== */
+injectLoader("Loading judge panel…");
+const ME = Auth.getUser() || {};
+document.getElementById("jd-av").textContent = initials(ME.name || ME.email);
+document.getElementById("jd-name").textContent = ME.name || "Judge";
+
+const PAGES = [
+  ["hacks",   "My hackathons", "Hackathons you've been assigned to judge"],
+  ["subs",    "Submissions",   "Every team's project in the selected hackathon"],
+  ["score",   "Scoring",       "Score each submission out of 10 with feedback"],
+  ["results", "Results",       "Live rankings for the selected hackathon"],
+  ["notif",   "Notifications", "Updates from organizers"],
+];
+const ICONS = {
+  hacks:'<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>',
+  subs:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+  score:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  results:'<path d="M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z"/>',
+  notif:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+};
+const S = { page:"hacks", hacks:[], hackId:null,
+            subs:[], myScores:[], subsHack:null,   /* cache key: which hackathon subs/scores belong to */
+            activeSub:null, pickedScore:0,
+            notifications:[], notifLoaded:false };
+
+function renderNav(){
+  const unread = S.notifications.filter(n=>!n.isRead).length;
+  document.getElementById("snav").innerHTML = PAGES.map(p =>
+    '<button class="snav '+(S.page===p[0]?"active":"")+'" onclick="go(\''+p[0]+'\')">'+
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[p[0]]+'</svg>'+p[1]+
+    (p[0]==="notif" && unread ? '<span class="nbadge">'+unread+'</span>' : '')+'</button>'
+  ).join("");
+}
+function go(p){
+  S.page = p; renderNav();
+  const meta = PAGES.find(x=>x[0]===p);
+  document.getElementById("page-title").textContent = meta[1];
+  document.getElementById("page-sub").textContent = meta[2];
+  document.getElementById("sidebar").classList.remove("open");
+  render();
+}
+const B = () => document.getElementById("body");
+function skel(h){ return '<div class="skel" style="height:'+(h||280)+'px"></div>'; }
+function empty(icon,t,s){ return '<div class="card empty-state"><div class="big">'+icon+'</div><div class="t">'+t+'</div><div class="s">'+s+'</div></div>'; }
+const STATUS_CHIP = {
+  UPCOMING:["#eef0ff","#4f46e5","Upcoming"], LIVE:["#d7f3ee","#0d9488","● Live"],
+  COMPLETED:["#f2f1f9","#75718a","Completed"], CANCELLED:["#fdeaea","#dc2626","Cancelled"],
+};
+function statusChip(st){
+  const [bg,c,l] = STATUS_CHIP[String(st||"").toUpperCase()] || ["#f2f1f9","#75718a",st||"—"];
+  return '<span class="chip" style="background:'+bg+';color:'+c+'">'+l+'</span>';
+}
+function hackPills(){
+  return '<div class="filters">'+S.hacks.map(h=>
+    '<button class="fpill '+(String(S.hackId)===String(h.id)?"active":"")+'" onclick="pickHack(\''+h.id+'\')">'+escapeHtml(h.title||"Hackathon")+'</button>'
+  ).join("")+'</div>';
+}
+function pickHack(id){ S.hackId=id; render(); }
+
+async function loadCore(){
+  const [hacks, notifs] = await Promise.all([ api.get("/judge/my-hackathons"), api.get("/notifications") ]);
+  S.hacks = asList(hacks);
+  S.notifications = asList(notifs);
+  if(S.hacks.length) S.hackId = S.hacks[0].id;
+  renderNav(); render(); hidePageLoader();
+}
+loadCore();
+
+async function ensureSubs(){
+  /* fetch submissions + my scores for the selected hackathon (cached per hack) */
+  if(S.subsHack === S.hackId && S.subs.length !== undefined && S.subsHack !== null && S.subsHackFresh) return;
+  const [subs, scores] = await Promise.all([
+    api.get("/judge/hackathon/"+S.hackId+"/submissions"),
+    api.get("/judge/hackathon/"+S.hackId+"/my-scores"),
+  ]);
+  S.subs = asList(subs); S.myScores = asList(scores);
+  S.subsHack = S.hackId; S.subsHackFresh = true;
+}
+function scoreFor(subId){ return S.myScores.find(s=>String(s.submissionId)===String(subId)) || null; }
+
+function render(){
+  B().innerHTML = '<section class="anim-fadeup" id="sec"></section>';
+  ({hacks:rHacks,subs:rSubs,score:rScore,results:rResults,notif:rNotif}[S.page])(document.getElementById("sec"));
+}
+
+/* =====================================================================
+   MY HACKATHONS  (JudgeHackathonResponse {id,title,status,startTime,endTime})
+   ===================================================================== */
+function rHacks(el){
+  if(!S.hacks.length){ el.innerHTML = empty("⚖️","No assignments yet","When an admin assigns you to a hackathon, it appears here."); return; }
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px">'+
+    S.hacks.map(h=>
+      '<div class="card" style="overflow:hidden;display:flex;flex-direction:column">'+
+      '<div style="height:88px;background:linear-gradient(135deg,#fdf0d6,#fde9f3);display:flex;align-items:flex-start;justify-content:space-between;padding:16px">'+
+      '<span style="background:rgba(255,255,255,.92);color:#d97706;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.3px">HACKATHON</span>'+
+      '<span style="font-size:30px">💻</span></div>'+
+      '<div style="padding:18px;display:flex;flex-direction:column;flex:1">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div style="font-weight:800;font-size:16px;line-height:1.3">'+escapeHtml(h.title||"Hackathon")+'</div>'+statusChip(h.status)+'</div>'+
+      '<div style="font-size:13px;color:#8b879c;margin-top:5px">📅 '+fmtDateTime(h.startTime)+'</div>'+
+      '<div style="font-size:12.5px;color:#9b97ac;margin-top:2px">ends '+fmtDateTime(h.endTime)+'</div>'+
+      '<div style="margin-top:auto;padding-top:16px;display:flex;gap:9px">'+
+      '<button class="btn btn-soft" style="flex:1" onclick="pickHack(\''+h.id+'\');go(\'subs\')">Submissions</button>'+
+      '<button class="btn" style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff" onclick="pickHack(\''+h.id+'\');go(\'score\')">Score ⭐</button>'+
+      '</div></div></div>'
+    ).join("")+'</div>';
+}
+
+/* =====================================================================
+   SUBMISSIONS  (SubmissionResponse — expandable, scored badge)
+   ===================================================================== */
+async function rSubs(el){
+  if(!S.hacks.length){ el.innerHTML = empty("⚖️","No assignments yet","When an admin assigns you to a hackathon, it appears here."); return; }
+  el.innerHTML = hackPills()+'<div id="subs-zone">'+skel(240)+'</div>';
+  S.subsHackFresh = false; await ensureSubs();
+  const zone=document.getElementById("subs-zone"); if(!zone || S.page!=="subs") return;
+  if(!S.subs.length){ zone.innerHTML = empty("📦","No submissions yet","Teams haven't submitted their projects for this hackathon."); return; }
+  const scored = S.subs.filter(s=>scoreFor(s.id)).length;
+  zone.innerHTML =
+  '<div style="display:flex;gap:16px;font-size:13.5px;color:#75718a;margin-bottom:16px"><span>Submissions&nbsp;<b style="color:#211d35">'+S.subs.length+'</b></span><span>Scored by you&nbsp;<b style="color:#0d9488">'+scored+'</b></span><span>Pending&nbsp;<b style="color:#d97706">'+(S.subs.length-scored)+'</b></span></div>'+
+  '<div style="display:flex;flex-direction:column;gap:14px">'+
+  S.subs.map(s=>{
+    const sc = scoreFor(s.id);
+    return '<div class="card" style="border-radius:18px;padding:18px 20px">'+
+    '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'+
+    '<div class="av" style="width:44px;height:44px;font-size:14px;background:'+avColor(s.teamName)+';flex-shrink:0">'+initials(s.teamName)+'</div>'+
+    '<div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span style="font-weight:800;font-size:15px">'+escapeHtml(s.title||"Untitled project")+'</span>'+
+    (sc ? '<span class="chip" style="background:#d7f3ee;color:#0d9488">✓ Scored '+sc.scoreValue+'/10</span>' : '<span class="chip" style="background:#fdf0d6;color:#d97706">Awaiting your score</span>')+'</div>'+
+    '<div style="font-size:13px;color:#8b879c;margin-top:3px">Team '+escapeHtml(s.teamName||"—")+' · submitted '+timeAgo(s.submittedAt)+'</div></div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button class="btn btn-soft" style="padding:9px 16px;font-size:12.5px" onclick="toggleSub(\''+s.id+'\')">Details</button>'+
+    '<button class="btn" style="padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff" onclick="S.activeSub=\''+s.id+'\';go(\'score\')">'+(sc?"Rescore":"Score")+' ⭐</button></div></div>'+
+    '<div id="sub-x-'+s.id+'" style="display:none;margin-top:14px;border-top:1px solid #f0eff6;padding-top:14px">'+
+    (s.description ? '<div style="font-size:13.5px;color:#3a3650;line-height:1.6">'+escapeHtml(s.description)+'</div>' : '<div style="font-size:13px;color:#9b97ac">No description provided.</div>')+
+    '<div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">'+
+    (s.githubUrl ? '<a class="btn btn-soft" style="text-decoration:none;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(s.githubUrl)+'">GitHub repo ↗</a>' : '')+
+    (s.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(s.filePath)+'">Project file ⬇</a>' : '')+
+    '</div>'+
+    (sc && sc.feedback ? '<div style="margin-top:12px;background:#fbf6ec;border:1px solid #f0ddb0;border-radius:12px;padding:11px 14px;font-size:12.5px;color:#56526a"><b style="color:#d97706">Your feedback:</b> '+escapeHtml(sc.feedback)+'</div>' : '')+
+    '</div></div>';
+  }).join("")+'</div>';
+}
+function toggleSub(id){
+  const x=document.getElementById("sub-x-"+id);
+  if(x) x.style.display = x.style.display==="none" ? "block" : "none";
+}
+
+/* =====================================================================
+   SCORING  (POST /judge/score {submissionId, scoreValue, feedback})
+   ===================================================================== */
+async function rScore(el){
+  if(!S.hacks.length){ el.innerHTML = empty("⚖️","No assignments yet","When an admin assigns you to a hackathon, it appears here."); return; }
+  el.innerHTML = hackPills()+'<div id="score-zone">'+skel(300)+'</div>';
+  S.subsHackFresh = false; await ensureSubs();
+  const zone=document.getElementById("score-zone"); if(!zone || S.page!=="score") return;
+  if(!S.subs.length){ zone.innerHTML = empty("📦","Nothing to score yet","Once teams submit, their projects appear here for scoring."); return; }
+  if(!S.activeSub || !S.subs.some(s=>String(s.id)===String(S.activeSub))){
+    const firstUnscored = S.subs.find(s=>!scoreFor(s.id));
+    S.activeSub = (firstUnscored || S.subs[0]).id;
+  }
+  const sub = S.subs.find(s=>String(s.id)===String(S.activeSub));
+  const existing = scoreFor(sub.id);
+  S.pickedScore = existing ? Number(existing.scoreValue)||0 : 0;
+
+  zone.innerHTML =
+  '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px">'+
+  S.subs.map(s=>{
+    const sc=scoreFor(s.id);
+    return '<button class="sub-tab '+(String(s.id)===String(S.activeSub)?"active":"")+'" onclick="S.activeSub=\''+s.id+'\';render()">'+escapeHtml(s.teamName||"Team")+(sc?" ✓":"")+'</button>';
+  }).join("")+'</div>'+
+  '<div class="g2" style="display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start">'+
+    /* project card */
+    '<div class="card card-pad">'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="av" style="width:46px;height:46px;font-size:15px;background:'+avColor(sub.teamName)+'">'+initials(sub.teamName)+'</div>'+
+    '<div><div style="font-weight:800;font-size:16px">'+escapeHtml(sub.title||"Untitled project")+'</div><div style="font-size:12.5px;color:#8b879c">Team '+escapeHtml(sub.teamName||"—")+' · submitted '+timeAgo(sub.submittedAt)+'</div></div></div>'+
+    (sub.description ? '<div style="font-size:13.5px;color:#3a3650;line-height:1.65;background:#faf9fe;border:1px solid #f0eff6;border-radius:14px;padding:14px 16px">'+escapeHtml(sub.description)+'</div>' : '<div style="font-size:13px;color:#9b97ac">No description provided.</div>')+
+    '<div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap">'+
+    (sub.githubUrl ? '<a class="btn btn-soft" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(sub.githubUrl)+'">GitHub repo ↗</a>' : '')+
+    (sub.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(sub.filePath)+'">Project file ⬇</a>' : '')+
+    '</div></div>'+
+    /* scoring card */
+    '<div class="card card-pad">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="font-weight:800;font-size:16px">Your score</div>'+
+    (existing ? '<span class="chip" style="background:#d7f3ee;color:#0d9488">Previously scored '+existing.scoreValue+'/10</span>' : '<span class="chip" style="background:#fdf0d6;color:#d97706">Not scored yet</span>')+'</div>'+
+    '<div style="font-size:12.5px;color:#8b879c;margin:4px 0 18px">One overall score out of 10'+(existing?" — submitting again updates it.":".")+'</div>'+
+    '<div class="dot-pick" id="dots">'+[1,2,3,4,5,6,7,8,9,10].map(v=>'<button class="sdot '+(v<=S.pickedScore?"on":"")+'" onclick="pickScore('+v+')">'+v+'</button>').join("")+'</div>'+
+    '<div id="score-label" style="margin-top:12px;font-weight:800;font-size:22px;font-family:var(--mono);color:#d97706">'+(S.pickedScore?S.pickedScore+" / 10":"—")+'</div>'+
+    '<label class="f-label" style="margin-top:18px">Feedback for the team</label>'+
+    '<textarea id="fb" class="f-input" rows="4" placeholder="What impressed you? What could be better?">'+escapeHtml(existing?.feedback||"")+'</textarea>'+
+    '<button id="sc-btn" class="btn" style="width:100%;margin-top:18px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff" onclick="submitScore()">'+(existing?"Update score":"Submit score")+'</button>'+
+    '</div></div>';
+}
+function pickScore(v){
+  S.pickedScore = v;
+  document.querySelectorAll("#dots .sdot").forEach((d,i)=>d.classList.toggle("on", i < v));
+  document.getElementById("score-label").textContent = v+" / 10";
+}
+async function submitScore(){
+  if(!S.pickedScore){ toast("Pick a score from 1 to 10 first.","error"); return; }
+  const btn=document.getElementById("sc-btn"); btn.disabled=true; btn.textContent="Submitting…";
+  const res = await api.post("/judge/score",{
+    submissionId: S.activeSub,
+    scoreValue: S.pickedScore,
+    feedback: document.getElementById("fb").value.trim()
+  });
+  btn.disabled=false;
+  if(res===null){ btn.textContent="Submit score"; return; }
+  toast("Score saved — "+S.pickedScore+"/10 ⭐","success");
+  S.subsHackFresh = false;
+  render();
+}
+
+/* =====================================================================
+   RESULTS  (GET /hackathon/{id}/results → RankedTeam)
+   ===================================================================== */
+async function rResults(el){
+  if(!S.hacks.length){ el.innerHTML = empty("⚖️","No assignments yet","When an admin assigns you to a hackathon, it appears here."); return; }
+  el.innerHTML = hackPills()+'<div id="res-zone" style="max-width:880px">'+skel(260)+'</div>';
+  const rows = asList(await api.get("/hackathon/"+S.hackId+"/results"));
+  const zone=document.getElementById("res-zone"); if(!zone || S.page!=="results") return;
+  if(!rows.length){ zone.innerHTML = empty("🏆","No rankings yet","Rankings appear once judges start submitting scores."); return; }
+  zone.innerHTML = '<div class="card tbl" style="border-radius:18px">'+
+  '<div class="tbl-head" style="grid-template-columns:64px 2fr 1.4fr 1fr"><div>RANK</div><div>TEAM</div><div>LEADER</div><div style="text-align:right">TOTAL</div></div>'+
+  rows.map((r,i)=>{
+    const rank=r.rank??(i+1), medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":rank;
+    return '<div class="tbl-row" style="grid-template-columns:64px 2fr 1.4fr 1fr;background:'+(rank<=3?"#fbfaff":"#fff")+'">'+
+    '<div><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;font-weight:800;font-size:14px;background:'+(rank<=3?"#fdf0d6":"#f4f3f9")+';color:'+(rank<=3?"#d97706":"#75718a")+'">'+medal+'</span></div>'+
+    '<div><div style="font-weight:700">'+escapeHtml(r.teamName||"Team")+'</div>'+
+    '<div style="font-size:11.5px;color:#9b97ac">'+asList(r.memberNames).map(escapeHtml).join(", ")+'</div></div>'+
+    '<div style="font-size:13px;color:#75718a">'+escapeHtml(r.leaderName||"—")+'</div>'+
+    '<div style="text-align:right;font-weight:800;font-family:var(--mono);font-size:16px">'+(r.totalScore??"—")+'</div></div>';
+  }).join("")+'</div>';
+}
+
+/* =====================================================================
+   NOTIFICATIONS
+   ===================================================================== */
+function rNotif(el){
+  const list = S.notifications;
+  el.innerHTML = (list.length
+    ? '<div style="display:flex;justify-content:flex-end;max-width:760px;margin-bottom:12px"><button class="btn btn-ghost" style="color:#d97706" onclick="markAll()">Mark all read</button></div>'+
+      '<div class="card tbl" style="border-radius:18px;max-width:760px">'+list.map(n=>
+      '<div onclick="readNotif(\''+n.id+'\')" style="display:flex;gap:14px;padding:16px 22px;border-bottom:1px solid #f4f3f9;cursor:pointer;background:'+(n.isRead?"#fff":"#fffdf7")+'">'+
+      '<div style="width:38px;height:38px;border-radius:11px;background:#fdf0d6;color:#d97706;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🔔</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">'+escapeHtml(n.title||"Notification")+'</div>'+
+      '<div style="font-size:12.5px;color:#8b879c;margin-top:2px;line-height:1.4">'+escapeHtml(n.message||"")+'</div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0"><div style="font-size:11.5px;color:#b3afc2">'+timeAgo(n.createdAt)+'</div>'+
+      (n.isRead?"":'<span style="width:9px;height:9px;border-radius:50%;background:#d97706"></span>')+'</div></div>'
+    ).join("")+'</div>'
+    : empty("🔕","All caught up","Nothing new right now."));
+}
+async function readNotif(id){
+  const n = S.notifications.find(x=>String(x.id)===String(id));
+  if(!n || n.isRead) return;
+  await api.put("/notifications/"+id+"/read");
+  n.isRead = true; renderNav(); if(S.page==="notif") render();
+}
+async function markAll(){
+  const unread = S.notifications.filter(n=>!n.isRead);
+  if(!unread.length){ toast("Already all read ✓","success"); return; }
+  await Promise.all(unread.map(n=>api.put("/notifications/"+n.id+"/read")));
+  unread.forEach(n=>n.isRead=true);
+  toast("All notifications marked read.","success");
+  renderNav(); render();
+}
+</script>
+</body>
+</html>

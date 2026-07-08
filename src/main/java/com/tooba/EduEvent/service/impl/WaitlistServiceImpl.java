@@ -15,8 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,16 +61,29 @@ public class WaitlistServiceImpl implements WaitlistService {
                 });
     }
 
+    /**
+     * FIX (feature list): "Admin views current waitlist WITH POSITIONS".
+     * Previously the list came back in arbitrary Mongo order with no position
+     * numbers. Now it is FIFO-sorted by registeredAt and each entry carries a
+     * 1-based waitlistPosition — matching the promotion order used above.
+     */
     @Override
     public List<RegistrationResponse> getWaitlistByEvent(String eventId) {
-        return registrationRepository
-                .findByEventIdAndStatus(eventId, RegistrationStatus.WAITLISTED)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+        List<Registration> waitlist = registrationRepository
+                .findByEventIdAndStatus(eventId, RegistrationStatus.WAITLISTED);
+
+        waitlist.sort(Comparator.comparing(
+                Registration::getRegisteredAt,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+
+        List<RegistrationResponse> responses = new ArrayList<>(waitlist.size());
+        for (int i = 0; i < waitlist.size(); i++) {
+            responses.add(toResponse(waitlist.get(i), i + 1));
+        }
+        return responses;
     }
 
-    private RegistrationResponse toResponse(Registration reg) {
+    private RegistrationResponse toResponse(Registration reg, Integer position) {
         String eventTitle = eventRepository.findById(reg.getEventId()).map(Event::getTitle).orElse(null);
         String userName = userRepository.findById(reg.getUserId()).map(User::getName).orElse(null);
         return RegistrationResponse.builder()
@@ -80,6 +94,7 @@ public class WaitlistServiceImpl implements WaitlistService {
                 .userName(userName)
                 .status(reg.getStatus().name())
                 .registeredAt(reg.getRegisteredAt())
+                .waitlistPosition(position)
                 .build();
     }
 }

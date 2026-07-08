@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>EduEvent — Proctored Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="/js/core.js"></script>
+<style>
+  body{background:#0e0b1c;color:#fff;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+  /* top bar */
+  .qtop{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;gap:14px}
+  .pstate{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid;transition:.3s}
+  .pstate .pd{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulseDot 1.4s infinite}
+  .pstate.ok{color:#4ade80;background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)}
+  .pstate.warn{color:#fbbf24;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.25)}
+  .pstate.bad{color:#f87171;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3)}
+
+  .timerbox{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:9px 16px;border-radius:14px;transition:.3s}
+  .timerbox .tv{font-family:var(--mono);font-weight:700;font-size:18px}
+  .timerbox.low{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24}
+  .timerbox.urgent{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35);color:#f87171;animation:pulseDot 1s infinite}
+
+  /* question area */
+  .qmain{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 24px;overflow-y:auto}
+  .opt{text-align:left;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:18px 20px;cursor:pointer;color:#fff;transition:.15s;width:100%}
+  .opt:hover{border-color:rgba(99,102,241,.6);background:rgba(99,102,241,.08)}
+  .opt.selected{border-color:#6366f1;background:rgba(99,102,241,.16)}
+  .opt .lt{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.1);color:#c9c5e6;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;transition:.15s}
+  .opt.selected .lt{background:#6366f1;color:#fff}
+
+  .qbottom{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;gap:12px;flex-wrap:wrap}
+  .ghostbtn{background:transparent;border:1px solid rgba(255,255,255,.18);color:#c9c5e6;border-radius:999px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;transition:.15s}
+  .ghostbtn:hover{border-color:rgba(255,255,255,.4);color:#fff}
+  .vchip{display:inline-flex;align-items:center;gap:7px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:999px;padding:10px 16px;font-weight:700;font-size:12.5px;font-family:var(--mono)}
+
+  /* camera */
+  #cam-wrap{position:fixed;bottom:92px;right:24px;width:130px;height:98px;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,.2);box-shadow:0 10px 30px rgba(0,0,0,.5);background:#000;z-index:62;transition:border-color .3s}
+  #cam-wrap.ok{border-color:#34d399}
+  #cam-wrap.warn{border-color:#fbbf24}
+  #cam-wrap.bad{border-color:#ef4444}
+  #cam-video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  #cam-status{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);padding:3px 7px;font-size:9px;font-weight:700;display:flex;align-items:center;gap:4px}
+  #cam-off{position:absolute;inset:0;background:#1a1730;display:none;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#6b6690;font-size:9px;font-weight:700;text-align:center}
+
+  /* violation toast */
+  #v-toast{position:fixed;top:78px;left:50%;transform:translateX(-50%) translateY(-16px);background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);border-radius:999px;padding:10px 22px;font-size:13px;color:#fca5a5;opacity:0;transition:.3s;z-index:200;pointer-events:none;white-space:nowrap;font-weight:600;backdrop-filter:blur(6px)}
+  #v-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* terminated overlay (dc red flash) */
+  #terminated{position:fixed;inset:0;z-index:900;background:rgba(220,38,38,.96);animation:flash 1.2s infinite;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px}
+  #terminated.show{display:flex}
+
+  /* result screen */
+  #result{position:fixed;inset:0;z-index:800;background:#0e0b1c;display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+  #result.show{display:flex}
+  .r-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:26px;padding:44px 48px;max-width:500px;width:100%;text-align:center;animation:scaleIn .3s ease}
+  .r-ring{width:128px;height:128px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-family:var(--mono);font-size:31px;font-weight:700;border:5px solid rgba(255,255,255,.1)}
+  .r-ring.pass{border-color:#34d399;color:#34d399}
+  .r-ring.fail{border-color:#f87171;color:#f87171}
+  .r-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 20px;min-width:92px}
+  @media (max-width:640px){
+    .qtop,.qbottom{padding:14px 16px}
+    .opts-grid{grid-template-columns:1fr!important}
+    #q-text{font-size:20px!important}
+    #cam-wrap{width:100px;height:76px;bottom:150px}
+  }
+</style>
+</head>
+<body>
+<script>if(!Auth.guardPage("USER")) throw new Error("no access");</script>
+
+<!-- ===== TOP BAR ===== -->
+<div class="qtop">
+  <div style="display:flex;align-items:center;gap:12px;min-width:0">
+    <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">E</div>
+    <div style="min-width:0"><div id="quiz-name" style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Proctored Quiz</div>
+    <div style="font-size:12px;color:#8983a8">Question <span id="q-cur">–</span> of <span id="q-total">–</span></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <div id="proctor-pill" class="pstate ok hide-sm"><span class="pd"></span><span id="proctor-label">Starting proctoring…</span></div>
+    <div id="timerbox" class="timerbox">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span class="tv" id="timer">--:--</span>
+    </div>
+  </div>
+</div>
+
+<!-- progress -->
+<div style="height:4px;background:rgba(255,255,255,.08);flex-shrink:0"><div id="q-progress" style="height:100%;background:linear-gradient(90deg,#6366f1,#a78bfa);width:0%;transition:width .4s"></div></div>
+
+<!-- ===== QUESTION ===== -->
+<div class="qmain">
+  <div style="width:100%;max-width:760px">
+    <div style="font-size:13px;font-weight:700;color:#a78bfa;letter-spacing:.5px;margin-bottom:14px">QUESTION <span id="q-num">–</span></div>
+    <div id="q-text" style="font-size:27px;font-weight:800;line-height:1.35;margin-bottom:32px;letter-spacing:-.4px">Loading assessment…</div>
+    <div id="opts" class="opts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM BAR ===== -->
+<div class="qbottom">
+  <div style="display:flex;gap:11px;align-items:center">
+    <button class="ghostbtn" onclick="exitQuiz()">Exit</button>
+    <span class="vchip">⚠ Violations <span id="v-count" style="margin-left:2px">0</span>/<span id="v-max">3</span></span>
+  </div>
+  <div style="display:flex;gap:11px">
+    <button class="ghostbtn" id="prev-btn" onclick="navigate(-1)">← Previous</button>
+    <button class="btn btn-primary" id="next-btn" onclick="navigate(1)" style="padding:11px 26px;box-shadow:0 8px 20px rgba(79,70,229,.4)">Next →</button>
+    <button class="btn" id="submit-btn" onclick="submitQuiz()" style="display:none;padding:11px 26px;background:linear-gradient(135deg,#0d9488,#10b981);color:#fff;box-shadow:0 8px 20px rgba(13,148,136,.4)">Submit quiz ✓</button>
+  </div>
+</div>
+
+<!-- ===== CAMERA ===== -->
+<div id="cam-wrap">
+  <video id="cam-video" autoplay muted playsinline></video>
+  <div style="position:absolute;top:5px;left:6px;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulseDot 1.2s infinite"></span><span style="font-size:9px;font-weight:700;letter-spacing:.4px">REC</span></div>
+  <div id="cam-status" style="color:#8983a8">● initializing…</div>
+  <div id="cam-off"><span style="font-size:20px">📷</span><span style="padding:0 6px">Camera blocked — allow access</span></div>
+</div>
+
+<div id="v-toast">⚠ Violation recorded</div>
+
+<!-- ===== TERMINATED (dc red flash) ===== -->
+<div id="terminated">
+  <div style="width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;margin-bottom:28px;border:3px solid rgba(255,255,255,.5)">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+  </div>
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px;margin-bottom:12px">Session Terminated</div>
+  <div style="font-size:18px;font-weight:600;opacity:.95;max-width:480px;line-height:1.5">Too many violations. Your quiz attempt has been ended and flagged for review by the proctoring system.</div>
+  <div style="display:flex;gap:24px;margin:32px 0 28px">
+    <div style="text-align:center"><div id="t-viol" style="font-size:34px;font-weight:800;font-family:var(--mono)">3</div><div style="font-size:12px;opacity:.85;font-weight:600">VIOLATIONS</div></div>
+    <div style="width:1px;background:rgba(255,255,255,.3)"></div>
+    <div style="text-align:center"><div id="t-progress" style="font-size:34px;font-weight:800;font-family:var(--mono)">–/–</div><div style="font-size:12px;opacity:.85;font-weight:600">ANSWERED</div></div>
+  </div>
+  <button onclick="location.href='/user/dashboard.html'" style="background:#fff;color:#dc2626;border:none;border-radius:999px;padding:13px 32px;font-weight:800;font-size:15px;cursor:pointer">Return to dashboard</button>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="result">
+  <div class="r-card">
+    <div class="r-ring" id="r-ring">–%</div>
+    <div class="chip" id="r-badge" style="margin-bottom:14px">–</div>
+    <div id="r-title" style="font-size:23px;font-weight:800;margin-bottom:6px">Quiz complete</div>
+    <div style="display:flex;justify-content:center;gap:16px;margin:22px 0;flex-wrap:wrap">
+      <div class="r-stat"><div id="r-correct" style="font-family:var(--mono);font-size:22px;font-weight:700">–</div><div style="font-size:11px;color:#8983a8;margin-top:3px;letter-spacing:.06em">CORRECT</div></div>
+      <div class="r-stat"><div id="r-total" style="font-family:var(--mono);font-size:22px;font-weight:700">–</div><div style="font-size:11px;color:#8983a8;margin-top:3px;letter-spacing:.06em">TOTAL</div></div>
+      <div class="r-stat"><div id="r-pass" style="font-family:var(--mono);font-size:22px;font-weight:700">–%</div><div style="font-size:11px;color:#8983a8;margin-top:3px;letter-spacing:.06em">REQUIRED</div></div>
+    </div>
+    <div id="r-cert" style="display:none;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:14px 18px;font-size:13px;color:#a5b4fc;text-align:left;margin-bottom:20px">🎓 Certificate generation in progress — it will appear under <b>Certificates</b> shortly.</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="ghostbtn" onclick="location.href='/user/dashboard.html'">← Back to dashboard</button>
+      <button class="btn btn-primary" id="r-cert-btn" style="display:none" onclick="location.href='/user/dashboard.html#certs'">🏆 View certificates</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   PROCTORED QUIZ — real session APIs
+   POST /quiz/{id}/start · POST /quiz/session/{sid}/violation
+   POST /quiz/session/{sid}/submit
+   ===================================================================== */
+injectLoader("Initializing secure proctoring environment…", true);
+
+const params = new URLSearchParams(location.search);
+const QUIZ_ID = params.get("id") || params.get("quizId") || "";
+const QUIZ_NAME = params.get("eventName") || "Proctored Quiz";
+document.getElementById("quiz-name").textContent = decodeURIComponent(QUIZ_NAME);
+
+let SESSION_ID = "";
+let DURATION = (parseInt(params.get("duration") || "30") || 30) * 60;
+let PASS_SCORE = parseInt(params.get("pass") || "50") || 50;
+const MAX_VIOLATIONS = 3;
+
+let questions = [];
+let answers = {};
+let currentIndex = 0;
+let sessionInvalidated = false;
+let violationCount = 0;
+let timeLeft = DURATION;
+let timerInterval = null, faceInterval = null;
+let mediaStream = null, modelsLoaded = false;
+let cameraRetryInterval = null, cameraBlockedViolationInterval = null;
+let consecutiveFaceMisses = 0;
+const FACE_MISS_THRESHOLD = 2; // ~2 checks in a row before a violation
+
+const $ = id => document.getElementById(id);
+
+/* ---------- proctor status ---------- */
+function setProctor(state, label) {
+  const p = $("proctor-pill");
+  p.className = "pstate " + state + " hide-sm";
+  $("proctor-label").textContent = label;
+}
+function setCam(state, label) {
+  $("cam-wrap").className = state;
+  $("cam-status").innerHTML = "● " + label;
+  $("cam-status").style.color = state === "ok" ? "#34d399" : state === "warn" ? "#fbbf24" : "#f87171";
+}
+function vToast(msg) {
+  const t = $("v-toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+/* ---------- violations ---------- */
+async function reportViolation(type) {
+  if (sessionInvalidated) return;
+  violationCount++;
+  $("v-count").textContent = violationCount;
+  const msg = type === "face_missing" ? "No face detected — violation " + violationCount + "/" + MAX_VIOLATIONS
+    : type === "gaze_away" ? "Please look at the screen — violation " + violationCount + "/" + MAX_VIOLATIONS
+    : "Tab/window switch detected — violation " + violationCount + "/" + MAX_VIOLATIONS;
+  vToast(msg);
+  try { if (SESSION_ID) await api.post("/quiz/session/" + SESSION_ID + "/violation", { type }); } catch (e) {}
+  if (violationCount >= MAX_VIOLATIONS) invalidateSession();
+}
+
+function invalidateSession() {
+  if (sessionInvalidated) return;
+  sessionInvalidated = true;
+  [timerInterval, faceInterval, cameraRetryInterval, cameraBlockedViolationInterval].forEach(i => i && clearInterval(i));
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  $("t-viol").textContent = violationCount;
+  $("t-progress").textContent = Object.keys(answers).length + "/" + questions.length;
+  $("result").classList.remove("show");
+  $("terminated").classList.add("show");
+}
+
+/* ---------- rendering ---------- */
+function renderQuestion() {
+  if (sessionInvalidated || !questions.length) return;
+  const q = questions[currentIndex];
+  $("q-num").textContent = currentIndex + 1;
+  $("q-cur").textContent = currentIndex + 1;
+  $("q-total").textContent = questions.length;
+  $("q-text").textContent = q.text;
+  $("q-progress").style.width = ((currentIndex + 1) / questions.length * 100) + "%";
+
+  const letters = ["A", "B", "C", "D", "E", "F"];
+  $("opts").innerHTML = q.options.map((o, i) =>
+    '<button class="opt ' + (answers[q.id] === o.id ? "selected" : "") + '" data-oid="' + escapeHtml(String(o.id)) + '">' +
+    '<span class="lt">' + letters[i] + '</span><span style="font-size:15px;font-weight:600">' + escapeHtml(o.text) + "</span></button>"
+  ).join("");
+  [...$("opts").children].forEach(btn => btn.onclick = () => {
+    if (sessionInvalidated) return;
+    answers[q.id] = btn.dataset.oid;
+    [...$("opts").children].forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+
+  $("prev-btn").style.visibility = currentIndex === 0 ? "hidden" : "visible";
+  $("next-btn").style.display = currentIndex < questions.length - 1 ? "inline-flex" : "none";
+  $("submit-btn").style.display = currentIndex === questions.length - 1 ? "inline-flex" : "none";
+}
+function navigate(dir) {
+  if (sessionInvalidated) return;
+  const n = currentIndex + dir;
+  if (n >= 0 && n < questions.length) { currentIndex = n; renderQuestion(); }
+}
+function exitQuiz() {
+  if (sessionInvalidated) { location.href = "/user/dashboard.html"; return; }
+  if (confirm("Exit the quiz? Your session will remain active on the server until it times out.")) {
+    location.href = "/user/dashboard.html";
+  }
+}
+
+/* ---------- timer ---------- */
+function startTimer() {
+  timerInterval = setInterval(() => {
+    if (sessionInvalidated) return;
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(true); return; }
+    timeLeft--;
+    const m = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+    const s = String(timeLeft % 60).padStart(2, "0");
+    $("timer").textContent = m + ":" + s;
+    const box = $("timerbox");
+    box.classList.toggle("low", timeLeft <= 300 && timeLeft > 60);
+    box.classList.toggle("urgent", timeLeft <= 60);
+  }, 1000);
+}
+
+/* ---------- submit ---------- */
+let submitting = false;
+async function submitQuiz(auto) {
+  if (sessionInvalidated) { vToast("Cannot submit — session terminated."); return; }
+  if (submitting) return;
+  if (!auto) {
+    const unanswered = questions.length - Object.keys(answers).length;
+    if (unanswered > 0 && !confirm(unanswered + " question(s) unanswered. Submit anyway?")) return;
+  }
+  submitting = true;
+  const btn = $("submit-btn"); btn.disabled = true; btn.textContent = "Submitting…";
+  [timerInterval, faceInterval].forEach(i => i && clearInterval(i));
+
+  const res = await api.post("/quiz/session/" + SESSION_ID + "/submit", { answers });
+  if (!res || res.score === undefined || res.score === null) {
+    submitting = false; btn.disabled = false; btn.textContent = "Submit quiz ✓";
+    vToast("Could not submit — please try again.");
+    startTimer();
+    faceInterval = setInterval(detectFacesPeriodic, 2100);
+    return;
+  }
+  if (res.passScore != null) PASS_SCORE = Math.round(res.passScore);
+  showResult(res);
+}
+function showResult(r) {
+  if (sessionInvalidated) return;
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  [cameraRetryInterval, cameraBlockedViolationInterval].forEach(i => i && clearInterval(i));
+
+  const passed = r.isPassed ?? (r.score >= PASS_SCORE);
+  const correct = r.correctCount ?? Math.round(r.score / 100 * questions.length);
+  $("r-ring").textContent = r.score + "%";
+  $("r-ring").className = "r-ring " + (passed ? "pass" : "fail");
+  $("r-badge").textContent = passed ? "✓ PASSED" : "✗ FAILED";
+  $("r-badge").style.cssText = passed
+    ? "background:rgba(52,211,153,.14);color:#34d399;border:1px solid rgba(52,211,153,.3);margin-bottom:14px"
+    : "background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.3);margin-bottom:14px";
+  $("r-title").textContent = passed ? "Excellent work! 🎉" : "Keep learning";
+  $("r-correct").textContent = correct;
+  $("r-total").textContent = questions.length;
+  $("r-pass").textContent = PASS_SCORE + "%";
+  $("r-cert").style.display = passed ? "block" : "none";
+  $("r-cert-btn").style.display = passed ? "inline-flex" : "none";
+  $("result").classList.add("show");
+}
+
+/* ---------- camera + face-api ---------- */
+async function initCamera() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    $("cam-video").srcObject = mediaStream;
+    await $("cam-video").play();
+    $("cam-off").style.display = "none";
+    setCam("ok", "camera active");
+    setProctor("ok", "Proctoring active");
+    [cameraRetryInterval, cameraBlockedViolationInterval].forEach(i => i && clearInterval(i));
+    cameraRetryInterval = cameraBlockedViolationInterval = null;
+  } catch (err) {
+    setCam("bad", "camera blocked");
+    setProctor("bad", "Camera blocked");
+    $("cam-off").style.display = "flex";
+    /* violation every 30s while blocked (grace: first after 30s) */
+    if (!cameraBlockedViolationInterval) {
+      cameraBlockedViolationInterval = setInterval(() => {
+        if (sessionInvalidated) { clearInterval(cameraBlockedViolationInterval); return; }
+        if (!mediaStream) reportViolation("face_missing");
+      }, 30000);
+    }
+    /* retry every 10s */
+    if (!cameraRetryInterval) {
+      cameraRetryInterval = setInterval(async () => {
+        if (sessionInvalidated || mediaStream) { clearInterval(cameraRetryInterval); return; }
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          $("cam-video").srcObject = mediaStream;
+          await $("cam-video").play();
+          $("cam-off").style.display = "none";
+          setCam("ok", "camera active");
+          setProctor("ok", "Proctoring active");
+          clearInterval(cameraRetryInterval); cameraRetryInterval = null;
+          clearInterval(cameraBlockedViolationInterval); cameraBlockedViolationInterval = null;
+        } catch (e) { /* still blocked */ }
+      }, 10000);
+    }
+  }
+}
+
+async function loadModels() {
+  const W = "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights";
+  try {
+    await faceapi.nets.tinyFaceDetector.loadFromUri(W);
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(W);
+    modelsLoaded = true;
+  } catch (err) {
+    modelsLoaded = true; /* graceful fallback — camera presence still monitored */
+  }
+}
+
+async function detectFacesPeriodic() {
+  const v = $("cam-video");
+  if (!modelsLoaded || !mediaStream || sessionInvalidated || !v || v.readyState < 2) return;
+  try {
+    const detections = await faceapi.detectAllFaces(v, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }));
+    if (detections.length === 0) {
+      consecutiveFaceMisses++;
+      setCam("bad", "no face");
+      setProctor("warn", "Face not visible");
+      if (consecutiveFaceMisses >= FACE_MISS_THRESHOLD) {
+        reportViolation("face_missing");
+        consecutiveFaceMisses = 0;
+      }
+      return;
+    }
+    consecutiveFaceMisses = 0;
+    setCam("ok", "face OK");
+    setProctor("ok", "Proctoring active");
+
+    /* gaze estimate from eye landmarks */
+    try {
+      const wl = await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true);
+      if (wl && wl.landmarks) {
+        const le = wl.landmarks.getLeftEye(), re = wl.landmarks.getRightEye();
+        if (le?.length && re?.length) {
+          const lx = le.reduce((s, p) => s + p.x, 0) / le.length;
+          const rx = re.reduce((s, p) => s + p.x, 0) / re.length;
+          const ratio = ((lx + rx) / 2) / (v.videoWidth || 480);
+          if (ratio < 0.2 || ratio > 0.8) {
+            setCam("warn", "look at screen");
+            setProctor("warn", "Look at the screen");
+            reportViolation("gaze_away");
+          }
+        }
+      }
+    } catch (e) { /* gaze optional */ }
+  } catch (e) { /* silent */ }
+}
+
+/* tab switch = violation */
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && !sessionInvalidated && SESSION_ID) reportViolation("tab_switch");
+});
+
+/* ---------- boot: start the real session ---------- */
+(async function setup() {
+  if (!QUIZ_ID) { toast("No quiz specified.", "error"); setTimeout(() => location.href = "/user/dashboard.html", 1200); return; }
+
+  const res = await api.post("/quiz/" + QUIZ_ID + "/start", {});
+  if (!res || !res.sessionId) {
+    /* api helper already surfaced the server's reason (not open / not registered / already passed) */
+    hidePageLoader();
+    setTimeout(() => location.href = "/user/dashboard.html", 1600);
+    return;
+  }
+  SESSION_ID = res.sessionId;
+  if (res.durationMinutes) { DURATION = res.durationMinutes * 60; timeLeft = DURATION; }
+  if (res.passScore != null) PASS_SCORE = Math.round(res.passScore);
+  questions = (res.questions || []).map(q => ({
+    id: q.id, text: q.text,
+    options: (q.options || []).map(o => ({ id: o.id, text: pick(o, "optionText", "text") }))
+  }));
+  if (!questions.length) { toast("This quiz has no questions yet.", "error"); setTimeout(() => location.href = "/user/dashboard.html", 1400); return; }
+
+  renderQuestion();
+  await initCamera();
+  await loadModels();
+  startTimer();
+  faceInterval = setInterval(detectFacesPeriodic, 2100);
+  setTimeout(hidePageLoader, 500);
+})();
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import com.tooba.EduEvent.service.CertificateService;
 import com.tooba.EduEvent.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -32,7 +33,13 @@ import java.util.UUID;
 public class CertificateServiceImpl implements CertificateService {
 
     private final CertificateRepository certificateRepository;
-    private final EmailService emailService; // 1. Injected EmailService
+    private final EmailService emailService;
+
+    // FIX: the QR verification URL was hardcoded to http://localhost:8080 —
+    // any QR code scanned from a phone or any deployed environment would fail.
+    // app.base-url is already defined in application.properties (${APP_BASE_URL:...}).
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     @Override
     public Certificate generate(User user, Event event) {
@@ -45,7 +52,7 @@ public class CertificateServiceImpl implements CertificateService {
         }
 
         UUID certId = UUID.randomUUID();
-        String verificationUrl = "http://localhost:8080/api/certificates/verify/" + certId.toString();
+        String verificationUrl = baseUrl + "/api/certificates/verify/" + certId;
 
         try {
             // 2. Ensure the directory exists (/certificates/{userId}/)
@@ -124,7 +131,7 @@ public class CertificateServiceImpl implements CertificateService {
                     .eventId(event.getId())
                     .certUuid(certId)
                     .pdfUrl(filePath) // Storing local path
-                    .verifyUrl(verificationUrl) // 2. Added verifyUrl to the builder
+                    .verifyUrl(verificationUrl)
                     .issuedAt(LocalDateTime.now())
                     .build();
 

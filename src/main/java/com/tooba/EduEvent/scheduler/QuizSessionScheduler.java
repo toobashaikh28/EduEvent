@@ -69,6 +69,15 @@ public class QuizSessionScheduler {
                 .findByStartTimeBetweenAndStatus(now, threshold, "UPCOMING");
 
         for (Event event : imminentEvents) {
+
+            // FIX (feature list): "Quiz reminder email sent 1 hour before QUIZ event starts".
+            // Previously this emailed registrants of EVERY upcoming event type
+            // (webinars, conferences, hackathons) with a "quiz reminder" — wrong
+            // message to the wrong people. Only Quiz-type events qualify now.
+            if (event.getType() == null || !"QUIZ".equalsIgnoreCase(event.getType().trim())) {
+                continue;
+            }
+
             List<Registration> registrations = registrationRepository
                     .findByEventIdAndStatus(event.getId(), RegistrationStatus.REGISTERED);
 

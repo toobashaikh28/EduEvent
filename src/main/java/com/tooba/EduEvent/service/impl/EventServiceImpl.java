@@ -7,8 +7,10 @@ import com.tooba.EduEvent.chain.handlers.EventValidationHandler;
 import com.tooba.EduEvent.dto.request.EventRequest;
 import com.tooba.EduEvent.dto.response.EventResponse;
 import com.tooba.EduEvent.entity.Event;
+import com.tooba.EduEvent.entity.RegistrationStatus;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.repository.EventRepository;
+import com.tooba.EduEvent.repository.RegistrationRepository;
 import com.tooba.EduEvent.repository.UserRepository;
 import com.tooba.EduEvent.service.EventService;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +37,13 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final RegistrationRepository registrationRepository;   // NEW
 
     // Chain of Responsibility handlers
     private final AuthorizationHandler authorizationHandler;
     private final EventValidationHandler validationHandler;
     private final DuplicateCheckHandler duplicateCheckHandler;
 
-    /**
-     * Builds the Chain of Responsibility:
-     * Auth → Validation → DuplicateCheck
-     * Returns the head of the chain.
-     */
     private EventHandler buildChain() {
         authorizationHandler
             .setNext(validationHandler)
@@ -54,7 +52,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventResponse> getAllEvents(String type, String status, LocalDateTime date) {
+    public List<EventResponse> getAllEvents(String type, String status, LocalDateTime date, String userEmail) {
         List<Event> events;
 
         if (type != null && !type.isBlank() && status != null && !status.isBlank()) {
@@ -76,15 +74,20 @@ public class EventServiceImpl implements EventService {
                     .collect(Collectors.toList());
         }
 
-        return events.stream().map(this::toResponse).collect(Collectors.toList());
+        // Resolve the logged-in user ONCE (null for anonymous visitors)
+        final String userId = resolveUserId(userEmail);
+
+        return events.stream()
+                .map(e -> toResponse(e, userId))
+                .collect(Collectors.toList());
     }
 
     @Override
-    public EventResponse getEventById(String id) {
+    public EventResponse getEventById(String id, String userEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
-        return toResponse(event);
+        return toResponse(event, resolveUserId(userEmail));
     }
 
     @Override
@@ -93,10 +96,8 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "Admin not found"));
 
-        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
-        // Auth → Validation → DuplicateCheck (any handler can reject and stop)
+        // Auth → Validation → DuplicateCheck
         buildChain().handle(request, admin, "CREATE");
-        // ─────────────────────────────────────────────────────────────────────
 
         String bannerPath = saveBanner(banner);
         String normalizedType = normalizeType(request.getType());
@@ -115,7 +116,7 @@ public class EventServiceImpl implements EventService {
                 .adminId(admin.getId())
                 .build();
 
-        return toResponse(eventRepository.save(event));
+        return toResponse(eventRepository.save(event), null);
     }
 
     @Override
@@ -124,13 +125,10 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
-        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
-        // Reuse Auth + Validation for UPDATE (skip duplicate check — title can stay same)
         User admin = userRepository.findById(event.getAdminId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
         authorizationHandler.setNext(validationHandler);
         authorizationHandler.handle(request, admin, "UPDATE");
-        // ─────────────────────────────────────────────────────────────────────
 
         event.setTitle(request.getTitle());
         event.setType(normalizeType(request.getType()));
@@ -144,7 +142,7 @@ public class EventServiceImpl implements EventService {
         String bannerPath = saveBanner(banner);
         if (bannerPath != null) event.setBannerUrl(bannerPath);
 
-        return toResponse(eventRepository.save(event));
+        return toResponse(eventRepository.save(event), null);
     }
 
     @Override
@@ -153,18 +151,21 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
-        // ── CHAIN OF RESPONSIBILITY ───────────────────────────────────────────
-        // Auth check only for DELETE
         User admin = userRepository.findById(event.getAdminId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
         authorizationHandler.setNext(null);
         authorizationHandler.handle(new EventRequest(), admin, "DELETE");
-        // ─────────────────────────────────────────────────────────────────────
 
         eventRepository.deleteById(id);
     }
 
     // ── private helpers ───────────────────────────────────────────────────────
+
+    /** Returns the user's id, or null when the request is anonymous. */
+    private String resolveUserId(String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) return null;
+        return userRepository.findByEmail(userEmail).map(User::getId).orElse(null);
+    }
 
     private String normalizeType(String type) {
         if (type == null || type.isBlank()) return type;
@@ -197,7 +198,26 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private EventResponse toResponse(Event event) {
+    /**
+     * Maps an Event to its response, enriched with:
+     *  - registeredCount → real confirmed-seat count from the registrations collection
+     *  - isRegistered / isWaitlisted → per-user flags (false for anonymous visitors)
+     * This is what makes the "Registered" badge survive a page reload on any device.
+     */
+    private EventResponse toResponse(Event event, String userId) {
+        long registeredCount = registrationRepository
+                .countByEventIdAndStatus(event.getId(), RegistrationStatus.REGISTERED);
+
+        boolean isRegistered = userId != null && registrationRepository
+                .existsByUserIdAndEventIdAndStatus(userId, event.getId(), RegistrationStatus.REGISTERED);
+
+        boolean isWaitlisted = userId != null && registrationRepository
+                .existsByUserIdAndEventIdAndStatus(userId, event.getId(), RegistrationStatus.WAITLISTED);
+
+        String adminName = event.getAdminId() != null
+                ? userRepository.findById(event.getAdminId()).map(User::getName).orElse(null)
+                : null;
+
         return EventResponse.builder()
                 .id(event.getId())
                 .title(event.getTitle())
@@ -209,10 +229,12 @@ public class EventServiceImpl implements EventService {
                 .status(event.getStatus())
                 .bannerUrl(event.getBannerUrl())
                 .joinLink(event.getJoinLink())
-                .adminName(event.getAdminId() != null
-                        ? userRepository.findById(event.getAdminId()).map(User::getName).orElse(null)
-                        : null)
+                .adminName(adminName)
+                .createdBy(adminName)          // frontend reads e.createdBy
                 .createdAt(event.getCreatedAt())
+                .registeredCount(registeredCount)
+                .isRegistered(isRegistered)
+                .isWaitlisted(isWaitlisted)
                 .build();
     }
 }

@@ -1,0 +1,133 @@
+/* ============================================================
+   EduEvent · theme.css — the "dc" light-indigo design system
+   Plus Jakarta Sans + Space Mono · #4f46e5 primary
+   ============================================================ */
+
+:root{
+  --bg:#f4f4fb; --bg2:#f7f7fc;
+  --ink:#211d35; --ink2:#3a3650;
+  --muted:#8b879c; --muted2:#9b97ac; --faint:#b3afc2;
+  --line:#ececf3; --line2:#e5e3ee;
+  --primary:#4f46e5; --primary2:#6366f1;
+  --teal:#0d9488; --pink:#db2777; --amber:#d97706; --red:#ef4444;
+  --card-shadow:0 1px 2px rgba(20,16,40,.04),0 10px 30px rgba(20,16,40,.05);
+  --pop-shadow:0 18px 50px rgba(20,16,40,.14);
+  --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --mono:'Space Mono',monospace;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+a{color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#e2e0ec;border-radius:10px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- animations ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes flash{0%,100%{background:rgba(220,38,38,.96)}50%{background:rgba(180,20,20,.96)}}
+@keyframes aurora{0%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.12)}66%{transform:translate(-30px,25px) scale(.95)}100%{transform:translate(0,0) scale(1)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes plPulse{0%,100%{transform:scale(1);box-shadow:0 6px 18px rgba(79,70,229,.34)}50%{transform:scale(1.08);box-shadow:0 12px 30px rgba(79,70,229,.5)}}
+.anim-fadeup{animation:fadeUp .3s ease}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- cards & layout ---------- */
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--card-shadow)}
+.card-pad{padding:22px}
+.section-head h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.6px}
+.section-head .sub{font-size:14px;color:var(--muted);margin-top:3px}
+.section-head{margin:14px 0 22px}
+.empty-state{text-align:center;padding:52px 24px;color:var(--muted)}
+.empty-state .big{font-size:38px;margin-bottom:10px}
+.empty-state .t{font-weight:800;font-size:15px;color:var(--ink2)}
+.empty-state .s{font-size:13px;margin-top:4px}
+
+/* ---------- buttons ---------- */
+.btn{border:none;border-radius:999px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 8px 20px rgba(79,70,229,.3)}
+.btn-primary:hover:not(:disabled){background:#4338ca}
+.btn-ghost{background:#fff;border:1px solid var(--line2);color:var(--ink2)}
+.btn-ghost:hover{border-color:#d5d2e6}
+.btn-soft{background:#f2f1f9;color:#56526a}
+.btn-danger-soft{background:#fdeaea;color:#dc2626}
+.btn-teal{background:var(--teal);color:#fff;box-shadow:0 8px 18px rgba(13,148,136,.28)}
+.icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#56526a;transition:.15s}
+.icon-btn:hover{border-color:#d5d2e6;color:var(--ink)}
+.icon-btn.danger:hover{background:#fdeaea;color:#dc2626;border-color:#f6caca}
+
+/* ---------- chips / badges ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.3px}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.live .dot{animation:pulseDot 1.5s infinite}
+
+/* ---------- filter pills row ---------- */
+.filters{display:flex;gap:9px;margin-bottom:22px;flex-wrap:wrap}
+.fpill{border:1px solid var(--line2);background:#fff;color:#56526a;border-radius:999px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+.fpill.active{border-color:var(--primary);background:#eef0ff;color:var(--primary)}
+
+/* ---------- table (grid rows) ---------- */
+.tbl{overflow:hidden}
+.tbl-head{display:grid;gap:14px;padding:14px 22px;background:#faf9fe;border-bottom:1px solid var(--line);font-size:11px;font-weight:700;color:var(--muted2);letter-spacing:.5px}
+.tbl-row{display:grid;gap:14px;padding:14px 22px;border-bottom:1px solid #f4f3f9;align-items:center;font-size:13.5px}
+.tbl-row:last-child{border-bottom:none}
+
+/* ---------- forms ---------- */
+.f-label{display:block;font-size:12px;font-weight:700;color:#56526a;margin:14px 0 6px}
+.f-input{width:100%;border:1px solid var(--line2);border-radius:12px;padding:11px 14px;font-size:13.5px;background:#fff;color:var(--ink)}
+textarea.f-input{resize:vertical}
+select.f-input{cursor:pointer}
+
+/* ---------- modal ---------- */
+.modal-overlay{position:fixed;inset:0;z-index:70;background:rgba(20,16,40,.44);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px;animation:overlayIn .2s ease}
+.modal{background:#fff;border-radius:24px;box-shadow:var(--pop-shadow);width:100%;max-width:460px;max-height:92vh;overflow-y:auto;animation:scaleIn .22s ease}
+.modal-pad{padding:26px 28px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-head .t{font-weight:800;font-size:18px;letter-spacing:-.4px}
+.modal-x{border:none;background:#f2f1f9;color:#56526a;width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px}
+
+/* ---------- avatar ---------- */
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0}
+
+/* ---------- toast ---------- */
+#edu-toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:9px;align-items:center;pointer-events:none}
+.edu-toast{display:flex;align-items:center;gap:9px;background:#211d35;color:#fff;border-radius:999px;padding:11px 20px;font-size:13px;font-weight:600;font-family:var(--sans);box-shadow:0 14px 40px rgba(20,16,40,.3);opacity:0;transform:translateY(12px);transition:.3s ease;max-width:86vw}
+.edu-toast.in{opacity:1;transform:none}
+.edu-toast .tdot{width:8px;height:8px;border-radius:50%;background:#a5b4fc;flex-shrink:0}
+.edu-toast.err .tdot{background:#f87171}
+.edu-toast.ok .tdot{background:#34d399}
+
+/* ---------- page loader ---------- */
+.page-loader{position:fixed;inset:0;z-index:5000;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .4s ease}
+.page-loader.dark{background:#0e0b1c}
+.page-loader.out{opacity:0;pointer-events:none}
+.pl-mark{position:relative;width:84px;height:84px;display:flex;align-items:center;justify-content:center}
+.pl-tile{width:52px;height:52px;border-radius:15px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:25px;animation:plPulse 1.5s ease-in-out infinite;font-family:var(--sans)}
+.pl-ring{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(99,102,241,.15);border-top-color:var(--primary2);animation:spin 1s linear infinite}
+.pl-text{font-size:13.5px;font-weight:600;color:var(--muted);letter-spacing:.2px;font-family:var(--sans)}
+.page-loader.dark .pl-text{color:#8983a8}
+
+/* ---------- skeletons (in-page loading) ---------- */
+.skel{background:linear-gradient(90deg,#efeef6 25%,#f7f6fc 50%,#efeef6 75%);background-size:200% 100%;animation:shimmer 1.3s infinite;border-radius:12px}
+
+/* ---------- progress bar ---------- */
+.meter{height:8px;background:#f0eff6;border-radius:99px;overflow:hidden}
+.meter>div{height:100%;border-radius:99px;transition:width .5s ease}
+
+/* ---------- responsive helpers ---------- */
+@media (max-width:900px){
+  .hide-sm{display:none!important}
+}

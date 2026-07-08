@@ -24,19 +24,29 @@ public class EventController {
 
     private final EventService eventService;
 
-    // GET /api/events — Public discovery with optional filters
+    // GET /api/events — Public discovery with optional filters.
+    // The endpoint stays public, but IF a JWT is sent, the JwtAuthenticationFilter
+    // still populates Authentication — so we can tell the frontend whether THIS
+    // user is already registered (isRegistered) and how many seats are taken.
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
-        return ResponseEntity.ok(eventService.getAllEvents(type, status, date));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date,
+            Authentication authentication) {
+
+        String userEmail = (authentication != null) ? authentication.getName() : null;
+        return ResponseEntity.ok(eventService.getAllEvents(type, status, date, userEmail));
     }
 
     // GET /api/events/{id} — Public, returns a single event or clean 404
     @GetMapping("/{id}")
-    public ResponseEntity<EventResponse> getEventById(@PathVariable String id) {
-        return ResponseEntity.ok(eventService.getEventById(id));
+    public ResponseEntity<EventResponse> getEventById(
+            @PathVariable String id,
+            Authentication authentication) {
+
+        String userEmail = (authentication != null) ? authentication.getName() : null;
+        return ResponseEntity.ok(eventService.getEventById(id, userEmail));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

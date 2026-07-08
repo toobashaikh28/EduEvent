@@ -41,14 +41,24 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 // 1. Public Assets: Allow all frontend files in root and subfolders
-                .requestMatchers("/", "/*.html", "/css/**", "/js/**", "/images/**", "/pages/**").permitAll() 
-                
+                // (role dashboards are static shells — their DATA endpoints below
+                //  still require JWT, and each page also JS-guards by role)
+                .requestMatchers("/", "/*.html", "/css/**", "/js/**", "/images/**", "/pages/**",
+                                 "/user/**", "/admin/**", "/judge/**", "/favicon.ico").permitAll()
+
                 // 2. Auth endpoints: Fully public
                 .requestMatchers("/api/auth/**").permitAll()
 
                 // 3. Public API resources
-                .requestMatchers("/api/events", "/api/events/**").permitAll()
+                // FIX: was permitAll() for ALL HTTP methods on /api/events/**, which
+                // made POST/DELETE /api/events/{id}/register reachable anonymously
+                // (feature list says: "All endpoints protected by JWT except login,
+                // register, PUBLIC EVENTS, certificate verify" — public BROWSING only).
+                // Only GET (browsing/filtering events) is public now. Registering,
+                // cancelling, and admin create/update/delete all require a valid JWT.
+                .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
                 .requestMatchers("/api/certificates/verify/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/hackathon/*/results").permitAll() // public rankings (feature list)
                 .requestMatchers("/uploads/**").permitAll()
 
                 // 4. Protected Quiz endpoints (Authenticated users only)

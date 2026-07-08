@@ -12,6 +12,12 @@ public class RegistrationResponse {
     private String eventTitle;
     private String userId;
     private String userName;
-    private String status; // REGISTERED or WAITLISTED
+    private String status; // REGISTERED, WAITLISTED or CANCELLED
     private LocalDateTime registeredAt;
+
+    /**
+     * FIX (feature list): "Position number assigned to each waitlisted user".
+     * 1-based position in the waitlist queue; null for non-waitlisted rows.
+     */
+    private Integer waitlistPosition;
 }

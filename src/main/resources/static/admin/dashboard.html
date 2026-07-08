@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduEvent — Admin Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/core.js"></script>
+<style>
+  .shell{display:flex;min-height:100vh;max-height:100vh;overflow:hidden}
+  aside{width:264px;flex-shrink:0;background:#fff;border-right:1px solid #ececf3;display:flex;flex-direction:column;padding:22px 16px;overflow-y:auto}
+  .snav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;border:none;width:100%;text-align:left;transition:.15s;background:transparent;color:#56526a}
+  .snav:hover{background:#f6f5fb}
+  .snav.active{background:#eef0ff;color:#4f46e5;font-weight:700}
+  .main-col{flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+  .main-head{display:flex;align-items:center;gap:18px;padding:18px 30px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border-bottom:1px solid #ececf3;flex-shrink:0}
+  .scroll-body{flex:1;overflow-y:auto;padding:28px 30px 48px}
+  .kpi{background:#fff;border:1px solid #ececf3;border-radius:18px;padding:20px;box-shadow:var(--card-shadow)}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:flex-end;min-width:0}
+  .bar{width:100%;max-width:44px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#6366f1,#4f46e5);min-height:6px;transition:height .6s ease}
+  .opt-row{display:flex;align-items:center;gap:10px;margin-top:9px}
+  .radio{width:22px;height:22px;border-radius:50%;border:2px solid #d5d2e6;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .radio.on{border-color:#0d9488}
+  .radio.on::after{content:"";width:10px;height:10px;border-radius:50%;background:#0d9488}
+  @media (max-width:1080px){.g2{grid-template-columns:1fr!important}}
+  @media (max-width:920px){
+    aside{position:fixed;z-index:80;height:100vh;transform:translateX(-100%);transition:.25s}
+    aside.open{transform:none;box-shadow:0 0 60px rgba(20,16,40,.25)}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none}
+</style>
+</head>
+<body>
+<script>if(!Auth.guardPage("ADMIN")) throw new Error("no access");</script>
+
+<div class="shell">
+  <aside id="sidebar">
+    <div style="display:flex;align-items:center;gap:11px;padding:6px 8px 22px">
+      <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 14px rgba(79,70,229,.32)">E</div>
+      <div><div style="font-weight:800;font-size:16px;letter-spacing:-.3px">EduEvent</div>
+      <div style="font-size:11px;color:#9b97ac;font-weight:600;letter-spacing:.4px">ADMIN CONSOLE</div></div>
+    </div>
+    <div style="font-size:10.5px;font-weight:700;color:#b3afc2;letter-spacing:.8px;padding:6px 10px 8px">MANAGE</div>
+    <nav id="snav" style="display:flex;flex-direction:column;gap:3px"></nav>
+    <div style="margin-top:auto;padding-top:18px">
+      <button class="btn btn-danger-soft" style="width:100%" onclick="Auth.logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="main-head">
+      <button class="icon-btn menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div style="flex:1;min-width:0">
+        <h1 id="page-title" style="margin:0;font-size:21px;font-weight:800;letter-spacing:-.5px">Events</h1>
+        <div id="page-sub" style="font-size:13px;color:#8b879c;margin-top:1px">Create and manage all events</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px">
+        <div id="adm-av" class="av" style="width:42px;height:42px;border-radius:12px;font-size:15px;background:linear-gradient(135deg,#f59e0b,#ec4899)">A</div>
+        <div style="line-height:1.25" class="hide-sm">
+          <div id="adm-name" style="font-weight:700;font-size:13.5px">Admin</div>
+          <div style="font-size:11.5px;color:#9b97ac">Administrator</div>
+        </div>
+      </div>
+    </header>
+    <div class="scroll-body" id="body"></div>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+/* =====================================================================
+   ADMIN CONSOLE — wired to the real EduEvent backend DTOs
+   ===================================================================== */
+injectLoader("Loading admin console…");
+const ME = Auth.getUser() || {};
+document.getElementById("adm-av").textContent = initials(ME.name || ME.email);
+document.getElementById("adm-name").textContent = ME.name || "Admin";
+
+const PAGES = [
+  ["events",   "Events",       "Create and manage all events"],
+  ["quiz",     "Quiz",         "Build proctored quizzes and review results"],
+  ["hack",     "Hackathon",    "Teams, judges, results and winners"],
+  ["leader",   "Leaderboard",  "Global and per-hackathon rankings"],
+  ["analytics","Analytics",    "Platform KPIs at a glance"],
+  ["messages", "Messages",     "Broadcast or message one user"],
+  ["users",    "Users",        "Manage roles and access"],
+  ["certs",    "Certificates", "All issued certificates"],
+];
+const ICONS = {
+  events:'<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  quiz:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  hack:'<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>',
+  leader:'<path d="M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z"/>',
+  analytics:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/>',
+  messages:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  certs:'<circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/>',
+};
+const S = { page:"events", events:[], users:[], quizzes:[], userFilter:"",
+            draftQuestions:[], correctIdx:0, hackId:null, leaderScope:"global", leaderHack:null };
+
+function renderNav(){
+  document.getElementById("snav").innerHTML = PAGES.map(p =>
+    '<button class="snav '+(S.page===p[0]?"active":"")+'" onclick="go(\''+p[0]+'\')">'+
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[p[0]]+'</svg>'+p[1]+'</button>'
+  ).join("");
+}
+function go(p){
+  S.page = p; renderNav();
+  const meta = PAGES.find(x=>x[0]===p);
+  document.getElementById("page-title").textContent = meta[1];
+  document.getElementById("page-sub").textContent = meta[2];
+  document.getElementById("sidebar").classList.remove("open");
+  render();
+}
+const B = () => document.getElementById("body");
+function skel(h){ return '<div class="skel" style="height:'+(h||280)+'px"></div>'; }
+function empty(icon,t,s){ return '<div class="card empty-state"><div class="big">'+icon+'</div><div class="t">'+t+'</div><div class="s">'+s+'</div></div>'; }
+const STATUS_CHIP = {
+  UPCOMING:["#eef0ff","#4f46e5","Upcoming"], LIVE:["#d7f3ee","#0d9488","● Live"],
+  COMPLETED:["#f2f1f9","#75718a","Completed"], CANCELLED:["#fdeaea","#dc2626","Cancelled"],
+};
+function statusChip(st){
+  const [bg,c,l] = STATUS_CHIP[String(st||"").toUpperCase()] || ["#f2f1f9","#75718a",st||"—"];
+  return '<span class="chip" style="background:'+bg+';color:'+c+'">'+l+'</span>';
+}
+const hackathons = () => S.events.filter(e => String(e.type||"").toLowerCase().includes("hack"));
+
+async function loadCore(){
+  S.events = asList(await api.get("/events"));
+  renderNav(); render(); hidePageLoader();
+}
+loadCore();
+
+function render(){
+  B().innerHTML = '<section class="anim-fadeup" id="sec"></section>';
+  ({events:rEvents,quiz:rQuiz,hack:rHack,leader:rLeader,analytics:rAnalytics,messages:rMessages,users:rUsers,certs:rCerts}[S.page])(document.getElementById("sec"));
+}
+
+/* =====================================================================
+   EVENTS — table + create/edit modal (EventRequest: title/type/desc/
+   capacity/startTime/endTime/status/joinLink + banner part)
+   ===================================================================== */
+function rEvents(el){
+  const live = S.events.filter(e => String(e.status||"").toUpperCase()==="LIVE").length;
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap">'+
+    '<div style="display:flex;gap:16px;font-size:13.5px;color:#75718a"><span>Total events&nbsp;<b style="color:#211d35">'+S.events.length+'</b></span><span>Live now&nbsp;<b style="color:#0d9488">'+live+'</b></span></div>'+
+    '<button class="btn btn-primary" onclick="openEventModal()">＋ Create event</button></div>'+
+    '<div class="card tbl" style="border-radius:18px">'+
+    '<div class="tbl-head" style="grid-template-columns:2fr 1fr 1.3fr 1.4fr 1fr .8fr"><div>EVENT</div><div>TYPE</div><div>STARTS</div><div>CAPACITY</div><div>STATUS</div><div style="text-align:right">ACTIONS</div></div>'+
+    (S.events.length ? S.events.map(e=>{
+      const th=typeTheme(e.type), cap=Number(e.capacity||0), reg=Number(e.registeredCount||0);
+      const pct=cap?Math.min(100,Math.round(reg/cap*100)):0;
+      return '<div class="tbl-row" style="grid-template-columns:2fr 1fr 1.3fr 1.4fr 1fr .8fr">'+
+        '<div><div style="font-weight:700">'+escapeHtml(e.title||"Untitled")+'</div><div style="font-size:12px;color:#9b97ac">'+escapeHtml(e.adminName||"")+'</div></div>'+
+        '<div><span class="chip" style="background:'+th.chipBg+';color:'+th.chip+'">'+th.label+'</span></div>'+
+        '<div style="color:#75718a;font-size:13px">'+fmtDateTime(e.startTime)+'</div>'+
+        '<div>'+(cap?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#8b879c;margin-bottom:5px"><span>'+reg+' / '+cap+'</span><span>'+pct+'%</span></div><div class="meter" style="height:6px"><div style="width:'+pct+'%;background:'+(pct>=90?"#ef4444":pct>=60?"#d97706":"#0d9488")+'"></div></div>':'<span style="color:#9b97ac;font-size:12.5px">'+reg+' registered</span>')+'</div>'+
+        '<div>'+statusChip(e.status)+'</div>'+
+        '<div style="display:flex;gap:7px;justify-content:flex-end">'+
+        '<button class="icon-btn" title="Edit" onclick="openEventModal(\''+e.id+'\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>'+
+        '<button class="icon-btn danger" title="Delete" onclick="deleteEvent(\''+e.id+'\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>';
+    }).join("") : '<div style="padding:34px;text-align:center;color:#9b97ac;font-size:13.5px">No events yet — create your first one.</div>')+'</div>';
+}
+function dtVal(iso){
+  if(!iso) return "";
+  const d=new Date(iso); if(isNaN(d)) return "";
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+function openEventModal(id){
+  const ev = id ? S.events.find(e=>String(e.id)===String(id)) : null;
+  document.getElementById("modal-root").innerHTML =
+  '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-pad">'+
+  '<div class="modal-head"><div class="t">'+(ev?"Edit event":"Create event")+'</div><button class="modal-x" onclick="closeModal()">✕</button></div>'+
+  '<label class="f-label">Event title</label><input id="m-title" class="f-input" placeholder="e.g. CloudNative Summit 2026" value="'+escapeHtml(ev?.title||"")+'">'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+  '<div><label class="f-label">Type</label><select id="m-type" class="f-input" onchange="toggleJoinLink()"><option>Webinar</option><option>Conference</option><option>Hackathon</option><option>Quiz</option></select></div>'+
+  '<div><label class="f-label">Capacity</label><input id="m-cap" class="f-input" type="number" min="0" value="'+(ev?.capacity??"")+'" placeholder="e.g. 100"></div></div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+  '<div><label class="f-label">Starts</label><input id="m-start" class="f-input" type="datetime-local" value="'+dtVal(ev?.startTime)+'"></div>'+
+  '<div><label class="f-label">Ends</label><input id="m-end" class="f-input" type="datetime-local" value="'+dtVal(ev?.endTime)+'"></div></div>'+
+  '<label class="f-label">Status</label><select id="m-status" class="f-input"><option>UPCOMING</option><option>LIVE</option><option>COMPLETED</option><option>CANCELLED</option></select>'+
+  '<div id="m-join-wrap"><label class="f-label">Join link <span style="color:#b3afc2;font-weight:600">(webinar/conference)</span></label><input id="m-join" class="f-input" placeholder="https://meet.google.com/…" value="'+escapeHtml(ev?.joinLink||"")+'"></div>'+
+  '<label class="f-label">Description</label><textarea id="m-desc" class="f-input" rows="3" placeholder="What is this event about?">'+escapeHtml(ev?.description||"")+'</textarea>'+
+  '<label class="f-label">Banner image (optional)</label><input id="m-banner" class="f-input" type="file" accept="image/*" style="padding:9px">'+
+  '<button id="m-save" class="btn btn-primary" style="width:100%;margin-top:22px;padding:13px" onclick="saveEvent(\''+(id||"")+'\')">'+(ev?"Save changes":"Create event")+'</button>'+
+  '</div></div></div>';
+  if(ev){
+    const sel=document.getElementById("m-type");
+    [...sel.options].forEach(o=>{ if(o.value.toLowerCase()===String(ev.type||"").toLowerCase()) sel.value=o.value; });
+    document.getElementById("m-status").value = String(ev.status||"UPCOMING").toUpperCase();
+  }
+  toggleJoinLink();
+}
+function toggleJoinLink(){
+  const t = document.getElementById("m-type").value.toLowerCase();
+  document.getElementById("m-join-wrap").style.display = (t==="webinar"||t==="conference") ? "block" : "none";
+}
+function closeModal(){ document.getElementById("modal-root").innerHTML=""; }
+async function saveEvent(id){
+  const title = document.getElementById("m-title").value.trim();
+  const start = document.getElementById("m-start").value;
+  const end   = document.getElementById("m-end").value;
+  if(!title){ toast("Give the event a title.","error"); return; }
+  if(!start || !end){ toast("Start and end time are both required.","error"); return; }
+  const fd = new FormData();
+  fd.append("title", title);
+  fd.append("type", document.getElementById("m-type").value);
+  const cap = document.getElementById("m-cap").value;
+  if(cap) fd.append("capacity", cap);
+  fd.append("startTime", start.length===16 ? start+":00" : start);
+  fd.append("endTime",   end.length===16 ? end+":00" : end);
+  fd.append("status", document.getElementById("m-status").value);
+  fd.append("description", document.getElementById("m-desc").value.trim());
+  const join = document.getElementById("m-join").value.trim();
+  if(join) fd.append("joinLink", join);
+  const banner = document.getElementById("m-banner").files[0];
+  if(banner) fd.append("banner", banner);
+  const btn=document.getElementById("m-save"); btn.disabled=true; btn.textContent="Saving…";
+  const res = id ? await api.uploadPut("/events/"+id, fd) : await api.upload("/events", fd);
+  btn.disabled=false;
+  if(res===null){ btn.textContent = id?"Save changes":"Create event"; return; }
+  toast(id?"Event updated ✓":"Event created 🎉","success");
+  closeModal();
+  S.events = asList(await api.get("/events")); render();
+}
+async function deleteEvent(id){
+  if(!confirm("Delete this event? Registrations tied to it will be affected.")) return;
+  const res = await api.del("/events/"+id);
+  if(res===null) return;
+  toast("Event deleted.","success");
+  S.events = asList(await api.get("/events")); render();
+}
+
+/* =====================================================================
+   QUIZ — QuizRequest {eventId, durationMinutes, passScore, randomize}
+   questions: {text, options:[{optionText, correct}]}
+   ===================================================================== */
+async function rQuiz(el){
+  el.innerHTML = skel(220);
+  S.quizzes = asList(await api.get("/quiz"));
+  if(S.page!=="quiz") return;
+  const quizEvents = S.events.filter(e => !["cancelled"].includes(String(e.status||"").toLowerCase()));
+  const evOpts = quizEvents.map(e=>'<option value="'+e.id+'">'+escapeHtml(e.title)+' ('+escapeHtml(String(e.type||""))+')</option>').join("");
+  el.innerHTML =
+  '<div class="g2" style="display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start">'+
+    /* builder */
+    '<div class="card card-pad"><div style="font-weight:800;font-size:16px">Create a quiz</div>'+
+    '<div style="font-size:13px;color:#8b879c;margin-top:3px">Every quiz belongs to an event — its title comes from the event.</div>'+
+    '<label class="f-label">Linked event <span style="color:#ef4444">*</span></label><select id="qz-event" class="f-input">'+(evOpts||'<option value="">Create an event first</option>')+'</select>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+    '<div><label class="f-label">Time limit (min)</label><input id="qz-time" class="f-input" type="number" value="30" min="1"></div>'+
+    '<div><label class="f-label">Pass score (%)</label><input id="qz-pass" class="f-input" type="number" value="50" min="1" max="100"></div></div>'+
+    '<label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13px;font-weight:600;color:#3a3650;cursor:pointer"><input id="qz-rand" type="checkbox" checked style="width:16px;height:16px;accent-color:#4f46e5">Shuffle questions for each participant</label>'+
+    '<div style="height:1px;background:#f0eff6;margin:20px 0"></div>'+
+    '<div style="font-weight:800;font-size:14px">Add question</div>'+
+    '<textarea id="qq-text" class="f-input" rows="2" placeholder="Type the question…" style="margin-top:9px"></textarea>'+
+    '<div id="qq-opts">'+[0,1,2,3].map(i=>'<div class="opt-row"><span class="radio '+(i===0?"on":"")+'" onclick="pickCorrect('+i+')" title="Mark as correct"></span><input id="qq-opt'+i+'" class="f-input" placeholder="Option '+String.fromCharCode(65+i)+'"></div>').join("")+'</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;flex-wrap:wrap">'+
+    '<div style="font-size:12px;color:#9b97ac">Click the circle to mark the correct answer.</div>'+
+    '<button class="btn btn-soft" onclick="addDraftQ()">+ Add question</button></div>'+
+    '<div id="draft-list" style="margin-top:14px"></div>'+
+    '<button class="btn btn-primary" style="width:100%;margin-top:18px" onclick="publishQuiz()">Publish quiz</button></div>'+
+    /* list */
+    '<div class="card card-pad"><div style="font-weight:800;font-size:16px;margin-bottom:12px">Existing quizzes <span style="color:#9b97ac;font-weight:600">('+S.quizzes.length+')</span></div>'+
+    (S.quizzes.length ? S.quizzes.map(q=>
+      '<div style="border:1px solid #ececf3;border-radius:14px;padding:14px 16px;margin-bottom:10px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+escapeHtml(q.eventTitle||"Quiz")+'</div>'+
+      '<div style="font-size:12.5px;color:#8b879c;margin-top:3px">⏱ '+(q.durationMinutes??30)+' min · pass '+(q.passScore??50)+'% · '+(q.questionCount??0)+' Qs · '+(q.participants??0)+' taken'+(q.passRate!=null?' · '+Math.round(q.passRate)+'% pass rate':'')+'</div></div>'+
+      '<div style="display:flex;gap:7px;flex-shrink:0"><button class="icon-btn" title="Manage questions" onclick="manageQuestions(\''+q.id+'\')">☰</button>'+
+      '<button class="icon-btn" title="Results" onclick="showResults(\''+q.id+'\')">📊</button>'+
+      '<button class="icon-btn danger" title="Delete quiz" onclick="deleteQuiz(\''+q.id+'\')">✕</button></div></div>'+
+      '<div id="qmgr-'+q.id+'"></div><div id="qres-'+q.id+'"></div></div>'
+    ).join("") : '<div style="color:#9b97ac;font-size:13px">No quizzes yet.</div>')+'</div></div>';
+  paintDrafts();
+}
+function pickCorrect(i){ S.correctIdx=i; document.querySelectorAll("#qq-opts .radio").forEach((r,idx)=>r.classList.toggle("on",idx===i)); }
+function addDraftQ(){
+  const text = document.getElementById("qq-text").value.trim();
+  const opts = [0,1,2,3].map(i=>document.getElementById("qq-opt"+i).value.trim());
+  if(!text || opts.filter(Boolean).length < 2){ toast("Add a question and at least 2 options.","error"); return; }
+  if(!opts[S.correctIdx]){ toast("The correct answer can't be an empty option.","error"); return; }
+  S.draftQuestions.push({ text, options: opts.map((o,i)=>({ optionText:o, correct:i===S.correctIdx, isCorrect:i===S.correctIdx })).filter(o=>o.optionText) });
+  document.getElementById("qq-text").value=""; [0,1,2,3].forEach(i=>document.getElementById("qq-opt"+i).value="");
+  pickCorrect(0); paintDrafts();
+}
+function paintDrafts(){
+  const el=document.getElementById("draft-list"); if(!el) return;
+  el.innerHTML = S.draftQuestions.map((q,i)=>
+    '<div style="background:#faf9fe;border:1px solid #ececf3;border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
+    '<div style="min-width:0"><div style="font-weight:700;font-size:13px">'+(i+1)+'. '+escapeHtml(q.text)+'</div>'+
+    '<div style="font-size:12px;color:#0d9488;margin-top:3px">✓ '+escapeHtml(q.options.find(o=>o.correct)?.optionText||"")+'</div></div>'+
+    '<button class="icon-btn danger" style="width:26px;height:26px" onclick="S.draftQuestions.splice('+i+',1);paintDrafts()">✕</button></div>').join("");
+}
+async function publishQuiz(){
+  const eventId = document.getElementById("qz-event").value;
+  if(!eventId){ toast("Pick the event this quiz belongs to.","error"); return; }
+  if(!S.draftQuestions.length){ toast("Add at least one question first.","error"); return; }
+  const created = await api.post("/quiz", {
+    eventId,
+    durationMinutes: parseInt(document.getElementById("qz-time").value||"30"),
+    passScore: parseFloat(document.getElementById("qz-pass").value||"50"),
+    randomize: document.getElementById("qz-rand").checked
+  });
+  if(created===null) return;
+  let okAll = true;
+  for(const q of S.draftQuestions){
+    const r = await api.post("/quiz/"+created.id+"/questions", q);
+    if(r===null) okAll=false;
+  }
+  toast(okAll?"Quiz published with "+S.draftQuestions.length+" questions 🎉":"Quiz created — some questions failed to add.", okAll?"success":"error");
+  S.draftQuestions=[]; render();
+}
+async function deleteQuiz(id){
+  if(!confirm("Delete this quiz and its questions?")) return;
+  const res = await api.del("/quiz/"+id);
+  if(res===null) return;
+  toast("Quiz deleted.","success"); render();
+}
+async function manageQuestions(id){
+  const holder = document.getElementById("qmgr-"+id);
+  if(holder.innerHTML){ holder.innerHTML=""; return; }
+  holder.innerHTML = '<div class="skel" style="height:60px;margin-top:10px"></div>';
+  const list = asList(await api.get("/quiz/"+id+"/questions"));
+  holder.innerHTML = '<div style="margin-top:10px;border-top:1px dashed #ececf3;padding-top:10px">'+
+    (list.length ? list.map(q=>{
+      const correct = asList(q.options).find(o=>o.isCorrect===true || o.correct===true);
+      return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f7f6fb">'+
+      '<div style="min-width:0"><div style="font-size:12.5px;line-height:1.4;font-weight:600">'+escapeHtml(q.text||"")+'</div>'+
+      (correct?'<div style="font-size:11.5px;color:#0d9488;margin-top:2px">✓ '+escapeHtml(correct.optionText||"")+'</div>':'')+'</div>'+
+      '<button class="icon-btn danger" style="width:24px;height:24px;flex-shrink:0" onclick="delQuestion(\''+q.id+'\',\''+id+'\')">✕</button></div>';
+    }).join("") : '<div style="font-size:12.5px;color:#9b97ac">No questions yet.</div>')+'</div>';
+}
+async function delQuestion(qid, quizId){
+  const res = await api.del("/quiz/question/"+qid);
+  if(res===null) return;
+  toast("Question removed.","success");
+  document.getElementById("qmgr-"+quizId).innerHTML="";
+  manageQuestions(quizId);
+}
+async function showResults(id){
+  const holder = document.getElementById("qres-"+id);
+  if(holder.innerHTML){ holder.innerHTML=""; return; }
+  holder.innerHTML = '<div class="skel" style="height:60px;margin-top:10px"></div>';
+  const list = asList(await api.get("/quiz/"+id+"/results"));
+  holder.innerHTML = '<div style="margin-top:10px;border-top:1px dashed #ececf3;padding-top:10px">'+
+    '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;font-size:10.5px;font-weight:700;color:#9b97ac;letter-spacing:.4px;padding-bottom:6px"><div>PARTICIPANT</div><div>SCORE</div><div>VIOLATIONS</div><div>RESULT</div></div>'+
+    (list.length ? list.map(r=>{
+      const st = String(r.status||"").toUpperCase();
+      const term = st.includes("INVALID")||st.includes("TERMINAT");
+      const passed = st.includes("PASS") || (!term && Number(r.score) >= 50);
+      return '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;font-size:12.5px;padding:6px 0;border-bottom:1px solid #f7f6fb;align-items:center">'+
+      '<div style="font-weight:700">'+escapeHtml(r.userName||"—")+'</div>'+
+      '<div style="font-family:var(--mono);font-weight:700">'+(r.score!=null?Math.round(r.score)+"%":"—")+'</div>'+
+      '<div><span class="chip" style="background:'+(r.violationCount>0?"#fdeaea":"#f2f1f9")+';color:'+(r.violationCount>0?"#dc2626":"#75718a")+'">⚠ '+(r.violationCount??0)+'</span></div>'+
+      '<div><span class="chip" style="background:'+(term?"#fdeaea":passed?"#d7f3ee":"#fdeaea")+';color:'+(term?"#dc2626":passed?"#0d9488":"#dc2626")+'">'+(term?"TERMINATED":st||"—")+'</span></div></div>';
+    }).join("") : '<div style="font-size:12.5px;color:#9b97ac">No attempts yet.</div>')+'</div>';
+}
+
+/* =====================================================================
+   HACKATHON — teams (TeamResponse) · judges · results (RankedTeam)
+   ===================================================================== */
+async function rHack(el){
+  const hacks = hackathons();
+  if(!hacks.length){ el.innerHTML = empty("💻","No hackathons yet","Create an event with type Hackathon first."); return; }
+  if(!S.hackId || !hacks.some(h=>String(h.id)===String(S.hackId))) S.hackId = hacks[0].id;
+  el.innerHTML = '<div class="filters">'+hacks.map(h=>'<button class="fpill '+(String(S.hackId)===String(h.id)?"active":"")+'" onclick="S.hackId=\''+h.id+'\';render()">'+escapeHtml(h.title)+'</button>').join("")+'</div><div id="hack-zone">'+skel(320)+'</div>';
+  const [teams, judges, results, users] = await Promise.all([
+    api.get("/hackathon/"+S.hackId+"/teams"),
+    api.get("/hackathon/"+S.hackId+"/judges"),
+    api.get("/hackathon/"+S.hackId+"/results"),
+    S.users.length ? Promise.resolve(S.users) : api.get("/users")
+  ]);
+  S.users = asList(users);
+  const zone=document.getElementById("hack-zone"); if(!zone) return;
+  const teamList=asList(teams), judgeList=asList(judges), resultList=asList(results);
+  const judgeUsers = S.users.filter(u=>String(u.role||"").toUpperCase()==="JUDGE");
+  const assignedIds = judgeList.map(j=>String(j.id));
+
+  zone.innerHTML =
+  '<div class="g2" style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;align-items:start">'+
+    '<div style="display:flex;flex-direction:column;gap:18px">'+
+      /* teams */
+      '<div class="card card-pad"><div style="font-weight:800;font-size:15px;margin-bottom:12px">Teams <span style="color:#9b97ac;font-weight:600">('+teamList.length+')</span></div>'+
+      (teamList.length ? teamList.map(t=>{
+        const mem = asList(t.members).filter(m=>String(m.status).toUpperCase()==="ACCEPTED");
+        return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f7f6fb">'+
+        '<div class="av" style="width:38px;height:38px;font-size:13px;background:'+avColor(t.teamName)+'">'+initials(t.teamName)+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">'+escapeHtml(t.teamName||"Team")+(t.locked?' 🔒':'')+'</div>'+
+        '<div style="font-size:12px;color:#9b97ac">'+mem.length+'/'+(t.maxSize??4)+' members · 👑 '+escapeHtml(t.leaderName||"—")+' · code '+escapeHtml(t.inviteCode||"—")+'</div></div></div>';
+      }).join("") : '<div style="color:#9b97ac;font-size:13px">No teams yet.</div>')+'</div>'+
+      /* results */
+      '<div class="card tbl" style="border-radius:18px"><div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px 0;gap:10px;flex-wrap:wrap"><div style="font-weight:800;font-size:15px">Results</div>'+
+      '<button class="btn btn-primary" style="padding:9px 18px;font-size:12.5px" onclick="announceWinners()">🏆 Announce winners</button></div>'+
+      '<div class="tbl-head" style="grid-template-columns:56px 2fr 1.4fr 1fr;margin-top:12px"><div>RANK</div><div>TEAM</div><div>LEADER</div><div style="text-align:right">TOTAL</div></div>'+
+      (resultList.length ? resultList.map((r,i)=>{
+        const rank=r.rank??(i+1), medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":rank;
+        return '<div class="tbl-row" style="grid-template-columns:56px 2fr 1.4fr 1fr;background:'+(rank<=3?"#fbfaff":"#fff")+'"><div style="font-weight:800">'+medal+'</div>'+
+        '<div><div style="font-weight:700">'+escapeHtml(r.teamName||"Team")+(r.certificatesIssued?' <span style="font-size:11px;color:#0d9488">🎓</span>':'')+'</div>'+
+        '<div style="font-size:11.5px;color:#9b97ac">'+asList(r.memberNames).map(escapeHtml).join(", ")+'</div></div>'+
+        '<div style="font-size:13px;color:#75718a">'+escapeHtml(r.leaderName||"—")+'</div>'+
+        '<div style="text-align:right;font-weight:800;font-family:var(--mono)">'+(r.totalScore??"—")+'</div></div>';
+      }).join("") : '<div style="padding:22px;text-align:center;color:#9b97ac;font-size:13px">No scores submitted yet.</div>')+'</div></div>'+
+    /* judges */
+    '<div class="card card-pad"><div style="font-weight:800;font-size:15px;margin-bottom:3px">Assigned judges</div>'+
+    '<div style="font-size:12.5px;color:#8b879c;margin-bottom:14px">Judges can score every submission in this hackathon.</div>'+
+    (judgeList.length ? judgeList.map(j=>
+      '<div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:1px solid #f7f6fb">'+
+      '<div class="av" style="width:34px;height:34px;font-size:12px;background:'+avColor(j.name)+'">'+initials(j.name)+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">'+escapeHtml(j.name||"Judge")+'</div><div style="font-size:11.5px;color:#9b97ac">'+escapeHtml(j.email||"")+'</div></div>'+
+      '<button class="icon-btn danger" style="width:28px;height:28px" title="Remove judge" onclick="removeJudge(\''+j.id+'\')">✕</button></div>'
+    ).join("") : '<div style="color:#9b97ac;font-size:13px;margin-bottom:8px">No judges assigned yet.</div>')+
+    '<label class="f-label">Assign a judge</label>'+
+    '<select id="judge-pick" class="f-input">'+
+      (judgeUsers.filter(u=>!assignedIds.includes(String(u.id))).map(u=>'<option value="'+u.id+'">'+escapeHtml(u.name||u.email)+'</option>').join("") || '<option value="">No unassigned judges — create one in Users</option>')+
+    '</select>'+
+    '<button class="btn btn-teal" style="width:100%;margin-top:14px" onclick="assignJudge()">Assign judge</button></div></div>';
+}
+async function assignJudge(){
+  const id = document.getElementById("judge-pick").value;
+  if(!id){ toast("Pick a judge — you can create one under Users.","error"); return; }
+  const res = await api.post("/hackathon/"+S.hackId+"/assign-judge?judgeUserId="+id);
+  if(res===null) return;
+  toast("Judge assigned ✓","success"); render();
+}
+async function removeJudge(id){
+  if(!confirm("Remove this judge from the hackathon?")) return;
+  const res = await api.del("/hackathon/"+S.hackId+"/judges/"+id);
+  if(res===null) return;
+  toast("Judge removed.","success"); render();
+}
+async function announceWinners(){
+  if(!confirm("Announce winners now? This publishes final rankings and queues winner certificates.")) return;
+  const res = await api.post("/hackathon/"+S.hackId+"/announce-winners");
+  if(res===null) return;
+  const top = asList(res.rankings)[0];
+  toast("Winners announced for "+(res.hackathonTitle||"the hackathon")+"! 🎉"+(top?" "+top.teamName+" takes 1st.":""),"success");
+  render();
+}
+
+/* =====================================================================
+   LEADERBOARD — global + per-hackathon ({rank, teamOrUserName, totalPoints})
+   ===================================================================== */
+async function rLeader(el){
+  const hacks = hackathons();
+  el.innerHTML = '<div class="filters">'+
+    '<button class="fpill '+(S.leaderScope==="global"?"active":"")+'" onclick="S.leaderScope=\'global\';render()">🌍 Global</button>'+
+    hacks.map(h=>'<button class="fpill '+(S.leaderScope==="hack"&&String(S.leaderHack)===String(h.id)?"active":"")+'" onclick="S.leaderScope=\'hack\';S.leaderHack=\''+h.id+'\';render()">'+escapeHtml(h.title)+'</button>').join("")+
+    '</div><div id="lb">'+skel(260)+'</div>';
+  const url = S.leaderScope==="global" ? "/leaderboard/global" : "/leaderboard/hackathon/"+S.leaderHack;
+  const rows = asList(await api.get(url));
+  const lb=document.getElementById("lb"); if(!lb) return;
+  lb.innerHTML = rows.length ? '<div class="card tbl" style="max-width:820px">'+rows.map((p,i)=>{
+    const rank=p.rank??(i+1), medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":rank;
+    const nm=p.teamOrUserName||"—";
+    return '<div class="tbl-row" style="grid-template-columns:64px 2fr 1fr;background:'+(rank<=3?"#fbfaff":"#fff")+'">'+
+    '<div><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;font-weight:800;background:'+(rank<=3?"#eef0ff":"#f4f3f9")+';color:'+(rank<=3?"#4f46e5":"#75718a")+'">'+medal+'</span></div>'+
+    '<div style="display:flex;align-items:center;gap:12px"><div class="av" style="width:38px;height:38px;font-size:13px;background:'+avColor(nm)+'">'+initials(nm)+'</div><div style="font-weight:700">'+escapeHtml(nm)+'</div></div>'+
+    '<div style="text-align:right;font-weight:800;font-family:var(--mono);font-size:16px">'+(p.totalPoints??"—")+'</div></div>';
+  }).join("")+'</div>' : empty("📊","No scores yet","Rankings appear once points start landing.");
+}
+
+/* =====================================================================
+   ANALYTICS — overview KPIs · /registrations bars · /cities · /quiz-stats
+   ===================================================================== */
+async function rAnalytics(el){
+  el.innerHTML = skel(320);
+  const [ov, regs, cities] = await Promise.all([
+    api.get("/admin/analytics/overview?days=30"),
+    api.get("/admin/analytics/registrations"),
+    api.get("/admin/analytics/cities"),
+  ]);
+  if(S.page!=="analytics") return;
+  const o = ov || {};
+  const kpis = [
+    ["🎫", o.totalRegistrations ?? "—", "Registrations (30d)"],
+    ["🧠", o.passRate!=null ? Math.round(o.passRate)+"%" : "—", "Quiz pass rate"],
+    ["📈", o.avgQuizScore!=null ? Math.round(o.avgQuizScore)+"%" : "—", "Avg quiz score"],
+    ["🎓", o.certificatesIssued ?? "—", "Certificates issued"],
+    ["📉", o.dropouts ?? "—", "Dropouts"],
+  ];
+  const series = asList(regs);
+  const maxV = Math.max(1, ...series.map(s=>Number(s.count||0)));
+  const cityList = asList(cities);
+  const cityMax = Math.max(1, ...cityList.map(c=>Number(c.count||0)));
+
+  el.innerHTML =
+  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px">'+
+    kpis.map(k=>'<div class="kpi"><div style="font-size:22px">'+k[0]+'</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);letter-spacing:-1px;margin-top:8px">'+k[1]+'</div><div style="font-size:12.5px;color:#8b879c;font-weight:600;margin-top:2px">'+k[2]+'</div></div>').join("")+'</div>'+
+  '<div class="g2" style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start">'+
+    '<div class="card card-pad"><div style="font-weight:800;font-size:15px">Registrations by event</div>'+
+    '<div style="font-size:12.5px;color:#8b879c;margin-bottom:18px">Who\'s pulling the crowd.</div>'+
+    (series.length ? '<div style="display:flex;gap:12px;align-items:flex-end;height:210px;overflow-x:auto;padding-bottom:4px">'+series.map(s=>{
+      const v=Number(s.count||0);
+      return '<div class="bar-col" style="min-width:56px"><div style="font-size:11.5px;font-weight:700;font-family:var(--mono)">'+v+'</div><div class="bar" style="height:'+Math.max(4,Math.round(v/maxV*150))+'px"></div><div style="font-size:10.5px;color:#9b97ac;font-weight:600;text-align:center;line-height:1.25;max-width:70px;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(String(s.eventName||""))+'</div></div>';
+    }).join("")+'</div>' : '<div style="color:#9b97ac;font-size:13px;padding:30px 0;text-align:center">No registrations recorded yet.</div>')+'</div>'+
+    '<div class="card card-pad"><div style="font-weight:800;font-size:15px;margin-bottom:14px">Registered users by city</div>'+
+    (cityList.length ? cityList.slice(0,8).map(c=>{
+      const v=Number(c.count||0);
+      return '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px"><span style="font-weight:700">'+escapeHtml(c.city||"Unknown")+'</span><span style="color:#75718a;font-family:var(--mono)">'+v+'</span></div><div class="meter" style="height:7px"><div style="width:'+Math.round(v/cityMax*100)+'%;background:#0d9488"></div></div></div>';
+    }).join("") : '<div style="color:#9b97ac;font-size:13px">No city data yet — users can add their city at sign-up.</div>')+'</div></div>';
+}
+
+/* =====================================================================
+   MESSAGES — broadcast {title,message,target,email} · direct {email,title,
+   message,sendEmail} · sent (SentNotification)
+   ===================================================================== */
+async function rMessages(el){
+  el.innerHTML =
+  '<div class="g2" style="display:grid;grid-template-columns:1fr 1.2fr;gap:18px;align-items:start">'+
+    '<div style="display:flex;flex-direction:column;gap:18px">'+
+      '<div class="card card-pad"><div style="font-weight:800;font-size:15px">📣 Broadcast</div>'+
+      '<label class="f-label">Send to</label><select id="bc-target" class="f-input"><option value="all">Everyone</option><option value="participants">Participants only</option><option value="judges">Judges only</option><option value="admins">Admins only</option></select>'+
+      '<label class="f-label">Title</label><input id="bc-title" class="f-input" placeholder="e.g. New hackathon just opened!">'+
+      '<label class="f-label">Message</label><textarea id="bc-msg" class="f-input" rows="3" placeholder="Write your announcement…"></textarea>'+
+      '<label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;font-weight:600;color:#3a3650;cursor:pointer"><input id="bc-email" type="checkbox" style="width:16px;height:16px;accent-color:#4f46e5">Also send as email</label>'+
+      '<button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="sendBroadcast()">Send broadcast</button></div>'+
+      '<div class="card card-pad"><div style="font-weight:800;font-size:15px">✉️ Message one user</div>'+
+      '<label class="f-label">User email</label><input id="dm-email" class="f-input" type="email" placeholder="user@example.com">'+
+      '<label class="f-label">Title</label><input id="dm-title" class="f-input" placeholder="Subject">'+
+      '<label class="f-label">Message</label><textarea id="dm-msg" class="f-input" rows="3" placeholder="Write your message…"></textarea>'+
+      '<label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;font-weight:600;color:#3a3650;cursor:pointer"><input id="dm-email-too" type="checkbox" style="width:16px;height:16px;accent-color:#0d9488">Also send as email</label>'+
+      '<button class="btn btn-teal" style="width:100%;margin-top:16px" onclick="sendDirect()">Send message</button></div></div>'+
+    '<div class="card card-pad" id="sent-box"><div style="font-weight:800;font-size:15px;margin-bottom:12px">Sent messages</div><div class="skel" style="height:120px"></div></div></div>';
+  const sent = asList(await api.get("/admin/sent"));
+  const box = document.getElementById("sent-box"); if(!box) return;
+  box.innerHTML = '<div style="font-weight:800;font-size:15px;margin-bottom:12px">Sent messages <span style="color:#9b97ac;font-weight:600">('+sent.length+')</span></div>'+
+    (sent.length ? sent.map(m=>
+      '<div style="padding:12px 0;border-bottom:1px solid #f7f6fb"><div style="display:flex;justify-content:space-between;gap:10px"><div style="font-weight:700;font-size:13.5px">'+escapeHtml(m.title||"Message")+'</div>'+
+      '<div style="font-size:11.5px;color:#b3afc2;flex-shrink:0">'+timeAgo(m.createdAt)+'</div></div>'+
+      '<div style="font-size:12.5px;color:#8b879c;margin-top:3px;line-height:1.45">'+escapeHtml(m.message||"")+'</div>'+
+      '<div style="font-size:11.5px;color:#9b97ac;margin-top:5px">→ '+escapeHtml(m.target||"all")+' · '+(m.recipientCount??0)+' notified'+(m.emailedCount?' · '+m.emailedCount+' emailed':'')+'</div></div>'
+    ).join("") : '<div style="color:#9b97ac;font-size:13px">Nothing sent yet.</div>');
+}
+async function sendBroadcast(){
+  const title=document.getElementById("bc-title").value.trim(), message=document.getElementById("bc-msg").value.trim();
+  if(!title||!message){ toast("Add a title and a message.","error"); return; }
+  const res = await api.post("/admin/broadcast",{ title, message, target: document.getElementById("bc-target").value, email: document.getElementById("bc-email").checked });
+  if(res===null) return;
+  toast("Broadcast sent — "+(res.recipientCount??"all")+" notified 📣","success"); render();
+}
+async function sendDirect(){
+  const email=document.getElementById("dm-email").value.trim(), title=document.getElementById("dm-title").value.trim(), message=document.getElementById("dm-msg").value.trim();
+  if(!email||!title||!message){ toast("Fill email, title and message.","error"); return; }
+  const res = await api.post("/admin/message-by-email",{ email, title, message, sendEmail: document.getElementById("dm-email-too").checked });
+  if(res===null) return;
+  toast("Message sent ✉️","success"); render();
+}
+
+/* =====================================================================
+   USERS — create {name,email,password,role} · edit {name,role} ·
+   role {role} · status {active}
+   ===================================================================== */
+async function rUsers(el){
+  el.innerHTML = skel(300);
+  S.users = asList(await api.get("/users"));
+  if(S.page!=="users") return;
+  const filters=[["","All users"],["USER","Participants"],["JUDGE","Judges"],["ADMIN","Admins"]];
+  const list = S.users.filter(u=>!S.userFilter || String(u.role||"").toUpperCase()===S.userFilter);
+  el.innerHTML =
+  '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px">'+
+  '<div class="filters" style="margin:0">'+filters.map(f=>'<button class="fpill '+(S.userFilter===f[0]?"active":"")+'" onclick="S.userFilter=\''+f[0]+'\';render()">'+f[1]+'</button>').join("")+'</div>'+
+  '<button class="btn btn-primary" onclick="openUserModal()">＋ Add user</button></div>'+
+  '<div class="card tbl" style="border-radius:18px"><div class="tbl-head" style="grid-template-columns:1.8fr 2fr 1.2fr 1fr 1fr"><div>NAME</div><div>EMAIL</div><div>ROLE</div><div>STATUS</div><div style="text-align:right">ACTIONS</div></div>'+
+  (list.length ? list.map(u=>{
+    const role=String(u.role||"USER").toUpperCase();
+    const active = u.active !== false;
+    return '<div class="tbl-row" style="grid-template-columns:1.8fr 2fr 1.2fr 1fr 1fr">'+
+    '<div style="display:flex;align-items:center;gap:11px"><div class="av" style="width:34px;height:34px;font-size:12px;background:'+avColor(u.name)+'">'+initials(u.name)+'</div><div><div style="font-weight:700">'+escapeHtml(u.name||"User")+'</div><div style="font-size:11px;color:#b3afc2">'+(u.eventsCount??0)+' events</div></div></div>'+
+    '<div style="color:#75718a;font-size:13px;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(u.email||"")+'</div>'+
+    '<div><select class="f-input" style="padding:6px 10px;font-size:12px;width:auto" onchange="changeRole(\''+u.id+'\',this.value)">'+
+      ["USER","JUDGE","ADMIN"].map(r=>'<option '+(r===role?"selected":"")+'>'+r+'</option>').join("")+'</select></div>'+
+    '<div><button class="chip" style="border:none;cursor:pointer;background:'+(active?"#d7f3ee":"#f2f1f9")+';color:'+(active?"#0d9488":"#75718a")+'" onclick="toggleStatus(\''+u.id+'\','+(!active)+')"><span class="dot"></span>'+(active?"Active":"Disabled")+'</button></div>'+
+    '<div style="display:flex;gap:7px;justify-content:flex-end">'+
+    '<button class="icon-btn" title="Edit" onclick="openUserModal(\''+u.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>'+
+    '<button class="icon-btn danger" title="Delete" onclick="deleteUser(\''+u.id+'\')">✕</button></div></div>';
+  }).join("") : '<div style="padding:30px;text-align:center;color:#9b97ac;font-size:13px">No users in this filter.</div>')+'</div>';
+}
+function openUserModal(id){
+  const u = id ? S.users.find(x=>String(x.id)===String(id)) : null;
+  document.getElementById("modal-root").innerHTML =
+  '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-pad">'+
+  '<div class="modal-head"><div class="t">'+(u?"Edit user":"Add user")+'</div><button class="modal-x" onclick="closeModal()">✕</button></div>'+
+  '<label class="f-label">Full name</label><input id="u-name" class="f-input" value="'+escapeHtml(u?.name||"")+'">'+
+  '<label class="f-label">Email'+(u?' <span style="color:#b3afc2;font-weight:600">(not editable)</span>':'')+'</label><input id="u-email" class="f-input" type="email" value="'+escapeHtml(u?.email||"")+'" '+(u?'disabled style="background:#f6f5fb;color:#9b97ac"':'')+'>'+
+  (u?"":'<label class="f-label">Password</label><input id="u-pass" class="f-input" type="password" placeholder="Temporary password">')+
+  '<label class="f-label">Role</label><select id="u-role" class="f-input"><option>USER</option><option>JUDGE</option><option>ADMIN</option></select>'+
+  '<button class="btn btn-primary" style="width:100%;margin-top:22px" onclick="saveUser(\''+(id||"")+'\')">'+(u?"Save changes":"Create user")+'</button>'+
+  '</div></div></div>';
+  if(u) document.getElementById("u-role").value = String(u.role||"USER").toUpperCase();
+}
+async function saveUser(id){
+  const name=document.getElementById("u-name").value.trim(), role=document.getElementById("u-role").value;
+  if(!name){ toast("Name is required.","error"); return; }
+  let res;
+  if(id){ res = await api.put("/users/"+id,{ name, role }); }
+  else {
+    const email=document.getElementById("u-email").value.trim();
+    const password=document.getElementById("u-pass").value;
+    if(!email){ toast("Email is required.","error"); return; }
+    if(password.length<6){ toast("Password needs 6+ characters.","error"); return; }
+    res = await api.post("/users",{ name, email, password, role });
+  }
+  if(res===null) return;
+  toast(id?"User updated ✓":"User created ✓","success");
+  closeModal(); render();
+}
+async function changeRole(id, role){
+  const res = await api.put("/users/"+id+"/role",{ role });
+  if(res===null){ render(); return; }
+  toast("Role changed to "+role+".","success");
+}
+async function toggleStatus(id, active){
+  const res = await api.put("/users/"+id+"/status",{ active });
+  if(res===null) return;
+  toast(active?"User activated.":"User disabled.","success"); render();
+}
+async function deleteUser(id){
+  if(!confirm("Delete this user permanently?")) return;
+  const res = await api.del("/users/"+id);
+  if(res===null) return;
+  toast("User deleted.","success"); render();
+}
+
+/* =====================================================================
+   CERTIFICATES — AdminCertificatesResponse {totalIssued, thisMonth,
+   pendingGeneration, certificates:[Row]}
+   ===================================================================== */
+async function rCerts(el){
+  el.innerHTML = skel(280);
+  const res = await api.get("/admin/certificates");
+  if(S.page!=="certs") return;
+  const rows = asList(res?.certificates);
+  el.innerHTML =
+  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px">'+
+    '<div class="kpi"><div style="font-size:22px">🎓</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);margin-top:8px">'+(res?.totalIssued??0)+'</div><div style="font-size:12.5px;color:#8b879c;font-weight:600;margin-top:2px">Total issued</div></div>'+
+    '<div class="kpi"><div style="font-size:22px">📅</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);margin-top:8px">'+(res?.thisMonth??0)+'</div><div style="font-size:12.5px;color:#8b879c;font-weight:600;margin-top:2px">This month</div></div>'+
+    '<div class="kpi"><div style="font-size:22px">⏳</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);margin-top:8px">'+(res?.pendingGeneration??0)+'</div><div style="font-size:12.5px;color:#8b879c;font-weight:600;margin-top:2px">Pending generation</div></div></div>'+
+  (rows.length ?
+  '<div class="card tbl" style="border-radius:18px"><div class="tbl-head" style="grid-template-columns:1.6fr 2fr 1fr 1.2fr 1.1fr .8fr"><div>RECIPIENT</div><div>EVENT</div><div>TYPE</div><div>CERT #</div><div>ISSUED</div><div style="text-align:right">ACTIONS</div></div>'+
+  rows.map(c=>{
+    const th=typeTheme(c.eventType);
+    return '<div class="tbl-row" style="grid-template-columns:1.6fr 2fr 1fr 1.2fr 1.1fr .8fr">'+
+    '<div style="display:flex;align-items:center;gap:10px"><div class="av" style="width:32px;height:32px;font-size:11px;background:'+avColor(c.recipient)+'">'+initials(c.recipient)+'</div><div style="font-weight:700">'+escapeHtml(c.recipient||"—")+'</div></div>'+
+    '<div style="color:#56526a;font-size:13px">'+escapeHtml(c.eventTitle||"—")+'</div>'+
+    '<div><span class="chip" style="background:'+th.chipBg+';color:'+th.chip+'">'+th.label+'</span></div>'+
+    '<div style="font-family:var(--mono);font-size:12px;color:#75718a">'+escapeHtml(c.certNumber||"—")+'</div>'+
+    '<div style="color:#75718a;font-size:13px">'+fmtDate(c.issuedAt)+'</div>'+
+    '<div style="display:flex;gap:7px;justify-content:flex-end">'+
+    '<button class="icon-btn" title="Download" onclick="api.download(\'/certificates/'+c.id+'/download\',\''+escapeHtml((c.certNumber||"certificate"))+'.pdf\')">⬇</button>'+
+    '<button class="icon-btn danger" title="Delete" onclick="delCert(\''+c.id+'\')">✕</button></div></div>';
+  }).join("")+'</div>'
+  : empty("🎓","No certificates issued yet","They're generated when users pass quizzes or win hackathons."));
+}
+async function delCert(id){
+  if(!confirm("Delete this certificate?")) return;
+  const res = await api.del("/certificates/"+id);
+  if(res===null) return;
+  toast("Certificate deleted.","success"); render();
+}
+</script>
+</body>
+</html>

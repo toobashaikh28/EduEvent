@@ -1,328 +1,381 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EduEvent — Campus Events, Hackathons & Proctored Quizzes</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/global.css">
-  <style>
-    body { overflow-x:hidden; }
-    .lp { max-width:1180px; margin:0 auto; padding:0 28px; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduEvent — Learning, as an event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/core.js"></script>
+<style>
+  body{background:#f7f7fc;color:#1c1830;overflow-x:hidden}
 
-    /* ── Nav ── */
-    .lp-nav { position:sticky; top:0; z-index:50; backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
-      background:rgba(10,10,18,0.72); border-bottom:1px solid var(--border); }
-    .lp-nav-inner { max-width:1180px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; gap:24px; }
-    .lp-logo { display:flex; align-items:center; gap:11px; }
-    .lp-logo .ic { width:34px; height:34px; border-radius:10px; background:var(--grad-brand); display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-display); font-weight:800; color:#06243A; box-shadow:var(--glow-brand); }
-    .lp-logo span { font-family:var(--font-display); font-weight:800; font-size:19px; letter-spacing:-0.4px; }
-    .lp-links { display:flex; gap:6px; margin-left:14px; }
-    .lp-links a { padding:8px 14px; border-radius:var(--radius-md); font-size:13.5px; font-weight:500; color:var(--text-secondary); transition:var(--transition); }
-    .lp-links a:hover { color:var(--text-primary); background:var(--bg-hover); }
-    .lp-nav-cta { margin-left:auto; display:flex; align-items:center; gap:10px; }
-    @media(max-width:780px){ .lp-links{display:none;} }
+  /* reveal on scroll */
+  [data-reveal]{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  [data-reveal].in{opacity:1;transform:none}
 
-    /* ── Hero ── */
-    .lp-hero { position:relative; display:grid; grid-template-columns:1.05fr 1fr; gap:40px; align-items:center; padding:74px 0 64px; }
-    .eyebrow { display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border-radius:99px; font-size:12px; font-weight:600;
-      color:var(--brand-cyan); background:rgba(0,229,255,0.10); border:1px solid rgba(0,229,255,0.28); margin-bottom:22px; }
-    .eyebrow .dot { width:7px; height:7px; border-radius:50%; background:#34D399; box-shadow:0 0 8px #34D399; }
-    .lp-h1 { font-family:var(--font-display); font-size:clamp(38px,5vw,60px); font-weight:800; line-height:1.05; letter-spacing:-1.8px; }
-    .lp-h1 .grad { background:linear-gradient(90deg,#00E5FF,#FF2E97,#6AA8FF,#00E5FF); background-size:300% 100%;
-      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; animation:gradFlow 6s linear infinite; }
-    @keyframes gradFlow { to { background-position:300% 0; } }
-    /* Hero constellation canvas — full-bleed across the whole hero band */
-    #hero-fx { position:absolute; top:0; left:50%; transform:translateX(-50%); width:100vw; height:100%; z-index:0; pointer-events:none; }
-    .lp-hero > div { position:relative; z-index:1; }
-    .lp-lead { font-size:16px; color:var(--text-secondary); margin-top:20px; max-width:520px; line-height:1.65; }
-    .lp-cta-row { display:flex; gap:14px; margin-top:32px; flex-wrap:wrap; }
-    .btn-lg { padding:13px 24px; font-size:14.5px; }
-    .lp-trust { display:flex; gap:22px; margin-top:34px; flex-wrap:wrap; }
-    .lp-trust div { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-muted); }
-    .lp-trust i { color:var(--brand-cyan); font-size:16px; }
-    @media(max-width:900px){ .lp-hero{ grid-template-columns:1fr; padding:48px 0; } .preview{ display:none; } }
+  /* ======= THE SCROLL FIX =======
+     The navbar is sticky (~76px tall incl. padding). Without an offset,
+     clicking a nav anchor scrolls the section top *under* the navbar and
+     its heading gets hidden. scroll-margin-top reserves that space. */
+  section[id]{scroll-margin-top:104px}
 
-    /* ── Dashboard preview mockup ── */
-    .preview { position:relative; }
-    .preview::before { content:''; position:absolute; inset:-40px -20px; z-index:-1;
-      background:radial-gradient(60% 60% at 60% 40%, rgba(0,229,255,0.28), transparent 70%); filter:blur(30px); }
-    .pv-card { background:linear-gradient(180deg, rgba(0,229,255,0.07), transparent 40%), var(--bg-card);
-      border:1px solid var(--border-hover); border-radius:var(--radius-xl); padding:18px; box-shadow:var(--shadow-xl);
-      animation:floatUp 6s ease-in-out infinite; }
-    @keyframes floatUp { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
-    .pv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .pv-dot { width:9px; height:9px; border-radius:50%; }
-    .pv-tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
-    .pv-tile { background:var(--bg-hover); border:1px solid var(--border); border-radius:12px; padding:11px 12px; }
-    .pv-tile .lbl { font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); }
-    .pv-tile .val { font-family:var(--font-display); font-weight:800; font-size:20px; margin-top:4px; }
-    .pv-chart { background:var(--bg-hover); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; align-items:flex-end; gap:7px; height:120px; }
-    .pv-bar { flex:1; border-radius:6px 6px 0 0; background:linear-gradient(180deg,#00E5FF,#FF2E97); opacity:0.92; box-shadow:0 0 12px -2px rgba(0,229,255,0.5); animation:grow 1.1s var(--ease-out) both; }
-    @keyframes grow { from{height:0;} }
-    .pv-ring { width:74px; height:74px; border-radius:50%; flex-shrink:0;
-      background:conic-gradient(#00E5FF 0 40%, #FF2E97 40% 64%, rgba(255,255,255,0.08) 64% 100%);
-      display:flex; align-items:center; justify-content:center; }
-    .pv-ring::after { content:'64%'; width:54px; height:54px; border-radius:50%; background:var(--bg-card);
-      display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:800; font-size:15px; }
+  .navlink{text-decoration:none;color:#4a4661;font-weight:600;font-size:13.5px;padding:9px 14px;border-radius:999px;transition:.18s}
+  .navlink:hover{color:#1c1830;background:#f2f1fb}
+  .navlink.active{background:#eef0ff;color:#4f46e5}
 
-    /* ── Section heading ── */
-    .sec { padding:64px 0; }
-    .sec-head { text-align:center; max-width:620px; margin:0 auto 44px; }
-    .sec-head h2 { font-family:var(--font-display); font-size:clamp(26px,3.4vw,38px); font-weight:800; letter-spacing:-1px; }
-    .sec-head p { color:var(--text-secondary); margin-top:12px; font-size:15px; line-height:1.6; }
+  .float-card{position:absolute;background:#fff;border:1px solid #eceaf6;border-radius:16px;padding:12px 15px;box-shadow:0 18px 44px rgba(28,24,48,.16);z-index:3;display:flex;align-items:center;gap:10px}
 
-    /* ── Stats strip ── */
-    .lp-statstrip { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; padding:26px; border-radius:var(--radius-lg);
-      background:linear-gradient(135deg, rgba(0,229,255,0.10), rgba(0,229,255,0.05)); border:1px solid var(--border-hover); }
-    .lp-statstrip .n { font-family:var(--font-display); font-size:30px; font-weight:800; background:var(--grad-brand);
-      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .lp-statstrip .t { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
-    @media(max-width:680px){ .lp-statstrip{ grid-template-columns:1fr 1fr; } }
+  .type-card{background:#fff;border:1px solid #eceaf6;border-radius:22px;padding:26px;box-shadow:0 1px 2px rgba(28,24,48,.03),0 10px 26px rgba(28,24,48,.05);transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
+  .type-card:hover{transform:translateY(-7px);box-shadow:0 26px 60px rgba(28,24,48,.13)}
 
-    /* ── Feature grid ── */
-    .feat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
-    @media(max-width:980px){ .feat-grid{ grid-template-columns:1fr 1fr; } }
-    @media(max-width:560px){ .feat-grid{ grid-template-columns:1fr; } }
-    .feat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; transition:var(--transition); }
-    .feat:hover { border-color:rgba(0,229,255,0.45); transform:translateY(-4px); box-shadow:0 14px 40px -18px rgba(0,229,255,0.55); }
-    .feat .fic { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px;
-      background:rgba(0,229,255,0.12); color:var(--brand-cyan); border:1px solid rgba(0,229,255,0.22); }
-    .feat h3 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:7px; }
-    .feat p { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+  .auth-input{width:100%;border:1px solid #e3e1ef;border-radius:13px;padding:12px 15px;font-size:14px;background:#fbfaff}
+  .auth-tab{flex:1;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;background:transparent;color:#75718a;transition:.18s}
+  .auth-tab.active{background:#fff;color:#1c1830;box-shadow:0 3px 10px rgba(28,24,48,.1)}
 
-    /* ── Roles ── */
-    .role-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
-    @media(max-width:820px){ .role-grid{ grid-template-columns:1fr; } }
-    .role { position:relative; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:26px; overflow:hidden; }
-    .role::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-    .role.r1::before{ background:#2E6BFF; } .role.r2::before{ background:#A78BFA; } .role.r3::before{ background:#34D399; }
-    .role h3 { font-family:var(--font-display); font-size:18px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
-    .role ul { list-style:none; margin-top:14px; display:flex; flex-direction:column; gap:9px; }
-    .role li { font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:9px; }
-    .role li i { color:#34D399; font-size:15px; }
-
-    /* ── CTA band ── */
-    .lp-cta-band { text-align:center; padding:56px 28px; border-radius:var(--radius-xl); margin:8px 0 64px;
-      background:linear-gradient(135deg, rgba(0,229,255,0.18), rgba(34,211,238,0.10)); border:1px solid var(--border-hover); }
-    .lp-cta-band h2 { font-family:var(--font-display); font-size:clamp(24px,3.2vw,34px); font-weight:800; letter-spacing:-1px; }
-    .lp-cta-band p { color:var(--text-secondary); margin:12px 0 26px; }
-
-    /* ── Footer ── */
-    .lp-foot { border-top:1px solid var(--border); padding:28px 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
-    .lp-foot .muted { font-size:12.5px; color:var(--text-muted); }
-    .reveal { opacity:0; transform:translateY(20px); transition:opacity .7s var(--ease-out), transform .7s var(--ease-out); }
-    .reveal.in { opacity:1; transform:none; }
-  </style>
+  @media (max-width:860px){
+    .hero-h1{font-size:40px!important}
+    .nav-center{display:none!important}
+    .floaters{display:none}
+    .grid-2{grid-template-columns:1fr!important}
+  }
+</style>
 </head>
 <body>
-<div id="toast-container"></div>
+<div style="position:relative;min-height:100vh">
 
-<!-- NAV -->
-<header class="lp-nav">
-  <div class="lp-nav-inner">
-    <div class="lp-logo"><div class="ic">E</div><span>EduEvent</span></div>
-    <nav class="lp-links">
-      <a href="#features">Features</a>
-      <a href="#roles">For everyone</a>
-      <a href="#about">Platform</a>
-    </nav>
-    <div class="lp-nav-cta" id="nav-cta">
-      <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
-      <a href="login.html?tab=register" class="btn btn-primary btn-sm">Get Started <i class="ti ti-arrow-right"></i></a>
-    </div>
+  <!-- animated aurora background -->
+  <div style="position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none">
+    <div style="position:absolute;top:-12%;left:-8%;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,#6366f1,transparent 68%);filter:blur(70px);opacity:.5;animation:aurora 18s ease-in-out infinite"></div>
+    <div style="position:absolute;top:-4%;right:-10%;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,#ec4899,transparent 68%);filter:blur(80px);opacity:.42;animation:aurora 22s ease-in-out infinite reverse"></div>
+    <div style="position:absolute;top:34%;left:32%;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,#14b8a6,transparent 68%);filter:blur(90px);opacity:.34;animation:aurora 26s ease-in-out infinite"></div>
   </div>
-</header>
 
-<div class="lp">
-  <!-- HERO -->
-  <section class="lp-hero">
-    <canvas id="hero-fx"></canvas>
-    <div>
-      <div class="eyebrow"><span class="dot"></span> University Event Platform</div>
-      <h1 class="lp-h1">Where campus events<br>come <span class="grad">alive.</span></h1>
-      <p class="lp-lead">Run hackathons with teams & judging, host AI-proctored quizzes with live monitoring, track live leaderboards, and issue verifiable certificates — all in one premium platform.</p>
-      <div class="lp-cta-row">
-        <a href="login.html?tab=register" class="btn btn-primary btn-lg">Get Started Free <i class="ti ti-arrow-right"></i></a>
-        <a href="login.html" class="btn btn-secondary btn-lg"><i class="ti ti-login-2"></i> Sign In</a>
+  <!-- ===== NAVBAR (centered pill, sticky) ===== -->
+  <div style="position:sticky;top:0;z-index:30;display:flex;justify-content:center;padding:18px 22px">
+    <header style="display:flex;align-items:center;gap:20px;background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.6);border-radius:999px;padding:9px 9px 9px 18px;box-shadow:0 10px 40px rgba(28,24,48,.1);max-width:1080px;width:100%">
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 6px 14px rgba(79,70,229,.34)">E</div>
+        <span style="font-weight:800;font-size:16.5px;letter-spacing:-.4px">EduEvent</span>
       </div>
-      <div class="lp-trust">
-        <div><i class="ti ti-shield-check"></i> AI proctoring</div>
-        <div><i class="ti ti-bolt"></i> Real-time leaderboards</div>
-        <div><i class="ti ti-certificate"></i> Verified certificates</div>
+      <nav class="nav-center" id="main-nav" style="display:flex;align-items:center;gap:4px;flex:1;justify-content:center">
+        <a href="#types" class="navlink">Event types</a>
+        <a href="#features" class="navlink">Features</a>
+        <a href="#proctoring" class="navlink">Proctoring</a>
+        <a href="#roles" class="navlink">For everyone</a>
+      </nav>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto">
+        <button onclick="openAuth('login')" style="border:none;background:transparent;color:#3a3650;font-weight:700;font-size:13.5px;padding:10px 14px;border-radius:999px;cursor:pointer">Sign in</button>
+        <button onclick="openAuth('register')" class="btn btn-primary" style="padding:11px 20px">Get started</button>
       </div>
+    </header>
+  </div>
+
+  <!-- ===== HERO ===== -->
+  <section style="position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:56px 24px 40px;text-align:center">
+    <div style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.7);border:1px solid #e8e6f4;border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:700;color:#4f46e5;animation:fadeUp .6s ease both">
+      <span style="width:7px;height:7px;border-radius:50%;background:#0d9488;animation:pulseDot 1.5s infinite"></span>
+      AI-proctored quizzes · Live hackathons · Verified certificates
     </div>
+    <h1 class="hero-h1" style="font-size:62px;line-height:1.04;font-weight:800;letter-spacing:-2.4px;margin:24px auto 0;max-width:880px;animation:fadeUp .6s ease both;animation-delay:.05s">
+      Where learning becomes<br><span style="background:linear-gradient(100deg,#6366f1,#db2777,#f59e0b,#0d9488,#6366f1);background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 6s linear infinite">an unforgettable event.</span>
+    </h1>
+    <p style="font-size:18.5px;line-height:1.6;color:#5c576f;max-width:600px;margin:22px auto 0;font-weight:500;animation:fadeUp .6s ease both;animation-delay:.12s">
+      Host webinars, conferences, hackathons and proctored quizzes — all in one bright, modern platform. Register, compete, and earn certificates that actually mean something.
+    </p>
+    <div style="display:flex;gap:13px;justify-content:center;margin-top:32px;flex-wrap:wrap;animation:fadeUp .6s ease both;animation-delay:.18s">
+      <button onclick="openAuth('register')" class="btn btn-primary" style="font-size:15.5px;padding:15px 30px;box-shadow:0 14px 34px rgba(79,70,229,.36)">
+        Create free account
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <button onclick="openAuth('login')" style="border:1px solid #ddd9ec;background:rgba(255,255,255,.8);color:#2c2842;font-weight:700;font-size:15.5px;padding:15px 26px;border-radius:999px;cursor:pointer">I already have an account</button>
+    </div>
+    <div style="font-size:12.5px;color:#9b97ac;margin-top:16px;animation:fadeUp .6s ease both;animation-delay:.24s">No credit card · Free for participants · Judge &amp; admin access provisioned by your organizer</div>
 
-    <!-- Dashboard preview mockup -->
-    <div class="preview">
-      <div class="pv-card">
-        <div class="pv-top">
-          <div style="font-family:var(--font-display);font-weight:700;font-size:13px;">Live Dashboard</div>
-          <div style="display:flex;gap:6px;"><span class="pv-dot" style="background:#F87171;"></span><span class="pv-dot" style="background:#FBBF24;"></span><span class="pv-dot" style="background:#34D399;"></span></div>
+    <!-- floating preview -->
+    <div style="position:relative;max-width:880px;margin:54px auto 0">
+      <div data-reveal style="background:#fff;border:1px solid #eceaf6;border-radius:24px;padding:18px;box-shadow:0 30px 80px rgba(28,24,48,.16);position:relative;z-index:2">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+          <div style="background:linear-gradient(135deg,#eef1ff,#e0e7ff);border-radius:16px;padding:16px;text-align:left"><div style="font-size:24px">🎥</div><div style="font-weight:800;font-size:14px;margin-top:8px">Webinars</div><div style="font-size:12px;color:#7c7891;margin-top:2px">Live &amp; on-demand</div></div>
+          <div style="background:linear-gradient(135deg,#e6fbf6,#cffaf0);border-radius:16px;padding:16px;text-align:left"><div style="font-size:24px">🎤</div><div style="font-weight:800;font-size:14px;margin-top:8px">Conferences</div><div style="font-size:12px;color:#7c7891;margin-top:2px">Multi-track</div></div>
+          <div style="background:linear-gradient(135deg,#fde9f3,#fbcfe8);border-radius:16px;padding:16px;text-align:left"><div style="font-size:24px">💻</div><div style="font-weight:800;font-size:14px;margin-top:8px">Hackathons</div><div style="font-size:12px;color:#7c7891;margin-top:2px">Teams &amp; judging</div></div>
+          <div style="background:linear-gradient(135deg,#fef4dc,#fde68a);border-radius:16px;padding:16px;text-align:left"><div style="font-size:24px">🧠</div><div style="font-weight:800;font-size:14px;margin-top:8px">Quizzes</div><div style="font-size:12px;color:#7c7891;margin-top:2px">AI-proctored</div></div>
         </div>
-        <div class="pv-tiles">
-          <div class="pv-tile"><div class="lbl">Registrations</div><div class="val" style="color:#00E5FF;">1.8k</div></div>
-          <div class="pv-tile"><div class="lbl">Pass Rate</div><div class="val" style="color:#34D399;">72%</div></div>
-          <div class="pv-tile"><div class="lbl">Certificates</div><div class="val" style="color:#A78BFA;">431</div></div>
+      </div>
+      <div class="floaters">
+        <div class="float-card" style="top:-34px;left:-46px;animation:floaty 5s ease-in-out infinite">
+          <div style="width:34px;height:34px;border-radius:10px;background:#fdf0d6;display:flex;align-items:center;justify-content:center">🏆</div>
+          <div style="text-align:left"><div style="font-size:11px;color:#9b97ac;font-weight:600">Leaderboard</div><div style="font-weight:800;font-size:13.5px">#1 · 980 pts</div></div>
         </div>
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div class="pv-chart" style="flex:1;">
-            <div class="pv-bar" style="height:45%;animation-delay:.05s;"></div>
-            <div class="pv-bar" style="height:70%;animation-delay:.12s;"></div>
-            <div class="pv-bar" style="height:38%;animation-delay:.19s;"></div>
-            <div class="pv-bar" style="height:85%;animation-delay:.26s;"></div>
-            <div class="pv-bar" style="height:60%;animation-delay:.33s;"></div>
-            <div class="pv-bar" style="height:95%;animation-delay:.4s;"></div>
-            <div class="pv-bar" style="height:52%;animation-delay:.47s;"></div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-            <div class="pv-ring"></div>
-            <div style="font-size:10px;color:var(--text-muted);">Engagement</div>
-          </div>
+        <div class="float-card" style="bottom:-30px;right:-40px;animation:floaty 6s ease-in-out infinite reverse">
+          <div style="width:34px;height:34px;border-radius:10px;background:#d7f3ee;display:flex;align-items:center;justify-content:center">🎓</div>
+          <div style="text-align:left"><div style="font-size:11px;color:#9b97ac;font-weight:600">Certificate</div><div style="font-weight:800;font-size:13.5px">Issued ✓</div></div>
+        </div>
+        <div class="float-card" style="top:42%;right:-66px;background:#0e0b1c;color:#fff;border:none;box-shadow:0 18px 44px rgba(28,24,48,.28);animation:floaty 5.5s ease-in-out infinite">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:pulseDot 1.2s infinite"></span>
+          <div style="text-align:left"><div style="font-size:10.5px;color:#a5a1c4;font-weight:600">Proctoring</div><div style="font-weight:800;font-size:13px">Face OK</div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- STATS STRIP -->
-  <section class="reveal">
-    <div class="lp-statstrip">
-      <div><div class="n">4+</div><div class="t">Event types supported</div></div>
-      <div><div class="n">Live</div><div class="t">Leaderboards & scoring</div></div>
-      <div><div class="n">AI</div><div class="t">Proctored quiz monitoring</div></div>
-      <div><div class="n">100%</div><div class="t">Verifiable certificates</div></div>
+  <!-- ===== STATS ===== -->
+  <section style="position:relative;z-index:1;max-width:1000px;margin:64px auto 0;padding:0 24px">
+    <div data-reveal style="background:rgba(255,255,255,.7);border:1px solid #ece9f6;border-radius:22px;padding:30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;backdrop-filter:blur(8px)">
+      <div style="text-align:center"><div style="font-size:38px;font-weight:800;font-family:var(--mono);letter-spacing:-1.5px;color:#4f46e5">2,400+</div><div style="font-size:13px;color:#7c7891;font-weight:600;margin-top:4px">Registrations</div></div>
+      <div style="text-align:center;border-left:1px solid #eee9f7"><div style="font-size:38px;font-weight:800;font-family:var(--mono);letter-spacing:-1.5px;color:#0d9488">120+</div><div style="font-size:13px;color:#7c7891;font-weight:600;margin-top:4px">Events hosted</div></div>
+      <div style="text-align:center;border-left:1px solid #eee9f7"><div style="font-size:38px;font-weight:800;font-family:var(--mono);letter-spacing:-1.5px;color:#db2777">1,800+</div><div style="font-size:13px;color:#7c7891;font-weight:600;margin-top:4px">Certificates</div></div>
+      <div style="text-align:center;border-left:1px solid #eee9f7"><div style="font-size:38px;font-weight:800;font-family:var(--mono);letter-spacing:-1.5px;color:#d97706">86%</div><div style="font-size:13px;color:#7c7891;font-weight:600;margin-top:4px">Avg pass rate</div></div>
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section class="sec reveal" id="features">
-    <div class="sec-head">
-      <h2>Everything to run great events</h2>
-      <p>One platform for hackathons, quizzes, leaderboards and certificates — built for admins, judges and students alike.</p>
+  <!-- ===== EVENT TYPES ===== -->
+  <section id="types" style="position:relative;z-index:1;max-width:1080px;margin:110px auto 0;padding:0 24px">
+    <div data-reveal style="text-align:center;margin-bottom:44px">
+      <div style="font-size:13px;font-weight:800;letter-spacing:1.5px;color:#4f46e5;text-transform:uppercase">Four formats, one platform</div>
+      <h2 style="font-size:40px;font-weight:800;letter-spacing:-1.4px;margin:12px 0 0">Run any kind of learning event</h2>
     </div>
-    <div class="feat-grid">
-      <div class="feat"><div class="fic"><i class="ti ti-tournament"></i></div><h3>Hackathons</h3><p>Create events, manage teams, assign judges and announce winners with automatic certificate generation.</p></div>
-      <div class="feat"><div class="fic"><i class="ti ti-shield-check"></i></div><h3>Proctored Quizzes</h3><p>AI face-monitored, timed assessments with anti-cheat measures and instant scoring.</p></div>
-      <div class="feat"><div class="fic"><i class="ti ti-trophy"></i></div><h3>Live Leaderboards</h3><p>Real-time rankings across events and quizzes to keep participants engaged and motivated.</p></div>
-      <div class="feat"><div class="fic"><i class="ti ti-certificate"></i></div><h3>Verified Certificates</h3><p>Auto-generated, QR-verifiable certificates that participants can download anytime.</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px">
+      <div data-reveal class="type-card"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#eef1ff,#e0e7ff);display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:18px">🎥</div><div style="font-weight:800;font-size:19px">Webinars</div><div style="font-size:13.5px;color:#7c7891;line-height:1.55;margin-top:8px">Broadcast live sessions with capacity limits, instant registration and automatic attendee tracking.</div></div>
+      <div data-reveal class="type-card"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#e6fbf6,#cffaf0);display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:18px">🎤</div><div style="font-weight:800;font-size:19px">Conferences</div><div style="font-size:13.5px;color:#7c7891;line-height:1.55;margin-top:8px">Multi-track schedules, speaker line-ups and completion certificates for every attendee.</div></div>
+      <div data-reveal class="type-card"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#fde9f3,#fbcfe8);display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:18px">💻</div><div style="font-weight:800;font-size:19px">Hackathons</div><div style="font-size:13.5px;color:#7c7891;line-height:1.55;margin-top:8px">Team creation with join codes, project submissions, judge scoring and live leaderboards.</div></div>
+      <div data-reveal class="type-card"><div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#fef4dc,#fde68a);display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:18px">🧠</div><div style="font-weight:800;font-size:19px">Quizzes</div><div style="font-size:13.5px;color:#7c7891;line-height:1.55;margin-top:8px">Timed multiple-choice assessments with live AI proctoring and automatic pass/fail scoring.</div></div>
     </div>
   </section>
 
-  <!-- ROLES -->
-  <section class="sec reveal" id="roles">
-    <div class="sec-head">
-      <h2>Built for everyone</h2>
-      <p>Tailored experiences for each role in your university.</p>
+  <!-- ===== FEATURES ===== -->
+  <section id="features" style="position:relative;z-index:1;max-width:1080px;margin:110px auto 0;padding:0 24px">
+    <div data-reveal style="text-align:center;margin-bottom:44px">
+      <div style="font-size:13px;font-weight:800;letter-spacing:1.5px;color:#4f46e5;text-transform:uppercase">Everything included</div>
+      <h2 style="font-size:40px;font-weight:800;letter-spacing:-1.4px;margin:12px 0 0">Built for the whole journey</h2>
     </div>
-    <div class="role-grid">
-      <div class="role r1">
-        <h3><i class="ti ti-shield-cog" style="color:#00E5FF;"></i> Admins</h3>
-        <p style="font-size:13px;color:var(--text-muted);">Run the whole platform.</p>
-        <ul>
-          <li><i class="ti ti-check"></i> Create & manage events</li>
-          <li><i class="ti ti-check"></i> Assign judges, announce winners</li>
-          <li><i class="ti ti-check"></i> Analytics, certificates & broadcasts</li>
-        </ul>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px" id="features-grid"></div>
+  </section>
+
+  <!-- ===== PROCTORING SPOTLIGHT ===== -->
+  <section id="proctoring" style="position:relative;z-index:1;max-width:1080px;margin:110px auto 0;padding:0 24px">
+    <div data-reveal class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#0e0b1c;color:#fff;border-radius:999px;padding:7px 15px;font-size:12px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#ef4444;animation:pulseDot 1.2s infinite"></span>AI Proctoring</div>
+        <h2 style="font-size:38px;font-weight:800;letter-spacing:-1.3px;margin:16px 0 0;line-height:1.15">Fair quizzes, watched by AI — not strangers.</h2>
+        <p style="font-size:15.5px;line-height:1.65;color:#5c576f;margin:16px 0 22px">Face &amp; gaze detection runs live in the browser. Looking away, a missing face, or a tab switch raises a violation. Too many, and the session ends instantly — automatically and impartially.</p>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;gap:11px;font-size:14px;font-weight:600;color:#3a3650"><span style="width:24px;height:24px;border-radius:8px;background:#d7f3ee;color:#0d9488;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</span>Live camera preview, always visible</div>
+          <div style="display:flex;align-items:center;gap:11px;font-size:14px;font-weight:600;color:#3a3650"><span style="width:24px;height:24px;border-radius:8px;background:#d7f3ee;color:#0d9488;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</span>Real-time violation counter with thresholds</div>
+          <div style="display:flex;align-items:center;gap:11px;font-size:14px;font-weight:600;color:#3a3650"><span style="width:24px;height:24px;border-radius:8px;background:#d7f3ee;color:#0d9488;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</span>Instant session termination &amp; review flag</div>
+        </div>
       </div>
-      <div class="role r2">
-        <h3><i class="ti ti-gavel" style="color:#A78BFA;"></i> Judges</h3>
-        <p style="font-size:13px;color:var(--text-muted);">Evaluate fairly.</p>
-        <ul>
-          <li><i class="ti ti-check"></i> Review team submissions</li>
-          <li><i class="ti ti-check"></i> Score with clear criteria</li>
-          <li><i class="ti ti-check"></i> Publish results & rankings</li>
-        </ul>
-      </div>
-      <div class="role r3">
-        <h3><i class="ti ti-user-star" style="color:#34D399;"></i> Students</h3>
-        <p style="font-size:13px;color:var(--text-muted);">Join & compete.</p>
-        <ul>
-          <li><i class="ti ti-check"></i> Register for events</li>
-          <li><i class="ti ti-check"></i> Form teams & submit projects</li>
-          <li><i class="ti ti-check"></i> Take quizzes & earn certificates</li>
-        </ul>
+      <!-- mock quiz preview -->
+      <div style="background:#0e0b1c;border-radius:24px;padding:24px;color:#fff;box-shadow:0 30px 70px rgba(14,11,28,.4);position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:12px;color:#8983a8;font-weight:600">Question 3 of 5</div><div style="font-family:var(--mono);font-weight:700;color:#fbbf24">21:14</div></div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:99px;margin-bottom:20px"><div style="height:100%;width:60%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#a78bfa)"></div></div>
+        <div style="font-weight:800;font-size:18px;margin-bottom:16px">Which HTTP method is idempotent?</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="border:1.5px solid #6366f1;background:rgba(99,102,241,.14);border-radius:13px;padding:12px 15px;font-size:13.5px;font-weight:600">B · GET</div>
+          <div style="border:1.5px solid rgba(255,255,255,.12);border-radius:13px;padding:12px 15px;font-size:13.5px;font-weight:600;color:#c9c5e6">A · POST</div>
+        </div>
+        <div style="position:absolute;bottom:18px;right:18px;width:104px;height:76px;border-radius:11px;background:#1a1730;border:2px solid #34d399;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px">
+          <div style="position:absolute;top:4px;left:6px;display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulseDot 1.2s infinite"></span><span style="font-size:8px;font-weight:700">REC</span></div>
+          <div style="font-size:26px">🧑‍💻</div>
+          <div style="font-size:9px;color:#34d399;font-weight:700">● Face OK</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section id="about">
-    <div class="lp-cta-band reveal">
-      <h2>Ready to bring your campus events to life?</h2>
-      <p>Create your account and start running events in minutes.</p>
-      <a href="login.html?tab=register" class="btn btn-primary btn-lg">Get Started Free <i class="ti ti-arrow-right"></i></a>
+  <!-- ===== ROLES ===== -->
+  <section id="roles" style="position:relative;z-index:1;max-width:1080px;margin:110px auto 0;padding:0 24px">
+    <div data-reveal style="text-align:center;margin-bottom:44px">
+      <div style="font-size:13px;font-weight:800;letter-spacing:1.5px;color:#4f46e5;text-transform:uppercase">One platform, three views</div>
+      <h2 style="font-size:40px;font-weight:800;letter-spacing:-1.4px;margin:12px 0 0">Made for everyone involved</h2>
+      <p style="font-size:15px;color:#7c7891;max-width:540px;margin:14px auto 0;line-height:1.6">Participants sign up free. Judges and admins are provisioned by the organizer — they sign in with issued credentials.</p>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px" id="roles-grid"></div>
   </section>
 
-  <!-- FOOTER -->
-  <footer class="lp-foot">
-    <div class="lp-logo"><div class="ic">E</div><span>EduEvent</span></div>
-    <div class="muted">© 2026 EduEvent · Campus event management platform</div>
+  <!-- ===== FOOTER ===== -->
+  <footer style="position:relative;z-index:1;max-width:1080px;margin:110px auto 0;padding:34px 24px;border-top:1px solid #e9e6f4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:9px"><div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px">E</div><span style="font-weight:800;font-size:14.5px">EduEvent</span></div>
+    <div style="font-size:12.5px;color:#9b97ac">© 2026 EduEvent </div>
   </footer>
 </div>
 
-<script src="js/core.js"></script>
-<script>
-  // If already signed in, swap the CTA to "Go to Dashboard"
-  if (Auth.isLoggedIn()) {
-    document.getElementById('nav-cta').innerHTML =
-      '<a href="#" id="go-dash" class="btn btn-primary btn-sm">Go to Dashboard <i class="ti ti-arrow-right"></i></a>';
-    document.getElementById('go-dash').addEventListener('click', e => { e.preventDefault(); Auth.redirectByRole(); });
-  }
-  // Scroll-reveal
-  const io = new IntersectionObserver((es) => es.forEach(en => { if (en.isIntersecting) en.target.classList.add('in'); }), { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+<!-- ===== AUTH MODAL ===== -->
+<div id="auth-overlay" class="modal-overlay" style="display:none" onclick="closeAuth(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <div style="padding:22px 26px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px">E</div><span style="font-weight:800;font-size:15px">EduEvent</span></div>
+        <button class="modal-x" onclick="closeAuth()">✕</button>
+      </div>
+      <div style="display:flex;background:#f2f1f9;border-radius:13px;padding:4px;gap:4px">
+        <button id="tab-login" class="auth-tab active" onclick="switchTab('login')">Sign in</button>
+        <button id="tab-register" class="auth-tab" onclick="switchTab('register')">Create account</button>
+      </div>
+    </div>
 
-  // Hero neon constellation — full-bleed drifting nodes, glowing links, twinkle + cursor pull
-  (function heroFx(){
-    const c = document.getElementById('hero-fx'); if (!c) return;
-    const ctx = c.getContext('2d'); let w, h, pts, mouse = {x:-999,y:-999};
-    function size(){ w = c.width = window.innerWidth; h = c.height = Math.max(1, c.parentElement.getBoundingClientRect().height); }
-    function init(){
-      size();
-      const n = Math.max(45, Math.min(95, Math.floor(w / 17)));
-      pts = Array.from({length:n}, () => ({
-        x:Math.random()*w, y:Math.random()*h,
-        vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5,
-        r:1.1+Math.random()*2, ph:Math.random()*6.28,
-      }));
-    }
-    function step(t){
-      ctx.clearRect(0,0,w,h);
-      for (const p of pts){
-        p.x += p.vx; p.y += p.vy;
-        if (p.x<0||p.x>w) p.vx*=-1;
-        if (p.y<0||p.y>h) p.vy*=-1;
-      }
-      ctx.lineWidth = 1;
-      for (let i=0;i<pts.length;i++){
-        for (let j=i+1;j<pts.length;j++){
-          const a=pts[i], b=pts[j], dx=a.x-b.x, dy=a.y-b.y, d=Math.hypot(dx,dy);
-          if (d<150){
-            const al=1-d/150;
-            ctx.strokeStyle = (i+j)%6===0 ? `rgba(255,46,151,${0.18*al})` : `rgba(0,229,255,${0.20*al})`;
-            ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-          }
-        }
-        const md=Math.hypot(pts[i].x-mouse.x, pts[i].y-mouse.y);
-        if (md<200){ ctx.strokeStyle=`rgba(0,229,255,${0.3*(1-md/200)})`; ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke(); }
-      }
-      ctx.shadowBlur = 8; ctx.shadowColor = '#00E5FF';
-      for (const p of pts){
-        const tw = 0.5 + 0.5*Math.sin(t*0.002 + p.ph);
-        ctx.fillStyle = `rgba(0,229,255,${0.45 + 0.5*tw})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
-      }
-      ctx.shadowBlur = 0;
-      requestAnimationFrame(step);
-    }
-    window.addEventListener('mousemove', e => { const r=c.getBoundingClientRect(); mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top; });
-    window.addEventListener('resize', init);
-    init(); requestAnimationFrame(step);
-  })();
+    <!-- LOGIN -->
+    <div id="pane-login" style="padding:22px 26px 26px">
+      <label class="f-label" style="margin-top:0">Email</label>
+      <input id="li-email" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
+      <label class="f-label">Password</label>
+      <input id="li-pass" class="auth-input" type="password" placeholder="••••••••" autocomplete="current-password">
+      <button id="li-btn" onclick="doLogin()" class="btn btn-primary" style="width:100%;margin-top:20px;padding:13px;font-size:14.5px;box-shadow:0 10px 24px rgba(79,70,229,.32)">Sign in &amp; go to dashboard</button>
+      <div style="font-size:12px;color:#9b97ac;text-align:center;margin-top:14px;line-height:1.5">Admins and judges: use the credentials issued by your organizer — you'll land in the right console automatically.</div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="pane-register" style="padding:22px 26px 26px;display:none">
+      <label class="f-label" style="margin-top:0">Full name</label>
+      <input id="rg-name" class="auth-input" placeholder="e.g. Sofia Marchetti" autocomplete="name">
+      <label class="f-label">Email</label>
+      <input id="rg-email" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
+      <label class="f-label">City</label>
+      <input id="rg-city" class="auth-input" placeholder="e.g. Karachi">
+      <label class="f-label">Password</label>
+      <input id="rg-pass" class="auth-input" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+      <button id="rg-btn" onclick="doRegister()" class="btn btn-primary" style="width:100%;margin-top:20px;padding:13px;font-size:14.5px;box-shadow:0 10px 24px rgba(79,70,229,.32)">Create my account</button>
+      <div style="font-size:12px;color:#9b97ac;text-align:center;margin-top:14px">Free for participants. No credit card needed.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ page loader ============ */
+injectLoader("Loading EduEvent…");
+window.addEventListener("load", () => setTimeout(hidePageLoader, 350));
+
+/* If already signed in, offer to jump straight to the dashboard */
+(function () {
+  if (Auth.getToken() && Auth.getUser()) {
+    const bar = document.createElement("div");
+    bar.style.cssText = "position:fixed;bottom:22px;right:22px;z-index:60;animation:fadeUp .4s ease";
+    bar.innerHTML = '<button class="btn btn-primary" style="box-shadow:0 14px 34px rgba(79,70,229,.4)" onclick="location.href=Auth.homeFor(Auth.role())">Continue as ' +
+      escapeHtml(Auth.getUser().name || Auth.getUser().email || "you") + ' →</button>';
+    document.body.appendChild(bar);
+  }
+})();
+
+/* ============ static content (features + roles) ============ */
+const FEATURES = [
+  { icon: "🎫", title: "One-tap registration", body: "Register or cancel in a click. Capacity bars show how full every event is before you commit." },
+  { icon: "🛡️", title: "Live AI proctoring", body: "Face, gaze and tab-switch detection during quizzes — with a visible violation counter, so nothing is a surprise." },
+  { icon: "👥", title: "Teams with join codes", body: "Create a hackathon team, share the code, and approve join requests as the leader." },
+  { icon: "⚖️", title: "Structured judging", body: "Judges score every submission on clear criteria. Totals are computed automatically." },
+  { icon: "🏆", title: "Live leaderboards", body: "Rankings update as scores land. Winners are announced in one click from the admin console." },
+  { icon: "🎓", title: "Verified certificates", body: "Pass a quiz or place in a hackathon and your PDF certificate is generated automatically." }
+];
+document.getElementById("features-grid").innerHTML = FEATURES.map(f =>
+  '<div data-reveal class="type-card"><div style="font-size:30px">' + f.icon + '</div>' +
+  '<div style="font-weight:800;font-size:17px;margin-top:12px">' + f.title + '</div>' +
+  '<div style="font-size:13.5px;color:#7c7891;line-height:1.6;margin-top:7px">' + f.body + "</div></div>"
+).join("");
+
+const ROLES = [
+  { icon: "🧑", title: "Participants", access: "Free sign-up", pts: ["Discover & register for events", "Take proctored quizzes", "Earn certificates & climb leaderboards"], cta: "Create account", act: "register", bg: "#eef0ff", color: "#4f46e5" },
+  { icon: "⚖️", title: "Judges", access: "Provisioned access", pts: ["Review team submissions", "Score on structured criteria", "See live results as they land"], cta: "Sign in as judge", act: "login", bg: "#fdf0d6", color: "#d97706" },
+  { icon: "🛠️", title: "Admins", access: "Provisioned access", pts: ["Create events, quizzes & hackathons", "Manage users, judges & teams", "Announce winners & broadcast updates"], cta: "Sign in as admin", act: "login", bg: "#fde9f3", color: "#db2777" }
+];
+document.getElementById("roles-grid").innerHTML = ROLES.map(r =>
+  '<div data-reveal class="type-card" style="display:flex;flex-direction:column">' +
+  '<div style="display:flex;align-items:center;gap:13px;margin-bottom:16px"><div style="width:46px;height:46px;border-radius:14px;background:' + r.bg + ';display:flex;align-items:center;justify-content:center;font-size:23px">' + r.icon + '</div>' +
+  '<div><div style="font-weight:800;font-size:17px">' + r.title + '</div><div style="font-size:12px;color:#9b97ac;font-weight:600">' + r.access + "</div></div></div>" +
+  '<div style="display:flex;flex-direction:column;gap:9px;flex:1">' + r.pts.map(p => '<div style="display:flex;gap:9px;font-size:13.5px;color:#5c576f;line-height:1.5"><span style="color:' + r.color + ';font-weight:800">›</span>' + p + "</div>").join("") + "</div>" +
+  '<button onclick="openAuth(\'' + r.act + '\')" style="margin-top:18px;border:none;border-radius:999px;padding:11px;font-weight:700;font-size:13px;cursor:pointer;background:' + r.bg + ';color:' + r.color + '">' + r.cta + "</button></div>"
+).join("");
+
+/* ============ reveal on scroll ============ */
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); revealObs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll("[data-reveal]").forEach(el => revealObs.observe(el));
+
+/* ============ SCROLLSPY — highlights the section you're in ============
+   Uses a rootMargin band around the navbar line so the correct nav pill
+   lights up while scrolling, not only on click. */
+const navLinks = [...document.querySelectorAll("#main-nav .navlink")];
+const spyObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = e.target.id;
+    navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + id));
+  });
+}, { rootMargin: "-30% 0px -60% 0px" });
+["types", "features", "proctoring", "roles"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) spyObs.observe(el);
+});
+/* clear highlight when back at the very top */
+window.addEventListener("scroll", () => {
+  if (window.scrollY < 200) navLinks.forEach(a => a.classList.remove("active"));
+}, { passive: true });
+
+/* ============ auth modal ============ */
+function openAuth(tab) {
+  document.getElementById("auth-overlay").style.display = "flex";
+  switchTab(tab || "login");
+  document.body.style.overflow = "hidden";
+}
+function closeAuth(e) {
+  if (e && e.target !== document.getElementById("auth-overlay")) return;
+  document.getElementById("auth-overlay").style.display = "none";
+  document.body.style.overflow = "";
+}
+function switchTab(tab) {
+  const isLogin = tab === "login";
+  document.getElementById("tab-login").classList.toggle("active", isLogin);
+  document.getElementById("tab-register").classList.toggle("active", !isLogin);
+  document.getElementById("pane-login").style.display = isLogin ? "block" : "none";
+  document.getElementById("pane-register").style.display = isLogin ? "none" : "block";
+  setTimeout(() => document.getElementById(isLogin ? "li-email" : "rg-name").focus(), 60);
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAuth(); });
+["li-pass"].forEach(id => document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); }));
+["rg-pass"].forEach(id => document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); }));
+
+async function afterAuth(res) {
+  /* backend login returns: { token, name, email, role } */
+  const token = pick(res, "token", "jwt", "accessToken");
+  if (!token) { toast("Signed in, but no token was returned by the server.", "error"); return; }
+  Auth.setToken(token);
+  /* fetch the full profile so we have the user id (needed for team-leader checks) */
+  const me = await api.get("/users/me");
+  const user = me || { name: res.name, email: res.email, role: res.role };
+  Auth.setUser(user);
+  toast("Welcome, " + (user.name || user.email || "friend") + "! Redirecting…", "success");
+  setTimeout(() => { window.location.href = Auth.homeFor(user.role); }, 700);
+}
+
+async function doLogin() {
+  const email = document.getElementById("li-email").value.trim();
+  const password = document.getElementById("li-pass").value;
+  if (!email || !password) { toast("Enter your email and password.", "error"); return; }
+  const btn = document.getElementById("li-btn");
+  btn.disabled = true; btn.textContent = "Signing in…";
+  const res = await api.post("/auth/login", { email, password });
+  btn.disabled = false; btn.textContent = "Sign in & go to dashboard";
+  if (res) afterAuth(res);
+}
+
+async function doRegister() {
+  const name = document.getElementById("rg-name").value.trim();
+  const email = document.getElementById("rg-email").value.trim();
+  const password = document.getElementById("rg-pass").value;
+  if (!name || !email || password.length < 6) { toast("Fill every field — password needs 6+ characters.", "error"); return; }
+  const btn = document.getElementById("rg-btn");
+  btn.disabled = true; btn.textContent = "Creating account…";
+  const city = document.getElementById("rg-city").value.trim();
+  const res = await api.post("/auth/register", { name, email, password, city });
+  btn.disabled = false; btn.textContent = "Create my account";
+  if (!res) return;
+  if (pick(res, "token", "jwt", "accessToken")) { afterAuth(res); return; }
+  /* some backends register then expect a login */
+  const login = await api.post("/auth/login", { email, password });
+  if (login) afterAuth(login);
+  else { toast("Account created — sign in to continue.", "success"); switchTab("login"); document.getElementById("li-email").value = email; }
+}
 </script>
 </body>
 </html>

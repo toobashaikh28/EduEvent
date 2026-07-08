@@ -81,6 +81,18 @@ public class TeamController {
         return ResponseEntity.ok("You have successfully left the team.");
     }
 
+    // NEW — POST /api/hackathon/{hackathonId}/team/leave
+    // The My Team page calls THIS path (it only knows the hackathon id, not the
+    // team id). Previously this endpoint didn't exist, so "Leave Team" always 404'd.
+    @PostMapping("/api/hackathon/{hackathonId}/team/leave")
+    public ResponseEntity<String> leaveTeamByHackathon(
+            @PathVariable("hackathonId") String hackathonId,
+            Authentication authentication) {
+
+        teamService.leaveTeamByHackathon(hackathonId, authentication.getName());
+        return ResponseEntity.ok("You have successfully left the team.");
+    }
+
     // GET /api/hackathon/{hackathonId}/teams  (admin only)
     @GetMapping("/api/hackathon/{hackathonId}/teams")
     public ResponseEntity<List<TeamResponse>> getAllTeams(

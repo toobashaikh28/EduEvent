@@ -12,6 +12,11 @@ public interface EventService {
     EventResponse updateEvent(String id, EventRequest request, MultipartFile banner);
     void deleteEvent(String id);
 
-    List<EventResponse> getAllEvents(String type, String status, LocalDateTime date);
-    EventResponse getEventById(String id);
+    /**
+     * @param userEmail email of the logged-in user, or null for anonymous visitors.
+     *                  Used to fill isRegistered / isWaitlisted per event.
+     */
+    List<EventResponse> getAllEvents(String type, String status, LocalDateTime date, String userEmail);
+
+    EventResponse getEventById(String id, String userEmail);
 }

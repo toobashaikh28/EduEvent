@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduEvent — My Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/core.js"></script>
+<style>
+  .topnav-wrap{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px 24px;background:linear-gradient(180deg,#f4f4fb 60%,rgba(244,244,251,0))}
+  .topnav{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid #ececf3;border-radius:999px;padding:9px 9px 9px 20px;box-shadow:0 10px 34px rgba(20,16,40,.08);max-width:1180px;width:100%}
+  .tab-btn{border:none;background:transparent;color:#56526a;border-radius:999px;padding:9px 14px;font-weight:600;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap}
+  .tab-btn:hover{background:#f4f3fb}
+  .tab-btn.active{background:#eef0ff;color:#4f46e5;font-weight:700}
+  .nbadge{background:#ef4444;color:#fff;font-size:10.5px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+  main{max-width:1180px;margin:0 auto;padding:8px 24px 60px}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .usermenu{position:absolute;right:0;top:52px;background:#fff;border:1px solid #ececf3;border-radius:16px;box-shadow:var(--pop-shadow);padding:8px;min-width:200px;animation:scaleIn .15s ease;z-index:50}
+  .usermenu button{width:100%;text-align:left;border:none;background:transparent;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:#3a3650;cursor:pointer}
+  .usermenu button:hover{background:#f4f3fb}
+  .ann-bubble{font-size:13px;color:#3a3650;line-height:1.5;margin-top:3px;background:#f6f5fb;padding:10px 13px;border-radius:4px 14px 14px 14px}
+  @media (max-width:1020px){
+    .topnav nav{overflow-x:auto;justify-content:flex-start!important;scrollbar-width:none}
+    .topnav nav::-webkit-scrollbar{display:none}
+    .team-grid{grid-template-columns:1fr!important}
+  }
+</style>
+</head>
+<body>
+<script>if(!Auth.guardPage("USER")) throw new Error("no access");</script>
+
+<div class="topnav-wrap">
+  <header class="topnav">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;box-shadow:0 6px 14px rgba(79,70,229,.32)">E</div>
+      <div style="font-weight:800;font-size:16px;letter-spacing:-.3px" class="hide-sm">EduEvent</div>
+    </div>
+    <nav style="display:flex;align-items:center;gap:2px;flex:1;justify-content:center" id="tabs"></nav>
+    <div style="display:flex;align-items:center;gap:9px;flex-shrink:0;position:relative">
+      <div id="avatar" class="av" onclick="toggleMenu()" style="width:40px;height:40px;font-size:14px;cursor:pointer;background:linear-gradient(135deg,#0d9488,#0ea5e9)">?</div>
+      <div id="usermenu" class="usermenu" style="display:none">
+        <div style="padding:10px 12px;border-bottom:1px solid #f1f0f8;margin-bottom:6px"><div id="menu-name" style="font-weight:800;font-size:13.5px">—</div><div id="menu-email" style="font-size:12px;color:#9b97ac">—</div></div>
+        <button onclick="Auth.logout()" style="color:#dc2626">Sign out</button>
+      </div>
+    </div>
+  </header>
+</div>
+
+<main id="main"></main>
+
+<script>
+/* =====================================================================
+   USER DASHBOARD — wired to the real EduEvent backend DTOs
+   ===================================================================== */
+injectLoader("Loading your dashboard…");
+
+let ME = Auth.getUser() || {};
+document.getElementById("avatar").textContent = initials(ME.name || ME.email);
+document.getElementById("menu-name").textContent = ME.name || "You";
+document.getElementById("menu-email").textContent = ME.email || "";
+
+const S = {
+  page: "events",
+  events: [], eventFilter: "",
+  regs: [],                       // RegistrationResponse[]
+  myQuizzes: [],                  // UserQuizResponse[]
+  notifications: [],              // NotificationResponse[]
+  certificates: [],               // CertificateResponse[]
+  activeHack: null, team: null, submission: null, announcements: [],
+  leaderScope: "global", leaderHack: null,
+};
+
+const TABS = [
+  { id: "events", label: "Events" },
+  { id: "reg",    label: "My Registrations" },
+  { id: "quiz",   label: "Quiz" },
+  { id: "team",   label: "My Team" },
+  { id: "leader", label: "Leaderboard" },
+  { id: "certs",  label: "Certificates" },
+  { id: "notif",  label: "Notifications" },
+];
+function renderTabs() {
+  const unread = S.notifications.filter(n => !n.isRead).length;
+  document.getElementById("tabs").innerHTML = TABS.map(t =>
+    '<button class="tab-btn ' + (S.page === t.id ? "active" : "") + '" onclick="go(\'' + t.id + '\')">' + t.label +
+    (t.id === "notif" && unread ? ' <span class="nbadge">' + unread + "</span>" : "") + "</button>"
+  ).join("");
+}
+function go(p) { S.page = p; renderTabs(); render(); }
+function toggleMenu() {
+  const m = document.getElementById("usermenu");
+  m.style.display = m.style.display === "none" ? "block" : "none";
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#avatar") && !e.target.closest("#usermenu"))
+    document.getElementById("usermenu").style.display = "none";
+});
+
+/* registered hackathons power the Team tab */
+const regdHackathons = () => S.events.filter(e =>
+  String(e.type || "").toLowerCase().includes("hack") && (e.registered || e.isRegistered));
+const allHackathons  = () => S.events.filter(e => String(e.type || "").toLowerCase().includes("hack"));
+
+/* =====================================================================
+   DATA LOADING
+   ===================================================================== */
+async function loadCore() {
+  /* refresh profile so ME always has the id (older sessions may lack it) */
+  if (!ME.id) { const me = await api.get("/users/me"); if (me) { ME = me; Auth.setUser(me); } }
+  const [events, notifs, regs] = await Promise.all([
+    api.get("/events"), api.get("/notifications"), api.get("/users/me/registrations")
+  ]);
+  S.events = asList(events);
+  S.notifications = asList(notifs);
+  S.regs = asList(regs);
+  renderTabs(); render(); hidePageLoader();
+}
+loadCore();
+async function refreshEventsAndRegs() {
+  const [events, regs] = await Promise.all([ api.get("/events"), api.get("/users/me/registrations") ]);
+  S.events = asList(events); S.regs = asList(regs);
+}
+
+/* =====================================================================
+   RENDER ROUTER
+   ===================================================================== */
+function render() {
+  const main = document.getElementById("main");
+  main.innerHTML = '<section class="anim-fadeup" id="sec"></section>';
+  const el = document.getElementById("sec");
+  ({ events: rEvents, reg: rRegs, quiz: rQuiz, team: rTeam, leader: rLeader, certs: rCerts, notif: rNotif }[S.page])(el);
+}
+function head(el, title, sub, extraHtml) {
+  el.insertAdjacentHTML("beforeend",
+    '<div class="section-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap"><div><h1>' + title + '</h1><div class="sub">' + sub + "</div></div>" + (extraHtml || "") + "</div>");
+}
+function empty(icon, t, s) {
+  return '<div class="card empty-state"><div class="big">' + icon + '</div><div class="t">' + t + '</div><div class="s">' + s + "</div></div>";
+}
+function skels(n, h) {
+  return '<div class="ev-grid">' + Array.from({length:n}, () => '<div class="skel" style="height:' + (h||220) + 'px"></div>').join("") + "</div>";
+}
+const STATUS_CHIP = {
+  UPCOMING:  ["#eef0ff", "#4f46e5", "Upcoming"],
+  LIVE:      ["#d7f3ee", "#0d9488", "● Live"],
+  COMPLETED: ["#f2f1f9", "#75718a", "Completed"],
+  CANCELLED: ["#fdeaea", "#dc2626", "Cancelled"],
+};
+function statusChip(status) {
+  const [bg, c, label] = STATUS_CHIP[String(status || "").toUpperCase()] || ["#f2f1f9", "#75718a", status || "—"];
+  return '<span class="chip" style="background:' + bg + ";color:" + c + '">' + label + "</span>";
+}
+
+/* =====================================================================
+   EVENTS  (EventResponse)
+   ===================================================================== */
+function rEvents(el) {
+  head(el, "Discover events", "Webinars, conferences, hackathons and quizzes — find your next one.");
+  const filters = [["","All"],["webinar","Webinars"],["conference","Conferences"],["hackathon","Hackathons"],["quiz","Quizzes"]];
+  el.insertAdjacentHTML("beforeend",
+    '<div class="filters">' + filters.map(f =>
+      '<button class="fpill ' + (S.eventFilter === f[0] ? "active" : "") + '" onclick="setEvFilter(\'' + f[0] + '\')">' + f[1] + "</button>").join("") + "</div>" +
+    '<div id="ev-grid"></div>');
+  paintEvents();
+}
+function setEvFilter(f) { S.eventFilter = f; render(); }
+function paintEvents() {
+  const grid = document.getElementById("ev-grid");
+  const list = S.events.filter(e => !S.eventFilter || String(e.type || "").toLowerCase().includes(S.eventFilter));
+  if (!list.length) { grid.innerHTML = empty("🗓️", "No events here yet", "Check back soon — new events land regularly."); return; }
+  grid.className = "ev-grid";
+  grid.innerHTML = list.map(e => {
+    const th = typeTheme(e.type);
+    const cap = Number(e.capacity || 0), reg = Number(e.registeredCount || 0);
+    const pct = cap ? Math.min(100, Math.round(reg / cap * 100)) : 0;
+    const full = cap && reg >= cap;
+    const capColor = pct >= 90 ? "#ef4444" : pct >= 60 ? "#d97706" : "#0d9488";
+    const regd = !!(e.registered || e.isRegistered);
+    const waitl = !!(e.waitlisted || e.isWaitlisted);
+    const showJoin = regd && e.joinLink;
+    const headStyle = e.bannerUrl
+      ? 'background:url(\'' + escapeHtml(e.bannerUrl) + '\') center/cover'
+      : 'background:' + th.bg;
+    return '<div class="card" style="overflow:hidden;display:flex;flex-direction:column">' +
+      '<div style="height:96px;' + headStyle + ';display:flex;align-items:flex-start;justify-content:space-between;padding:16px">' +
+        '<span style="background:rgba(255,255,255,.92);color:' + th.chip + ';padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.3px">' + th.label + '</span>' +
+        (e.bannerUrl ? "" : '<span style="font-size:30px">' + th.emoji + "</span>") + "</div>" +
+      '<div style="padding:18px;display:flex;flex-direction:column;flex:1">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div style="font-weight:800;font-size:16px;line-height:1.3">' + escapeHtml(e.title || "Untitled event") + "</div>" + statusChip(e.status) + "</div>" +
+        '<div style="font-size:13px;color:#8b879c;margin-top:4px">📅 ' + fmtDateTime(e.startTime) + " · " + escapeHtml(e.adminName || "EduEvent") + "</div>" +
+        (e.description ? '<div style="font-size:12.5px;color:#75718a;margin-top:8px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(e.description) + "</div>" : "") +
+        (cap ? '<div style="margin:14px 0 12px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#8b879c;margin-bottom:6px"><span>' + reg + ' registered</span><span style="font-weight:700;color:' + capColor + '">' + (full ? "Full — waitlist open" : (cap - reg) + " spots left") + '</span></div><div class="meter"><div style="width:' + pct + "%;background:" + capColor + '"></div></div></div>' : '<div style="margin:10px 0"></div>') +
+        '<div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">' +
+        (showJoin ? '<a class="btn btn-teal" style="width:100%;text-decoration:none" target="_blank" rel="noopener" href="' + escapeHtml(e.joinLink) + '">🔗 Join session</a>' : "") +
+        (waitl
+          ? '<button class="btn" style="width:100%;background:#fdf0d6;color:#d97706" onclick="cancelReg(\'' + e.id + '\')">On waitlist ⏳ — tap to leave</button>'
+          : regd
+            ? '<button class="btn btn-soft" style="width:100%" onclick="cancelReg(\'' + e.id + '\')">Registered ✓ — tap to cancel</button>'
+            : '<button class="btn btn-primary" style="width:100%" onclick="registerEv(\'' + e.id + '\')">' + (full ? "Join waitlist" : "Register") + "</button>") +
+      "</div></div></div>";
+  }).join("");
+}
+async function registerEv(id) {
+  const res = await api.post("/events/" + id + "/register");
+  if (res === null) return;
+  const waitlisted = String(res.status || "").toUpperCase() === "WAITLISTED";
+  toast(waitlisted ? "Event is full — you're #" + (res.waitlistPosition ?? "?") + " on the waitlist ⏳" : "You're registered! 🎉", "success");
+  await refreshEventsAndRegs(); render();
+}
+async function cancelReg(id) {
+  if (!confirm("Cancel this registration?")) return;
+  const res = await api.del("/events/" + id + "/register");
+  if (res === null) return;
+  toast("Registration cancelled.", "success");
+  await refreshEventsAndRegs(); render();
+}
+
+/* =====================================================================
+   MY REGISTRATIONS  (GET /users/me/registrations → RegistrationResponse)
+   ===================================================================== */
+function rRegs(el) {
+  head(el, "My registrations", "Events you've signed up for.");
+  const mine = S.regs.filter(r => String(r.status || "").toUpperCase() !== "CANCELLED");
+  el.insertAdjacentHTML("beforeend", mine.length
+    ? '<div style="display:flex;flex-direction:column;gap:14px">' + mine.map(r => {
+        const ev = S.events.find(e => String(e.id) === String(r.eventId));
+        const th = typeTheme(ev?.type);
+        const wait = String(r.status || "").toUpperCase() === "WAITLISTED";
+        return '<div class="card" style="border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">' +
+          '<div style="width:52px;height:52px;border-radius:14px;background:' + th.bg + ';display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">' + th.emoji + "</div>" +
+          '<div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span style="font-weight:800;font-size:15px">' + escapeHtml(r.eventTitle || "Event") + '</span>' + (ev ? '<span class="chip" style="background:' + th.chipBg + ";color:" + th.chip + '">' + th.label + "</span>" : "") + "</div>" +
+          '<div style="font-size:13px;color:#8b879c;margin-top:3px">Registered ' + fmtDate(r.registeredAt) + (ev ? " · starts " + fmtDateTime(ev.startTime) : "") + "</div></div>" +
+          (wait
+            ? '<span class="chip" style="background:#fdf0d6;color:#d97706">⏳ Waitlist #' + (r.waitlistPosition ?? "?") + "</span>"
+            : '<span class="chip" style="background:#d7f3ee;color:#0d9488"><span class="dot"></span>Registered</span>') +
+          (ev?.joinLink && !wait ? '<a class="btn btn-teal" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="' + escapeHtml(ev.joinLink) + '">Join 🔗</a>' : "") +
+          '<button class="icon-btn danger" title="Cancel registration" onclick="cancelReg(\'' + r.eventId + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+      }).join("") + "</div>"
+    : empty("🎫", "No registrations yet", "Head to Events and grab a spot — it takes one tap."));
+}
+
+/* =====================================================================
+   QUIZ  (GET /quiz/my-quizzes → UserQuizResponse)
+   ===================================================================== */
+async function rQuiz(el) {
+  head(el, "Quizzes", "Quizzes for events you're registered in. All quizzes are camera-proctored.");
+  el.insertAdjacentHTML("beforeend", '<div id="quiz-zone">' + skels(2, 180) + "</div>");
+  S.myQuizzes = asList(await api.get("/quiz/my-quizzes"));
+  if (S.page !== "quiz") return;
+  const zone = document.getElementById("quiz-zone"); if (!zone) return;
+
+  const takeable = S.myQuizzes.filter(q => String(q.status).toLowerCase() === "active" && !q.passed);
+  const upcoming = S.myQuizzes.filter(q => String(q.status).toLowerCase() === "upcoming");
+  const history  = S.myQuizzes.filter(q => q.attempted);
+
+  const availCards = takeable.map(q =>
+    '<div class="card card-pad" style="border-radius:18px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="chip" style="background:#fdf0d6;color:#d97706">QUIZ</span>' +
+      '<span class="chip live" style="color:#0d9488;background:transparent;padding:0"><span class="dot"></span>Open now</span>' +
+      (q.attempted ? '<span class="chip" style="background:#fdeaea;color:#dc2626">Retry — best ' + (q.score ?? 0) + "%</span>" : "") + "</div>" +
+      '<div style="font-weight:800;font-size:16px">' + escapeHtml(q.title || q.eventName || "Quiz") + "</div>" +
+      '<div style="font-size:13px;color:#8b879c;margin:6px 0 16px">Pass mark ' + (q.passMark ?? 50) + "%</div>" +
+      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;font-size:12.5px;color:#56526a;flex-wrap:wrap">' +
+      "<span>⏱ " + (q.durationMinutes ?? 30) + " min</span><span>✅ " + (q.questionCount ?? "—") + ' questions</span><span style="color:#db2777;font-weight:600">🎥 Proctored</span></div>' +
+      '<button class="btn btn-primary" style="width:100%" onclick="startQuiz(\'' + q.id + "','" + encodeURIComponent(q.title || q.eventName || "Quiz") + "'," + (q.passMark ?? 50) + "," + (q.durationMinutes ?? 30) + ')">Start quiz</button></div>'
+  ).join("");
+
+  const upcomingCards = upcoming.map(q =>
+    '<div class="card card-pad" style="border-radius:18px;opacity:.75">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="chip" style="background:#eef0ff;color:#4f46e5">UPCOMING</span></div>' +
+      '<div style="font-weight:800;font-size:16px">' + escapeHtml(q.title || "Quiz") + "</div>" +
+      '<div style="font-size:13px;color:#8b879c;margin:6px 0 14px">Opens when the event goes live · ' + (q.questionCount ?? "—") + " questions · " + (q.durationMinutes ?? 30) + " min</div>" +
+      '<button class="btn btn-soft" style="width:100%" disabled>Not open yet</button></div>'
+  ).join("");
+
+  const histRows = history.map(h =>
+    '<div class="tbl-row" style="grid-template-columns:2.2fr 1.3fr 1fr 1fr">' +
+      '<div style="font-weight:700">' + escapeHtml(h.title || "Quiz") + "</div>" +
+      '<div style="color:#75718a;font-size:13px">' + escapeHtml(h.attemptDate || "—") + "</div>" +
+      '<div style="font-weight:800;font-family:var(--mono)">' + (h.score ?? "—") + (h.score != null ? "%" : "") + "</div>" +
+      '<div><span class="chip" style="background:' + (h.passed ? "#d7f3ee" : "#fdeaea") + ";color:" + (h.passed ? "#0d9488" : "#dc2626") + '">' + (h.passed ? "PASSED" : "FAILED") + "</span></div></div>"
+  ).join("");
+
+  zone.innerHTML =
+    (availCards || upcomingCards
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:26px">' + availCards + upcomingCards + "</div>"
+      : empty("🧠", "No quizzes for you yet", "Register for an event that has a quiz — it appears here when it opens.")) +
+    '<div style="font-weight:800;font-size:16px;margin:26px 0 12px">Quiz history</div>' +
+    '<div class="card tbl" style="border-radius:18px">' +
+      '<div class="tbl-head" style="grid-template-columns:2.2fr 1.3fr 1fr 1fr"><div>QUIZ</div><div>DATE</div><div>BEST SCORE</div><div>RESULT</div></div>' +
+      (histRows || '<div style="padding:26px;text-align:center;color:#9b97ac;font-size:13px">No attempts yet.</div>') +
+    "</div>";
+}
+function startQuiz(id, name, pass, dur) {
+  window.location.href = "/user/quiz.html?id=" + id + "&eventName=" + name + "&pass=" + pass + "&duration=" + dur;
+}
+
+/* =====================================================================
+   MY TEAM  (TeamResponse · SubmissionResponse · Announcements)
+   ===================================================================== */
+async function rTeam(el) {
+  head(el, "My team", "Create or join a team for a hackathon you're registered in.");
+  const hacks = regdHackathons();
+  if (!hacks.length) {
+    el.insertAdjacentHTML("beforeend", empty("💻", "No hackathon registrations", "Register for a hackathon in Events first — then build your squad here."));
+    return;
+  }
+  if (!S.activeHack || !hacks.some(h => String(h.id) === String(S.activeHack))) S.activeHack = hacks[0].id;
+  el.insertAdjacentHTML("beforeend",
+    '<div class="filters">' + hacks.map(h =>
+      '<button class="fpill ' + (String(S.activeHack) === String(h.id) ? "active" : "") + '" onclick="pickHack(\'' + h.id + '\')">' + escapeHtml(h.title) + "</button>").join("") + "</div>" +
+    '<div id="team-zone">' + skels(2, 240) + "</div>");
+  await loadTeam();
+}
+function pickHack(id) { S.activeHack = id; S.team = null; render(); }
+async function loadTeam() {
+  const team = await api.get("/hackathon/" + S.activeHack + "/my-team");
+  S.team = (team && (team.teamId || team.teamName)) ? team : null;
+  S.submission = null; S.announcements = [];
+  if (S.team) {
+    const [sub, anns] = await Promise.all([
+      api.get("/hackathon/" + S.activeHack + "/my-submission"),
+      api.get("/team/" + S.team.teamId + "/announcements"),
+    ]);
+    S.submission = (sub && (sub.id || sub.title)) ? sub : null;
+    S.announcements = asList(anns);
+  }
+  const zone = document.getElementById("team-zone"); if (!zone) return;
+  zone.innerHTML = S.team ? teamView() : noTeamView();
+}
+function noTeamView() {
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">' +
+    '<div class="card card-pad"><div style="font-size:28px">🚀</div><div style="font-weight:800;font-size:17px;margin-top:10px">Create a team</div>' +
+    '<div style="font-size:13px;color:#8b879c;margin:6px 0 14px;line-height:1.5">Start a new team and share the invite code with friends.</div>' +
+    '<label class="f-label">Team name</label><input id="tm-name" class="f-input" placeholder="e.g. Neural Ninjas">' +
+    '<label class="f-label">Max size</label><input id="tm-size" class="f-input" type="number" value="4" min="1" max="10">' +
+    '<button class="btn btn-primary" style="width:100%;margin-top:18px" onclick="createTeam()">Create team</button></div>' +
+    '<div class="card card-pad"><div style="font-size:28px">🔑</div><div style="font-weight:800;font-size:17px;margin-top:10px">Join with a code</div>' +
+    '<div style="font-size:13px;color:#8b879c;margin:6px 0 14px;line-height:1.5">Got an invite code from a team leader? Request to join here.</div>' +
+    '<label class="f-label">Invite code</label><input id="tm-code" class="f-input" placeholder="e.g. NN-2026" style="font-family:var(--mono);letter-spacing:2px">' +
+    '<button class="btn btn-teal" style="width:100%;margin-top:18px" onclick="joinTeam()">Request to join</button></div></div>';
+}
+function teamView() {
+  const t = S.team;
+  const members = asList(t.members);
+  const iAmLeader = String(t.leaderId) === String(ME.id);
+  const accepted = members.filter(m => String(m.status).toUpperCase() === "ACCEPTED").length;
+
+  const memRows = members.map(m => {
+    const pending = String(m.status).toUpperCase() === "PENDING";
+    const isLead = String(m.role).toUpperCase() === "LEADER";
+    return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #f7f6fb">' +
+      '<div class="av" style="width:38px;height:38px;font-size:13px;background:' + avColor(m.name) + '">' + initials(m.name) + "</div>" +
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">' + escapeHtml(m.name || "Member") +
+      (String(m.userId) === String(ME.id) ? ' <span style="color:#9b97ac;font-weight:600">(you)</span>' : "") + "</div>" +
+      '<div style="font-size:12px;color:#9b97ac">' + (isLead ? "👑 Leader" : pending ? "Requested to join" : "Member") + "</div></div>" +
+      (pending && iAmLeader
+        ? '<div style="display:flex;gap:6px"><button class="btn btn-teal" style="padding:7px 13px;font-size:12px" onclick="inviteAct(\'' + m.memberId + '\',\'accept\')">Accept</button><button class="btn btn-danger-soft" style="padding:7px 13px;font-size:12px" onclick="inviteAct(\'' + m.memberId + '\',\'reject\')">Reject</button></div>'
+        : '<span class="chip" style="background:' + (pending ? "#fdf0d6" : "#d7f3ee") + ";color:" + (pending ? "#d97706" : "#0d9488") + '"><span class="dot"></span>' + (pending ? "Pending" : "Active") + "</span>");
+  }).map(r => r + "</div>").join("") || '<div style="color:#9b97ac;font-size:13px;padding:8px 0">Just you so far — share the invite code!</div>';
+
+  const sub = S.submission;
+  const annHtml = S.announcements.length ? S.announcements.map(a =>
+    '<div style="display:flex;gap:11px">' +
+    '<div class="av" style="width:34px;height:34px;font-size:12px;background:' + avColor(a.authorName) + ';flex-shrink:0">' + initials(a.authorName) + "</div>" +
+    '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:700;font-size:13px">' + escapeHtml(a.authorName || "—") + '</span><span style="font-size:11.5px;color:#b3afc2">' + timeAgo(a.createdAt) + "</span></div>" +
+    '<div class="ann-bubble">' + escapeHtml(a.content || "") + "</div>" +
+    asList(a.comments).map(c => '<div style="display:flex;gap:8px;margin:7px 0 0 14px"><div class="av" style="width:24px;height:24px;font-size:9px;background:' + avColor(c.authorName) + ';flex-shrink:0">' + initials(c.authorName) + '</div><div style="font-size:12px;color:#56526a;background:#faf9fe;border:1px solid #f0eff6;padding:7px 10px;border-radius:10px;flex:1"><b>' + escapeHtml(c.authorName || "") + "</b> · " + escapeHtml(c.content || "") + "</div></div>").join("") +
+    '<button style="border:none;background:none;color:#4f46e5;font-size:11.5px;font-weight:700;cursor:pointer;margin-top:5px;padding:0" onclick="replyBox(\'' + a.id + '\')">Reply</button>' +
+    '<div id="reply-' + a.id + '" style="display:none;margin-top:7px"><div style="display:flex;gap:7px"><input id="reply-in-' + a.id + '" class="f-input" style="padding:8px 12px;font-size:12.5px" placeholder="Write a reply…"><button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="postComment(\'' + a.id + '\')">Send</button></div></div>' +
+    "</div></div>"
+  ).join("") : '<div style="color:#9b97ac;font-size:13px;text-align:center;padding:20px 0">No announcements yet — start the conversation!</div>';
+
+  return '<div class="team-grid" style="display:grid;grid-template-columns:1.05fr 1.25fr;gap:18px;align-items:start">' +
+    '<div style="display:flex;flex-direction:column;gap:18px">' +
+      /* team card */
+      '<div style="background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:20px;padding:24px;color:#fff;box-shadow:0 14px 34px rgba(79,70,229,.28)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:12px;font-weight:700;opacity:.85;letter-spacing:.5px">TEAM</div>' +
+        '<div style="font-size:24px;font-weight:800;margin:2px 0">' + escapeHtml(t.teamName) + "</div>" +
+        '<div style="font-size:12.5px;opacity:.85">' + accepted + "/" + (t.maxSize ?? 4) + " members" + (t.locked ? " · 🔒 locked" : "") + "</div></div>" +
+        (t.locked ? '<span style="background:rgba(255,255,255,.2);border-radius:999px;padding:5px 12px;font-size:11px;font-weight:800">LOCKED</span>' : "") + "</div>" +
+        '<div style="font-size:12px;font-weight:700;opacity:.85;letter-spacing:.5px;margin:18px 0 7px">INVITE CODE</div>' +
+        '<div style="display:flex;align-items:center;gap:10px"><div style="background:rgba(255,255,255,.18);border:1px dashed rgba(255,255,255,.5);border-radius:12px;padding:11px 16px;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:3px;flex:1;overflow:auto">' + escapeHtml(t.inviteCode || "—") + "</div>" +
+        '<button id="copy-btn" onclick="copyCode(\'' + escapeHtml(t.inviteCode || "") + '\')" style="background:#fff;color:#4f46e5;border:none;border-radius:12px;padding:0 16px;height:48px;font-weight:700;font-size:13px;cursor:pointer">Copy</button></div></div>' +
+      /* members */
+      '<div class="card card-pad"><div style="font-weight:800;font-size:15px;margin-bottom:14px">Members <span style="color:#9b97ac;font-weight:600">(' + members.length + ")</span></div>" + memRows +
+      '<button class="btn btn-danger-soft" style="width:100%;margin-top:16px" onclick="leaveTeam()">Leave team</button></div>' +
+      /* submission */
+      '<div class="card card-pad"><div style="font-weight:800;font-size:15px;margin-bottom:3px">Project submission</div>' +
+      '<div style="font-size:12.5px;color:#8b879c;margin-bottom:14px">' + (iAmLeader ? "You're the leader — submit or update your project here." : "Your team leader submits the project.") + "</div>" +
+      (sub ? '<div style="background:#f3fbf8;border:1px solid #d7f3ee;border-radius:14px;padding:14px 16px;margin-bottom:14px">' +
+        '<div style="display:flex;align-items:center;gap:8px"><span class="chip" style="background:#d7f3ee;color:#0d9488">✓ Submitted</span><span style="font-size:11.5px;color:#9b97ac">' + timeAgo(sub.submittedAt) + "</span></div>" +
+        '<div style="font-weight:800;font-size:15px;margin-top:8px">' + escapeHtml(sub.title || "") + "</div>" +
+        (sub.description ? '<div style="font-size:13px;color:#56526a;line-height:1.55;margin-top:5px">' + escapeHtml(sub.description) + "</div>" : "") +
+        (sub.githubUrl ? '<a class="btn btn-soft" style="text-decoration:none;margin-top:11px;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="' + escapeHtml(sub.githubUrl) + '">GitHub repo ↗</a>' : "") + "</div>" : "") +
+      (iAmLeader
+        ? '<label class="f-label" style="margin-top:0">Project title</label><input id="sb-title" class="f-input" value="' + escapeHtml(sub?.title || "") + '" placeholder="e.g. StudyBuddy AI">' +
+          '<label class="f-label">Description</label><textarea id="sb-desc" class="f-input" rows="2" placeholder="What does it do?">' + escapeHtml(sub?.description || "") + "</textarea>" +
+          '<label class="f-label">GitHub URL</label><input id="sb-git" class="f-input" value="' + escapeHtml(sub?.githubUrl || "") + '" placeholder="https://github.com/…">' +
+          '<label class="f-label">Project file (zip, optional)</label><input id="sb-file" class="f-input" type="file" style="padding:9px">' +
+          '<button id="sb-btn" class="btn btn-primary" style="width:100%;margin-top:16px" onclick="submitProject(' + !!sub + ')">' + (sub ? "Update submission" : "Submit project") + "</button>"
+        : (sub ? "" : '<div class="empty-state" style="padding:20px 10px"><div class="big">📦</div><div class="t">Nothing submitted yet</div></div>')) +
+      "</div></div>" +
+    /* announcement board */
+    '<div class="card card-pad" style="display:flex;flex-direction:column;max-height:820px">' +
+      '<div style="font-weight:800;font-size:15px;margin-bottom:3px">Announcement board</div>' +
+      '<div style="font-size:12.5px;color:#8b879c;margin-bottom:16px">Team discussion &amp; updates.</div>' +
+      '<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-right:6px;min-height:200px">' + annHtml + "</div>" +
+      (iAmLeader
+        ? '<div style="display:flex;gap:9px;margin-top:14px;border-top:1px solid #f0eff6;padding-top:14px">' +
+          '<input id="ann-in" class="f-input" style="border-radius:999px" placeholder="Post an announcement to your team…" onkeydown="if(event.key===\'Enter\')postAnnouncement()">' +
+          '<button class="btn btn-primary" style="width:46px;height:44px;border-radius:999px;padding:0;flex-shrink:0" onclick="postAnnouncement()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>'
+        : '<div style="margin-top:14px;border-top:1px solid #f0eff6;padding-top:12px;font-size:12px;color:#9b97ac;text-align:center">Only your team leader can start a new announcement — but you can reply to any of them above ↑</div>'
+      ) + "</div></div>";
+}
+async function createTeam() {
+  const teamName = document.getElementById("tm-name").value.trim();
+  const maxSize = parseInt(document.getElementById("tm-size").value || "4");
+  if (!teamName) { toast("Give your team a name.", "error"); return; }
+  const res = await api.post("/hackathon/" + S.activeHack + "/team/create", { teamName, maxSize, eventId: S.activeHack });
+  if (res === null) return;
+  toast("Team created! Share your invite code 🎉", "success");
+  loadTeam();
+}
+async function joinTeam() {
+  const inviteCode = document.getElementById("tm-code").value.trim();
+  if (!inviteCode) { toast("Enter an invite code.", "error"); return; }
+  const res = await api.post("/hackathon/" + S.activeHack + "/team/join", { inviteCode });
+  if (res === null) return;
+  toast("Request sent — the team leader will approve you.", "success");
+  loadTeam();
+}
+async function leaveTeam() {
+  if (!confirm("Leave this team?")) return;
+  const res = await api.post("/hackathon/" + S.activeHack + "/team/leave");
+  if (res === null) return;
+  toast("You left the team.", "success");
+  S.team = null; loadTeam();
+}
+async function inviteAct(memberId, act) {
+  const res = await api.put("/team/invite/" + memberId + "/" + act);
+  if (res === null) return;
+  toast(act === "accept" ? "Member accepted ✓" : "Request rejected.", "success");
+  loadTeam();
+}
+function copyCode(code) {
+  navigator.clipboard?.writeText(code).then(() => {
+    const b = document.getElementById("copy-btn"); if (b) { b.textContent = "Copied ✓"; setTimeout(() => b.textContent = "Copy", 1600); }
+  });
+}
+async function submitProject(isUpdate) {
+  const title = document.getElementById("sb-title").value.trim();
+  const githubUrl = document.getElementById("sb-git").value.trim();
+  if (!title || !githubUrl) { toast("Project title and GitHub URL are required.", "error"); return; }
+  const fd = new FormData();
+  fd.append("title", title);
+  fd.append("description", document.getElementById("sb-desc").value.trim());
+  fd.append("githubUrl", githubUrl);
+  const f = document.getElementById("sb-file").files[0];
+  if (f) fd.append("file", f);
+  const btn = document.getElementById("sb-btn"); btn.disabled = true; btn.textContent = "Submitting…";
+  const res = isUpdate ? await api.uploadPut("/hackathon/" + S.activeHack + "/submit", fd)
+                       : await api.upload("/hackathon/" + S.activeHack + "/submit", fd);
+  btn.disabled = false;
+  if (res === null) { btn.textContent = isUpdate ? "Update submission" : "Submit project"; return; }
+  toast(isUpdate ? "Submission updated ✓" : "Project submitted! 🚀", "success");
+  loadTeam();
+}
+async function postAnnouncement() {
+  const input = document.getElementById("ann-in");
+  const content = input.value.trim();
+  if (!content) return;
+  const res = await api.post("/team/" + S.team.teamId + "/announcement", { content });
+  if (res === null) return;
+  input.value = "";
+  loadTeam();
+}
+function replyBox(id) {
+  const box = document.getElementById("reply-" + id);
+  box.style.display = box.style.display === "none" ? "block" : "none";
+  if (box.style.display === "block") document.getElementById("reply-in-" + id).focus();
+}
+async function postComment(annId) {
+  const input = document.getElementById("reply-in-" + annId);
+  const content = input.value.trim();
+  if (!content) return;
+  const res = await api.post("/team/announcement/" + annId + "/comment", { content });
+  if (res === null) return;
+  loadTeam();
+}
+
+/* =====================================================================
+   LEADERBOARD  ({rank, teamOrUserName, totalPoints})
+   ===================================================================== */
+async function rLeader(el) {
+  head(el, "Leaderboard", "Global standings, or rankings per hackathon.");
+  const hacks = allHackathons();
+  el.insertAdjacentHTML("beforeend",
+    '<div class="filters" style="justify-content:center">' +
+    '<button class="fpill ' + (S.leaderScope === "global" ? "active" : "") + '" onclick="pickLb(\'global\')">🌍 Global</button>' +
+    hacks.map(h => '<button class="fpill ' + (S.leaderScope === "hack" && String(S.leaderHack) === String(h.id) ? "active" : "") + '" onclick="pickLb(\'' + h.id + '\')">' + escapeHtml(h.title) + "</button>").join("") + "</div>" +
+    '<div id="lb-zone" style="max-width:880px;margin:0 auto">' + skels(1, 300) + "</div>");
+  const url = S.leaderScope === "global" ? "/leaderboard/global" : "/leaderboard/hackathon/" + S.leaderHack;
+  const rows = asList(await api.get(url));
+  const zone = document.getElementById("lb-zone"); if (!zone) return;
+  if (!rows.length) { zone.innerHTML = empty("📊", "No scores yet", "Rankings appear once points start landing."); return; }
+  zone.innerHTML = '<div class="card tbl">' + rows.map((p, i) => {
+    const rank = p.rank ?? (i + 1);
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+    const nm = p.teamOrUserName || "—";
+    const isMe = ME.name && nm === ME.name;
+    return '<div class="tbl-row" style="grid-template-columns:64px 2fr 1fr;background:' + (isMe ? "#eef0ff" : rank <= 3 ? "#fbfaff" : "#fff") + '">' +
+      '<div><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;font-weight:800;font-size:14px;background:' + (rank <= 3 ? "#eef0ff" : "#f4f3f9") + ";color:" + (rank <= 3 ? "#4f46e5" : "#75718a") + '">' + medal + "</span></div>" +
+      '<div style="display:flex;align-items:center;gap:12px"><div class="av" style="width:38px;height:38px;font-size:13px;background:' + avColor(nm) + '">' + initials(nm) + '</div><div style="font-weight:700;font-size:14.5px">' + escapeHtml(nm) + (isMe ? ' <span style="color:#4f46e5;font-weight:600">(you)</span>' : "") + "</div></div>" +
+      '<div style="text-align:right;font-weight:800;font-size:16px;font-family:var(--mono)">' + (p.totalPoints ?? "—") + "</div></div>";
+  }).join("") + "</div>";
+}
+function pickLb(v) {
+  if (v === "global") { S.leaderScope = "global"; } else { S.leaderScope = "hack"; S.leaderHack = v; }
+  render();
+}
+
+/* =====================================================================
+   CERTIFICATES  (CertificateResponse)
+   ===================================================================== */
+async function rCerts(el) {
+  head(el, "My certificates", "Download, verify and share your earned certificates.");
+  el.insertAdjacentHTML("beforeend", '<div id="cert-zone">' + skels(2, 260) + "</div>");
+  S.certificates = asList(await api.get("/users/me/certificates"));
+  const zone = document.getElementById("cert-zone"); if (!zone) return;
+  if (!S.certificates.length) { zone.innerHTML = empty("🎓", "No certificates yet", "Pass a quiz or place in a hackathon and your first one lands here."); return; }
+  const ACCENTS = [["#4f46e5", "#eef0ff"], ["#0d9488", "#e6fbf6"], ["#db2777", "#fde9f3"], ["#d97706", "#fef4dc"]];
+  zone.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px">' +
+    S.certificates.map((c, i) => {
+      const [ac, tint] = ACCENTS[i % 4];
+      return '<div class="card" style="overflow:hidden">' +
+        '<div style="border:2px solid ' + ac + ';border-radius:14px;margin:16px;padding:20px;background:linear-gradient(135deg,#fff,' + tint + ')">' +
+          '<div style="text-align:center"><div style="font-size:10.5px;font-weight:800;letter-spacing:2px;color:' + ac + '">CERTIFICATE OF COMPLETION</div>' +
+          '<div style="width:40px;height:2px;background:' + ac + ';margin:9px auto"></div>' +
+          '<div style="font-size:12px;color:#8b879c">This certifies that</div>' +
+          '<div style="font-weight:800;font-size:17px;margin:3px 0">' + escapeHtml(c.participantName || ME.name || "You") + "</div>" +
+          '<div style="font-size:12px;color:#8b879c">has successfully completed</div>' +
+          '<div style="font-weight:700;font-size:14px;color:' + ac + ';margin-top:4px;line-height:1.3">' + escapeHtml(c.eventTitle || "EduEvent") + "</div></div>" +
+          '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:18px">' +
+          '<div><div style="font-size:10.5px;color:#9b97ac">Issued</div><div style="font-size:12px;font-weight:700">' + fmtDate(c.issuedAt) + "</div></div>" +
+          '<div style="font-size:9.5px;color:#9b97ac;font-family:var(--mono)">' + escapeHtml(String(c.certUuid || "").slice(0, 13)) + "</div></div></div>" +
+        '<div style="padding:0 16px 16px;display:flex;gap:9px">' +
+          '<button class="btn btn-primary" style="flex:1" onclick="dlCert(\'' + c.id + "','" + encodeURIComponent(c.eventTitle || "certificate") + '\')">⬇ Download PDF</button>' +
+          (c.verifyUrl ? '<button class="btn btn-soft" onclick="copyVerify(this,\'' + escapeHtml(c.verifyUrl) + '\')">Verify link</button>' : "") +
+        "</div></div>";
+    }).join("") + "</div>";
+}
+function dlCert(id, ev) {
+  toast("Preparing your certificate…");
+  api.download("/certificates/" + id + "/download", decodeURIComponent(ev).replace(/\s+/g, "_") + "_certificate.pdf");
+}
+function copyVerify(btn, url) {
+  navigator.clipboard?.writeText(url).then(() => { btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = "Verify link", 1600); });
+}
+
+/* =====================================================================
+   NOTIFICATIONS  (NotificationResponse)
+   ===================================================================== */
+function rNotif(el) {
+  head(el, "Notifications", "Updates from organizers and the platform.",
+    '<button class="btn btn-ghost" style="color:#4f46e5" onclick="markAll()">Mark all read</button>');
+  const list = S.notifications;
+  el.insertAdjacentHTML("beforeend", list.length
+    ? '<div class="card tbl" style="border-radius:18px;max-width:760px">' + list.map(n =>
+        '<div onclick="readNotif(\'' + n.id + '\')" style="display:flex;gap:14px;padding:16px 22px;border-bottom:1px solid #f4f3f9;cursor:pointer;background:' + (n.isRead ? "#fff" : "#fbfaff") + '">' +
+          '<div style="width:38px;height:38px;border-radius:11px;background:#eef0ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🔔</div>' +
+          '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">' + escapeHtml(n.title || "Notification") + "</div>" +
+          '<div style="font-size:12.5px;color:#8b879c;margin-top:2px;line-height:1.4">' + escapeHtml(n.message || "") + "</div></div>" +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0"><div style="font-size:11.5px;color:#b3afc2">' + timeAgo(n.createdAt) + "</div>" +
+          (n.isRead ? "" : '<span style="width:9px;height:9px;border-radius:50%;background:#4f46e5"></span>') + "</div></div>"
+      ).join("") + "</div>"
+    : empty("🔕", "All caught up", "Nothing new right now."));
+}
+async function readNotif(id) {
+  const n = S.notifications.find(x => String(x.id) === String(id));
+  if (!n || n.isRead) return;
+  await api.put("/notifications/" + id + "/read");
+  n.isRead = true; renderTabs(); if (S.page === "notif") render();
+}
+async function markAll() {
+  const unread = S.notifications.filter(n => !n.isRead);
+  if (!unread.length) { toast("Already all read ✓", "success"); return; }
+  await Promise.all(unread.map(n => api.put("/notifications/" + n.id + "/read")));
+  unread.forEach(n => n.isRead = true);
+  toast("All notifications marked read.", "success");
+  renderTabs(); render();
+}
+</script>
+</body>
+</html>
