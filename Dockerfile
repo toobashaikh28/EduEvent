@@ -11,4 +11,5 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 # Render injects $PORT; bind Spring Boot to it (defaults to 8080 locally)
-ENTRYPOINT ["sh","-c","java -jar app.jar --server.port=${PORT:-8080}"]
+# -Xmx caps JVM heap so it fits inside a 512MB free-tier container
+ENTRYPOINT ["sh","-c","java -Xmx350m -jar app.jar --server.port=${PORT:-8080}"]
