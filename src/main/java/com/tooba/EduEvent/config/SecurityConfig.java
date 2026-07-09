@@ -46,6 +46,10 @@ public class SecurityConfig {
                 .requestMatchers("/", "/*.html", "/css/**", "/js/**", "/images/**", "/pages/**",
                                  "/user/**", "/admin/**", "/judge/**", "/favicon.ico").permitAll()
 
+                // Swagger / OpenAPI docs — publicly viewable API reference
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                 "/v3/api-docs.yaml").permitAll()
+
                 // 2. Auth endpoints: Fully public
                 .requestMatchers("/api/auth/**").permitAll()
 
