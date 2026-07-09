@@ -214,7 +214,7 @@ async function rSubs(el){
     (s.description ? '<div style="font-size:13.5px;color:#3a3650;line-height:1.6">'+escapeHtml(s.description)+'</div>' : '<div style="font-size:13px;color:#9b97ac">No description provided.</div>')+
     '<div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">'+
     (s.githubUrl ? '<a class="btn btn-soft" style="text-decoration:none;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(s.githubUrl)+'">GitHub repo ↗</a>' : '')+
-    (s.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(s.filePath)+'">Project file ⬇</a>' : '')+
+    (s.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:8px 15px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(assetUrl(s.filePath))+'">Project file ⬇</a>' : '')+
     '</div>'+
     (sc && sc.feedback ? '<div style="margin-top:12px;background:#fbf6ec;border:1px solid #f0ddb0;border-radius:12px;padding:11px 14px;font-size:12.5px;color:#56526a"><b style="color:#d97706">Your feedback:</b> '+escapeHtml(sc.feedback)+'</div>' : '')+
     '</div></div>';
@@ -256,7 +256,7 @@ async function rScore(el){
     (sub.description ? '<div style="font-size:13.5px;color:#3a3650;line-height:1.65;background:#faf9fe;border:1px solid #f0eff6;border-radius:14px;padding:14px 16px">'+escapeHtml(sub.description)+'</div>' : '<div style="font-size:13px;color:#9b97ac">No description provided.</div>')+
     '<div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap">'+
     (sub.githubUrl ? '<a class="btn btn-soft" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(sub.githubUrl)+'">GitHub repo ↗</a>' : '')+
-    (sub.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(sub.filePath)+'">Project file ⬇</a>' : '')+
+    (sub.filePath ? '<a class="btn btn-soft" style="text-decoration:none;padding:9px 16px;font-size:12.5px" target="_blank" rel="noopener" href="'+escapeHtml(assetUrl(sub.filePath))+'">Project file ⬇</a>' : '')+
     '</div></div>'+
     /* scoring card */
     '<div class="card card-pad">'+

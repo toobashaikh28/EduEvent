@@ -137,6 +137,14 @@ function hidePageLoader() {
 }
 
 /* ---------------- tiny utils ---------------- */
+/** Backend-served file/upload paths are sometimes stored without a leading
+ *  slash (relative), which breaks when the link is clicked from a nested page
+ *  like /judge/dashboard.html (browser resolves it as /judge/uploads/...).
+ *  This guarantees an absolute, root-relative URL either way. */
+function assetUrl(path) {
+  if (!path) return "";
+  return path.startsWith("http") || path.startsWith("/") ? path : "/" + path;
+}
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, m => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"

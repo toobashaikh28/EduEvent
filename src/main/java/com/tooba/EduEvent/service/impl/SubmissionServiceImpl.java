@@ -144,7 +144,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
             Files.copy(file.getInputStream(), dir.resolve(unique));
 
-            String rel = "uploads/submissions/" + teamId + "/" + unique;
+            String rel = "/uploads/submissions/" + teamId + "/" + unique;
             log.info("File saved: {}", rel);
             return rel;
         } catch (IOException e) {
