@@ -20,7 +20,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<!-- Newer MongoDB Java driver for Atlas M0/8.0 TLS + SNI compatibility -->
-		<mongodb.driver.version>5.2.1</mongodb.driver.version>
+		<mongodb.version>5.2.1</mongodb.version>
 		<!-- The legacy unit tests were written for the old JPA/SQL-Server object-graph
 			model (Long ids, setUser(User), etc.) and have not yet been ported to the
 			MongoDB stored-id model. Skip them so the app builds and deploys; remove
