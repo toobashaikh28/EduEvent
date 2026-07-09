@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -21,6 +22,12 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    // Gmail's SMTP server rejects (or silently drops) mail whose "From" header
+    // doesn't match the authenticated account, so we must send as the real
+    // MAIL_USERNAME address rather than a made-up domain.
+    @Value("${spring.mail.username}")
+    private String fromAddress;
+
     // --- YOUR EXISTING METHOD (Plain Text) ---
     @Override
     public void sendEmail(String to, String subject, String body) {
@@ -29,12 +36,15 @@ public class EmailServiceImpl implements EmailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(body);
-            message.setFrom("EduEvent Engine <no-reply@eduevent.com>");
+            message.setFrom("EduEvent <" + fromAddress + ">");
 
             mailSender.send(message);
             log.info("Real email successfully dispatched to target: {}", to);
         } catch (Exception e) {
             log.error("Failed to transmit email to {}. Stack Trace: ", to, e);
+            // Surface the failure to callers (admin console) instead of
+            // swallowing it and pretending the send succeeded.
+            throw new RuntimeException("Email send failed: " + e.getMessage(), e);
         }
     }
 
@@ -50,7 +60,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(toEmail);
             helper.setSubject("🏆 Your Certificate for " + eventTitle);
             helper.setText("Congratulations " + userName + "!\n\nPlease find your official certificate attached.", false);
-            helper.setFrom("EduEvent Engine <no-reply@eduevent.com>");
+            helper.setFrom("EduEvent <" + fromAddress + ">");
 
             // Grab the PDF file from the local directory and attach it
             FileSystemResource file = new FileSystemResource(new File(pdfFilePath));

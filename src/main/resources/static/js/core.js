@@ -152,21 +152,33 @@ function avColor(seed) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return AV_COLORS[h % AV_COLORS.length];
 }
+/** Backend stores LocalDateTime in UTC but serialises it WITHOUT a timezone marker
+ *  (e.g. "2026-07-09T05:15:00"). Browsers parse a marker-less ISO string as LOCAL
+ *  time, silently shifting every timestamp by the viewer's UTC offset (5h for PKT).
+ *  This helper appends "Z" when no zone/offset is present so the value is read as
+ *  UTC, while leaving strings that already carry one (Z / +05:00) untouched. */
+function toUtcDate(d) {
+  if (d instanceof Date) return d;
+  if (typeof d === "number") return new Date(d);
+  if (typeof d !== "string") return new Date(d);
+  const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(d.trim());
+  return new Date(hasZone ? d : d + "Z");
+}
 function fmtDate(d) {
   if (!d) return "—";
-  const dt = new Date(d);
+  const dt = toUtcDate(d);
   if (isNaN(dt)) return String(d);
   return dt.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 function fmtDateTime(d) {
   if (!d) return "—";
-  const dt = new Date(d);
+  const dt = toUtcDate(d);
   if (isNaN(dt)) return String(d);
   return dt.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " · " +
          dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 function timeAgo(d) {
-  const dt = new Date(d); if (isNaN(dt)) return "";
+  const dt = toUtcDate(d); if (isNaN(dt)) return "";
   const s = (Date.now() - dt.getTime()) / 1000;
   if (s < 60) return "just now";
   if (s < 3600) return Math.floor(s / 60) + "m ago";
