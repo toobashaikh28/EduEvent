@@ -2,9 +2,13 @@ package com.tooba.EduEvent.service.impl;
 
 import com.tooba.EduEvent.dto.response.LeaderboardResponse;
 import com.tooba.EduEvent.entity.Leaderboard;
+import com.tooba.EduEvent.entity.Score;
+import com.tooba.EduEvent.entity.Submission;
 import com.tooba.EduEvent.entity.Team;
 import com.tooba.EduEvent.entity.User;
 import com.tooba.EduEvent.repository.LeaderboardRepository;
+import com.tooba.EduEvent.repository.ScoreRepository;
+import com.tooba.EduEvent.repository.SubmissionRepository;
 import com.tooba.EduEvent.repository.TeamRepository;
 import com.tooba.EduEvent.repository.UserRepository;
 import com.tooba.EduEvent.service.LeaderboardService;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +32,8 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     private final LeaderboardRepository leaderboardRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final SubmissionRepository submissionRepository;
+    private final ScoreRepository scoreRepository;
 
     @Override
     public void upsertQuizScore(String userId, String eventId, Double score) {
@@ -56,7 +63,45 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     @Override
     public List<LeaderboardResponse> getHackathonLeaderboard(String hackathonId) {
         List<Leaderboard> results = leaderboardRepository.findAllByHackathonIdOrderByRankAsc(hackathonId);
-        return mapToResponse(results, false);
+        if (!results.isEmpty()) {
+            return mapToResponse(results, false);
+        }
+        // Winners haven't been officially announced yet (no rows persisted in the
+        // leaderboard collection) — fall back to LIVE standings computed directly
+        // from judge scores, so participants can watch rankings update in real
+        // time instead of seeing a blank leaderboard until an admin announces.
+        return computeLiveHackathonStandings(hackathonId);
+    }
+
+    private List<LeaderboardResponse> computeLiveHackathonStandings(String hackathonId) {
+        List<Submission> subs = submissionRepository.findAllByHackathonId(hackathonId);
+        Map<String, String> submissionToTeam = new LinkedHashMap<>();
+        for (Submission s : subs) submissionToTeam.put(s.getId(), s.getTeamId());
+        List<String> submissionIds = new ArrayList<>(submissionToTeam.keySet());
+        if (submissionIds.isEmpty()) return List.of();
+
+        Map<String, Integer> totalByTeam = new HashMap<>();
+        for (Score sc : scoreRepository.findBySubmissionIdIn(submissionIds)) {
+            String teamId = submissionToTeam.get(sc.getSubmissionId());
+            if (teamId != null && sc.getScoreValue() != null) {
+                totalByTeam.merge(teamId, sc.getScoreValue(), Integer::sum);
+            }
+        }
+        if (totalByTeam.isEmpty()) return List.of();
+
+        List<Map.Entry<String, Integer>> ranked = new ArrayList<>(totalByTeam.entrySet());
+        ranked.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        List<LeaderboardResponse> live = new ArrayList<>();
+        int rank = 1;
+        for (Map.Entry<String, Integer> entry : ranked) {
+            LeaderboardResponse dto = new LeaderboardResponse();
+            dto.setRank(rank++);
+            dto.setTeamOrUserName(teamRepository.findById(entry.getKey()).map(Team::getName).orElse("Unknown Team"));
+            dto.setTotalPoints(entry.getValue());
+            live.add(dto);
+        }
+        return live;
     }
 
     // 🔥 CACHED: sum of all quiz scores per user, grouped in Java
