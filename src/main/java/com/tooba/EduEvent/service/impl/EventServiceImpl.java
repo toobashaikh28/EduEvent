@@ -120,13 +120,20 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventResponse updateEvent(String id, EventRequest request, MultipartFile banner) {
+    public EventResponse updateEvent(String id, EventRequest request, MultipartFile banner, String adminEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
-        User admin = userRepository.findById(event.getAdminId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
+        // FIX: authorize against the CURRENTLY logged-in admin (by email from
+        // the JWT), not event.getAdminId() — the original creator. That old
+        // reference can go stale (deleted/reseeded accounts) and used to throw
+        // a bogus 401 "Event owner not found" for a perfectly valid session.
+        // @PreAuthorize("hasRole('ADMIN')") on the controller already gates
+        // this endpoint; this chain call just satisfies the Chain-of-
+        // Responsibility validation pipeline with the real actor.
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Admin not found"));
         authorizationHandler.setNext(validationHandler);
         authorizationHandler.handle(request, admin, "UPDATE");
 
@@ -146,13 +153,15 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public void deleteEvent(String id) {
+    public void deleteEvent(String id, String adminEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Event not found with id: " + id));
 
-        User admin = userRepository.findById(event.getAdminId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Event owner not found"));
+        // Same fix as updateEvent() — authorize the current caller, not the
+        // event's original (possibly stale) adminId.
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Admin not found"));
         authorizationHandler.setNext(null);
         authorizationHandler.handle(new EventRequest(), admin, "DELETE");
 

@@ -66,16 +66,21 @@ public class EventController {
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable String id,
             @Valid @ModelAttribute EventRequest request,
-            @RequestPart(value = "banner", required = false) MultipartFile banner) {
+            @RequestPart(value = "banner", required = false) MultipartFile banner,
+            Authentication authentication) {
 
-        EventResponse response = eventService.updateEvent(id, request, banner);
+        // FIX: use the CURRENTLY logged-in admin for the authorization check,
+        // not the event's original creator — a stale/deleted adminId on old
+        // seed data was causing every edit to fail with a bogus 401, even for
+        // a freshly-logged-in, genuinely valid admin session.
+        EventResponse response = eventService.updateEvent(id, request, banner, authentication.getName());
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteEvent(@PathVariable String id) {
-        eventService.deleteEvent(id);
+    public ResponseEntity<String> deleteEvent(@PathVariable String id, Authentication authentication) {
+        eventService.deleteEvent(id, authentication.getName());
         return ResponseEntity.ok("Event deleted successfully.");
     }
 }
