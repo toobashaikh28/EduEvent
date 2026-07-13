@@ -1,8 +1,10 @@
+
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !mvnw
 !mvnw.cmd
+certificates/
 
 # Credentials — NEVER commit these
 application-local.properties
