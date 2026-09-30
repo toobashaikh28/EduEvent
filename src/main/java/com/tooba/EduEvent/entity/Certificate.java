@@ -15,6 +15,7 @@ public class Certificate {
 
     @Id
     private String id;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String userId;
 

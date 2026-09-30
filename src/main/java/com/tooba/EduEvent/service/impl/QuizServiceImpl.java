@@ -303,8 +303,14 @@ public class QuizServiceImpl implements QuizService {
 
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("MMM d");
 
-        return quizRepository.findAll().stream().map(q -> {
-            Event ev = eventRepository.findById(q.getEventId()).orElse(null);
+        List<Quiz> allQuizzes = quizRepository.findAll();
+        Map<String, Event> eventsById = new java.util.HashMap<>();
+        List<String> evIds = allQuizzes.stream().map(Quiz::getEventId)
+                .filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+        if (!evIds.isEmpty()) eventRepository.findAllById(evIds).forEach(e -> eventsById.put(e.getId(), e));
+
+        return allQuizzes.stream().map(q -> {
+            Event ev = eventsById.get(q.getEventId());
             String title = ev != null ? ev.getTitle() : "Quiz";
             String evStatus = (ev != null && ev.getStatus() != null) ? ev.getStatus().toUpperCase() : "UPCOMING";
             String status = switch (evStatus) {
@@ -313,7 +319,7 @@ public class QuizServiceImpl implements QuizService {
                 default                -> "completed";
             };
             double pass = q.getPassScore() != null ? q.getPassScore().doubleValue() : 50.0;
-            int qCount = questionRepository.findByQuizId(q.getId()).size();
+            int qCount = (int) questionRepository.countByQuizId(q.getId());
 
             List<QuizSession> sess = sessionsByQuiz.getOrDefault(q.getId(), List.of());
             QuizSession best = sess.stream().filter(s -> s.getScore() != null)

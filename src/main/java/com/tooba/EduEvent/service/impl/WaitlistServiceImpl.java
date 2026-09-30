@@ -56,7 +56,7 @@ public class WaitlistServiceImpl implements WaitlistService {
                                 + "A spot has just opened up! You have been promoted from the waitlist "
                                 + "to REGISTERED for '" + eventTitle + "'."
                                 + "\n\nWe look forward to seeing you there!\n\nBest,\nEduEvent Team";
-                        emailService.sendEmail(user.getEmail(), subject, body);
+                        emailService.sendEmailAsync(user.getEmail(), subject, body);
                     }
                 });
     }

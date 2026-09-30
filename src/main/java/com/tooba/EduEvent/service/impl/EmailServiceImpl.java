@@ -48,6 +48,18 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    // Background variant used inside user-facing requests (register, waitlist, ...):
+    // a slow / blocked / misconfigured mail server must never fail or delay the API call.
+    @Override
+    @Async
+    public void sendEmailAsync(String to, String subject, String body) {
+        try {
+            sendEmail(to, subject, body);
+        } catch (Exception e) {
+            log.warn("Background email to {} failed (request was not affected): {}", to, e.getMessage());
+        }
+    }
+
     // --- NEW METHOD (PDF Attachment) ---
     @Override
     @Async
@@ -69,7 +81,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Certificate email with PDF successfully dispatched to target: {}", toEmail);
 
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Failed to transmit certificate email to {}. Stack Trace: ", toEmail, e);
         }
     }

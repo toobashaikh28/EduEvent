@@ -47,15 +47,20 @@ async function _request(method, path, body, isMultipart) {
   if (!isMultipart && body !== undefined) headers["Content-Type"] = "application/json";
 
   let res;
+  // Render's free tier sleeps when idle; the first request can take 30-60 s.
+  // Tell the user what's happening instead of leaving a silent, "stuck" button.
+  const wakeTimer = setTimeout(() => toast("Server is waking up, this can take up to a minute…"), 4000);
   try {
     res = await fetch(API_BASE + path, {
       method, headers,
       body: isMultipart ? body : (body !== undefined ? JSON.stringify(body) : undefined)
     });
   } catch (netErr) {
+    clearTimeout(wakeTimer);
     toast("Can't reach the server. Is the backend running?", "error");
     return null;
   }
+  clearTimeout(wakeTimer);
 
   if (res.status === 401) {
     // token expired / invalid → back to landing

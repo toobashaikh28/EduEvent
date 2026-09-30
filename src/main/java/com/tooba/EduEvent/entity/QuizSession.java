@@ -15,8 +15,10 @@ public class QuizSession {
 
     @Id
     private String id;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String quizId;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String userId;
 

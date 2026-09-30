@@ -18,6 +18,7 @@ public class Event {
     private String id;
 
     private String title;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String type; // Maps to 'Webinar', 'Conference', 'Hackathon', 'Quiz'
 
@@ -31,6 +32,7 @@ public class Event {
     private LocalDateTime endTime;
 
     @Builder.Default
+    @org.springframework.data.mongodb.core.index.Indexed
     private String status = "UPCOMING"; // 'UPCOMING', 'LIVE', 'COMPLETED', 'CANCELLED'
 
     private String bannerUrl;

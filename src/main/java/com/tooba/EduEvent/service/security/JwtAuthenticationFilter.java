@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 // FIX 5: Your filter already correctly sets "ROLE_" + role (e.g. "ROLE_ADMIN")
 //        which makes @PreAuthorize("hasRole('ADMIN')") work — this was already correct.
@@ -40,6 +41,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+
+    // PERF: the role used to be loaded from MongoDB on EVERY request (one extra
+    // network round trip per API call). Cache it briefly in memory instead.
+    private static final long ROLE_TTL_MS = 30_000L;
+    private record CachedRole(String role, long expiresAt) {}
+    private final Map<String, CachedRole> roleCache = new ConcurrentHashMap<>();
+
+    private String lookupRole(String email) {
+        long now = System.currentTimeMillis();
+        CachedRole cached = roleCache.get(email);
+        if (cached != null && cached.expiresAt() > now) {
+            return cached.role();
+        }
+        String role = userRepository.findByEmail(email)
+                .map(u -> u.getRole())
+                .orElse(null);
+        if (role == null) {
+            roleCache.remove(email);
+            return null;
+        }
+        if (roleCache.size() > 5000) roleCache.clear();
+        roleCache.put(email, new CachedRole(role, now + ROLE_TTL_MS));
+        return role;
+    }
 
     // Guards against ever re-processing an internally forwarded/error dispatch
     // of the same request — the root cause of the StackOverflowError we saw in
@@ -101,10 +126,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Load role from DB and set "ROLE_ADMIN" / "ROLE_USER" / "ROLE_JUDGE"
                 // This is what makes @PreAuthorize("hasRole('ADMIN')") work correctly
                 // hasRole('ADMIN') checks for authority "ROLE_ADMIN" — Spring adds ROLE_ prefix automatically
-                List<SimpleGrantedAuthority> authorities = userRepository
-                        .findByEmail(userEmail)
-                        .map(u -> List.of(new SimpleGrantedAuthority("ROLE_" + u.getRole())))
-                        .orElse(List.of());
+                String cachedRole = lookupRole(userEmail);
+                List<SimpleGrantedAuthority> authorities = cachedRole == null
+                        ? List.of()
+                        : List.of(new SimpleGrantedAuthority("ROLE_" + cachedRole));
 
                 if (authorities.isEmpty()) {
                     log.warn("JWT token references a user that no longer exists: {}", userEmail);

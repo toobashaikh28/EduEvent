@@ -9,8 +9,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class TeamMember {
     @Id
     private String id;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String teamId;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String userId;
 

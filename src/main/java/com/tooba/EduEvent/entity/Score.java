@@ -17,6 +17,7 @@ public class Score {
     private String id;
 
     private String judgeId;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String submissionId;
 

@@ -21,6 +21,7 @@ public class Registration {
     private String id;
 
     private String userId;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String eventId;
 

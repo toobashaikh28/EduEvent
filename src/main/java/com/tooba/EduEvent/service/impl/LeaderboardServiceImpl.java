@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -92,12 +95,13 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         List<Map.Entry<String, Integer>> ranked = new ArrayList<>(totalByTeam.entrySet());
         ranked.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
 
+        Map<String, String> teamNames = teamNames(totalByTeam.keySet());
         List<LeaderboardResponse> live = new ArrayList<>();
         int rank = 1;
         for (Map.Entry<String, Integer> entry : ranked) {
             LeaderboardResponse dto = new LeaderboardResponse();
             dto.setRank(rank++);
-            dto.setTeamOrUserName(teamRepository.findById(entry.getKey()).map(Team::getName).orElse("Unknown Team"));
+            dto.setTeamOrUserName(teamNames.getOrDefault(entry.getKey(), "Unknown Team"));
             dto.setTotalPoints(entry.getValue());
             live.add(dto);
         }
@@ -119,19 +123,41 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         List<Map.Entry<String, Double>> sorted = new ArrayList<>(totals.entrySet());
         sorted.sort(Comparator.comparingDouble((Map.Entry<String, Double> e) -> e.getValue()).reversed());
 
+        Map<String, String> userNames = userNames(totals.keySet());
         List<LeaderboardResponse> response = new ArrayList<>();
         int rank = 1;
         for (Map.Entry<String, Double> e : sorted) {
             LeaderboardResponse dto = new LeaderboardResponse();
             dto.setRank(rank++);
-            dto.setTeamOrUserName(userRepository.findById(e.getKey()).map(User::getName).orElse("Unknown User"));
+            dto.setTeamOrUserName(userNames.getOrDefault(e.getKey(), "Unknown User"));
             dto.setTotalPoints(e.getValue().intValue());
             response.add(dto);
         }
         return response;
     }
 
+    /** PERF helpers: resolve many display names with ONE query instead of one per row. */
+    private Map<String, String> userNames(Collection<String> ids) {
+        Map<String, String> map = new HashMap<>();
+        List<String> clean = ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (!clean.isEmpty()) userRepository.findAllById(clean).forEach(u -> map.put(u.getId(), u.getName()));
+        return map;
+    }
+
+    private Map<String, String> teamNames(Collection<String> ids) {
+        Map<String, String> map = new HashMap<>();
+        List<String> clean = ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (!clean.isEmpty()) teamRepository.findAllById(clean).forEach(t -> map.put(t.getId(), t.getName()));
+        return map;
+    }
+
     private List<LeaderboardResponse> mapToResponse(List<Leaderboard> boards, boolean isUser) {
+        Map<String, String> userNames = isUser
+                ? userNames(boards.stream().map(Leaderboard::getUserId).collect(Collectors.toList()))
+                : new HashMap<>();
+        Map<String, String> teamNames = !isUser
+                ? teamNames(boards.stream().map(Leaderboard::getTeamId).collect(Collectors.toList()))
+                : new HashMap<>();
         List<LeaderboardResponse> response = new ArrayList<>();
         int rank = 1;
         for (Leaderboard b : boards) {
@@ -140,13 +166,13 @@ public class LeaderboardServiceImpl implements LeaderboardService {
 
             if (isUser) {
                 String name = b.getUserId() != null
-                        ? userRepository.findById(b.getUserId()).map(User::getName).orElse("Unknown User")
+                        ? userNames.getOrDefault(b.getUserId(), "Unknown User")
                         : "Unknown User";
                 dto.setTeamOrUserName(name);
                 dto.setTotalPoints(b.getScore() != null ? b.getScore().intValue() : 0);
             } else {
                 String name = b.getTeamId() != null
-                        ? teamRepository.findById(b.getTeamId()).map(Team::getName).orElse("Unknown Team")
+                        ? teamNames.getOrDefault(b.getTeamId(), "Unknown Team")
                         : "Unknown Team";
                 dto.setTeamOrUserName(name);
                 dto.setTotalPoints(b.getTotalScore() != null ? b.getTotalScore().intValue() : 0);

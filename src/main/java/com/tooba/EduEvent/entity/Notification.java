@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class Notification {
     @Id
     private String id;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String userId;
 

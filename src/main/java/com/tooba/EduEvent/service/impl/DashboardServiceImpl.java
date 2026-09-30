@@ -10,7 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -36,9 +39,11 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 1. Registered Events
         List<Registration> registrations = registrationRepository.findByUserId(userId);
+        Map<String, Event> regEvents = loadEvents(
+                registrations.stream().map(Registration::getEventId).collect(Collectors.toList()));
         List<DashboardResponse.EventSummary> events = registrations.stream()
                 .map(r -> {
-                    Event ev = eventRepository.findById(r.getEventId()).orElse(null);
+                    Event ev = regEvents.get(r.getEventId());
                     return DashboardResponse.EventSummary.builder()
                             .eventId(r.getEventId())
                             .title(ev != null ? ev.getTitle() : "Unknown")
@@ -52,10 +57,14 @@ public class DashboardServiceImpl implements DashboardService {
         List<String> registeredEventIds = registrations.stream().map(Registration::getEventId).toList();
         List<DashboardResponse.QuizSummary> upcomingQuizzes = new ArrayList<>();
         if (!registeredEventIds.isEmpty()) {
-            upcomingQuizzes = quizRepository.findByEventIdIn(registeredEventIds).stream()
+            List<Quiz> quizzes = quizRepository.findByEventIdIn(registeredEventIds);
+            Map<String, Event> quizEvents = loadEvents(
+                    quizzes.stream().map(Quiz::getEventId).collect(Collectors.toList()));
+            upcomingQuizzes = quizzes.stream()
                     .map(q -> DashboardResponse.QuizSummary.builder()
                             .quizId(q.getId())
-                            .eventTitle(eventRepository.findById(q.getEventId()).map(Event::getTitle).orElse("Quiz"))
+                            .eventTitle(quizEvents.get(q.getEventId()) != null && quizEvents.get(q.getEventId()).getTitle() != null
+                                    ? quizEvents.get(q.getEventId()).getTitle() : "Quiz")
                             .durationMinutes(q.getDurationMinutes())
                             .passScore(q.getPassScore().doubleValue())
                             .build())
@@ -66,11 +75,15 @@ public class DashboardServiceImpl implements DashboardService {
         List<QuizResultResponse> quizScores = quizService.getMyQuizHistory(email);
 
         // 4. Certificates
-        List<CertificateResponse> certificates = certificateRepository.findAllByUserId(userId).stream()
+        List<Certificate> certEntities = certificateRepository.findAllByUserId(userId);
+        Map<String, Event> certEvents = loadEvents(
+                certEntities.stream().map(Certificate::getEventId).collect(Collectors.toList()));
+        List<CertificateResponse> certificates = certEntities.stream()
                 .map(cert -> CertificateResponse.builder()
                         .id(cert.getId())
                         .participantName(user.getName())
-                        .eventTitle(eventRepository.findById(cert.getEventId()).map(Event::getTitle).orElse("Unknown Event"))
+                        .eventTitle(certEvents.get(cert.getEventId()) != null && certEvents.get(cert.getEventId()).getTitle() != null
+                                ? certEvents.get(cert.getEventId()).getTitle() : "Unknown Event")
                         .certUuid(cert.getCertUuid())
                         .verifyUrl(cert.getVerifyUrl())
                         .issuedAt(cert.getIssuedAt())
@@ -112,6 +125,25 @@ public class DashboardServiceImpl implements DashboardService {
             }
         }
 
+        return buildDashboard(events, upcomingQuizzes, quizScores, certificates, myTeam, notifications, myRank, totalPoints);
+    }
+
+    /** One query for many events instead of one findById per row. */
+    private Map<String, Event> loadEvents(Collection<String> ids) {
+        Map<String, Event> map = new HashMap<>();
+        List<String> clean = ids.stream().filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+        if (clean.isEmpty()) return map;
+        for (Event e : eventRepository.findAllById(clean)) map.put(e.getId(), e);
+        return map;
+    }
+
+    private DashboardResponse buildDashboard(List<DashboardResponse.EventSummary> events,
+                                             List<DashboardResponse.QuizSummary> upcomingQuizzes,
+                                             List<QuizResultResponse> quizScores,
+                                             List<CertificateResponse> certificates,
+                                             DashboardResponse.TeamSummary myTeam,
+                                             List<DashboardResponse.NotificationSummary> notifications,
+                                             Integer myRank, Integer totalPoints) {
         return DashboardResponse.builder()
                 .registeredEvents(events)
                 .upcomingQuizzes(upcomingQuizzes)

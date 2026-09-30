@@ -205,7 +205,7 @@ function paintEvents() {
 }
 async function registerEv(id) {
   const res = await api.post("/events/" + id + "/register");
-  if (res === null) return;
+  if (res === null) { await refreshEventsAndRegs(); render(); return; }   // resync: the server may have saved it anyway
   const waitlisted = String(res.status || "").toUpperCase() === "WAITLISTED";
   toast(waitlisted ? "Event is full — you're #" + (res.waitlistPosition ?? "?") + " on the waitlist ⏳" : "You're registered! 🎉", "success");
   await refreshEventsAndRegs(); render();
@@ -213,7 +213,7 @@ async function registerEv(id) {
 async function cancelReg(id) {
   if (!confirm("Cancel this registration?")) return;
   const res = await api.del("/events/" + id + "/register");
-  if (res === null) return;
+  if (res === null) { await refreshEventsAndRegs(); render(); return; }
   toast("Registration cancelled.", "success");
   await refreshEventsAndRegs(); render();
 }

@@ -14,6 +14,7 @@ import java.util.List;
 public class TeamAnnouncement {
     @Id
     private String id;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String teamId;
 

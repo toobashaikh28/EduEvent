@@ -51,7 +51,7 @@ public class SecurityConfig {
                                  "/v3/api-docs.yaml").permitAll()
 
                 // 2. Auth endpoints: Fully public
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/health").permitAll()
 
                 // 3. Public API resources
                 // FIX: was permitAll() for ALL HTTP methods on /api/events/**, which

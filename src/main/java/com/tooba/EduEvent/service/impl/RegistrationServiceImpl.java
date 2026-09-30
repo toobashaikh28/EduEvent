@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,7 +75,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                               + event.getTitle() + "'.")
                     + "\n\nEvent details are accessible in your application dashboard."
                     + "\n\nBest,\nEduEvent Team";
-            emailService.sendEmail(user.getEmail(), subject, body);
+            emailService.sendEmailAsync(user.getEmail(), subject, body);
         }
 
         // ── MEDIATOR: notify user of registration outcome ────────────────────
@@ -127,15 +129,34 @@ public class RegistrationServiceImpl implements RegistrationService {
         if (!eventRepository.existsById(eventId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
-        return registrationRepository.findByEventId(eventId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+        return toResponses(registrationRepository.findByEventId(eventId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getRegistrationsByUser(String userId) {
-        return registrationRepository.findByUserId(userId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+        return toResponses(registrationRepository.findByUserId(userId));
+    }
+
+    /** PERF: 2 batched lookups for the whole list instead of 2 queries per row. */
+    private List<RegistrationResponse> toResponses(List<Registration> regs) {
+        Map<String, String> titles = new HashMap<>();
+        Map<String, String> names = new HashMap<>();
+        List<String> eventIds = regs.stream().map(Registration::getEventId)
+                .filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+        List<String> userIds = regs.stream().map(Registration::getUserId)
+                .filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+        if (!eventIds.isEmpty()) eventRepository.findAllById(eventIds).forEach(e -> titles.put(e.getId(), e.getTitle()));
+        if (!userIds.isEmpty()) userRepository.findAllById(userIds).forEach(u -> names.put(u.getId(), u.getName()));
+        return regs.stream().map(reg -> RegistrationResponse.builder()
+                .id(reg.getId())
+                .eventId(reg.getEventId())
+                .eventTitle(titles.get(reg.getEventId()))
+                .userId(reg.getUserId())
+                .userName(names.get(reg.getUserId()))
+                .status(reg.getStatus().name())
+                .registeredAt(reg.getRegisteredAt())
+                .build()).collect(Collectors.toList());
     }
 
     private RegistrationResponse toResponse(Registration reg) {

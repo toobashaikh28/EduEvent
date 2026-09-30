@@ -23,6 +23,7 @@ public class Leaderboard {
     private LocalDateTime announcedAt;
 
     // --- HACKATHON TEAM FIELDS ---
+    @org.springframework.data.mongodb.core.index.Indexed
     private String hackathonId;
 
     private String teamId;
@@ -30,7 +31,9 @@ public class Leaderboard {
     private BigDecimal totalScore;
 
     // --- QUIZ USER FIELDS ---
+    @org.springframework.data.mongodb.core.index.Indexed
     private String eventId;
+    @org.springframework.data.mongodb.core.index.Indexed
 
     private String userId;
 

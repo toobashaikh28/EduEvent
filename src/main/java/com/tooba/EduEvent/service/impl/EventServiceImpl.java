@@ -14,6 +14,10 @@ import com.tooba.EduEvent.repository.RegistrationRepository;
 import com.tooba.EduEvent.repository.UserRepository;
 import com.tooba.EduEvent.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import com.tooba.EduEvent.entity.Registration;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +28,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,6 +45,7 @@ public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;   // NEW
+    private final MongoTemplate mongoTemplate;
 
     // Chain of Responsibility handlers
     private final AuthorizationHandler authorizationHandler;
@@ -77,9 +85,59 @@ public class EventServiceImpl implements EventService {
         // Resolve the logged-in user ONCE (null for anonymous visitors)
         final String userId = resolveUserId(userEmail);
 
-        return events.stream()
-                .map(e -> toResponse(e, userId))
-                .collect(Collectors.toList());
+        return toResponses(events, userId);
+    }
+
+    /**
+     * PERF: builds responses for a whole list of events with 3 queries total
+     * (seat counts, the user's registrations, admin names) instead of ~4 queries
+     * PER event (the old N+1 pattern that made /api/events very slow).
+     */
+    private List<EventResponse> toResponses(List<Event> events, String userId) {
+        if (events.isEmpty()) return List.of();
+
+        List<String> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+
+        // 1) confirmed seat count per event — a single aggregation
+        Map<String, Long> countByEvent = new HashMap<>();
+        Aggregation agg = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("eventId").in(eventIds)
+                        .and("status").is(RegistrationStatus.REGISTERED.name())),
+                Aggregation.group("eventId").count().as("count"));
+        for (org.bson.Document d : mongoTemplate.aggregate(agg, "registrations", org.bson.Document.class)) {
+            Object id = d.get("_id");
+            Object cnt = d.get("count");
+            if (id != null && cnt instanceof Number) {
+                countByEvent.put(id.toString(), ((Number) cnt).longValue());
+            }
+        }
+
+        // 2) this user's registrations — a single query
+        Map<String, RegistrationStatus> myStatus = new HashMap<>();
+        if (userId != null) {
+            for (Registration r : registrationRepository.findByUserId(userId)) {
+                myStatus.put(r.getEventId(), r.getStatus());
+            }
+        }
+
+        // 3) admin display names — a single query
+        Set<String> adminIds = new HashSet<>();
+        for (Event e : events) if (e.getAdminId() != null) adminIds.add(e.getAdminId());
+        Map<String, String> adminNames = new HashMap<>();
+        if (!adminIds.isEmpty()) {
+            for (User u : userRepository.findAllById(adminIds)) adminNames.put(u.getId(), u.getName());
+        }
+
+        List<EventResponse> out = new java.util.ArrayList<>(events.size());
+        for (Event e : events) {
+            RegistrationStatus st = myStatus.get(e.getId());
+            out.add(buildResponse(e,
+                    countByEvent.getOrDefault(e.getId(), 0L),
+                    st == RegistrationStatus.REGISTERED,
+                    st == RegistrationStatus.WAITLISTED,
+                    e.getAdminId() != null ? adminNames.get(e.getAdminId()) : null));
+        }
+        return out;
     }
 
     @Override
@@ -227,6 +285,11 @@ public class EventServiceImpl implements EventService {
                 ? userRepository.findById(event.getAdminId()).map(User::getName).orElse(null)
                 : null;
 
+        return buildResponse(event, registeredCount, isRegistered, isWaitlisted, adminName);
+    }
+
+    private EventResponse buildResponse(Event event, long registeredCount,
+                                        boolean isRegistered, boolean isWaitlisted, String adminName) {
         return EventResponse.builder()
                 .id(event.getId())
                 .title(event.getTitle())
